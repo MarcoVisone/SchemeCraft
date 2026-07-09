@@ -1,4 +1,4 @@
-package com.xyra.schemecraft.schemecraft;
+package com.xyra.schemecraft;
 
 import java.io.*;
 import javax.servlet.http.*;

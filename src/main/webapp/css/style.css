@@ -1,0 +1,36 @@
+:root {
+    --bg-main: #1E1E1E;
+    --bg-card: #2D2D2D;
+    --border-color: #444444;
+    --text-primary: #FFFFFF;
+    --text-secondary: #AAAAAA;
+    --btn-green: #3C8527;
+    --btn-green-hover: #52B135;
+    --accent-brown: #855432;
+
+    --font-game: 'Press Start 2P', monospace;
+    --font-body: 'Inter', system-ui, -apple-system, sans-serif;
+
+    --weight-regular: 400;
+    --weight-medium: 600;
+    --weight-bold: 700;
+}
+
+@media (prefers-color-scheme: light) {
+    :root {
+        --bg-main: #CED4D6;
+        --bg-card: #EBEFEF;
+        --border-color: #A9B2B6;
+        --text-primary: #222526;
+        --text-secondary: #5A6264;
+        --btn-green-hover: #2E661E;
+    }
+}
+
+body {
+    background-color: var(--bg-main);
+    color: var(--text-primary);
+    font-family: var(--font-body), serif;
+    font-weight: var(--weight-regular);
+    -webkit-font-smoothing: antialiased;
+}
