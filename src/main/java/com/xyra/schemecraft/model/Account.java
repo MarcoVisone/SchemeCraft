@@ -26,6 +26,24 @@ public class Account implements Serializable {
         this.balance = BigDecimal.ZERO;
     }
 
+    public Account(String accountId, String username, String email, String passwordHash, boolean isAdmin,
+                   String countryId, String currencyId, String languageId, String bio, String profileImagePath,
+                   String bannerPath, boolean isActive, BigDecimal balance) {
+        this.accountId = accountId;
+        this.username = username;
+        this.email = email;
+        this.passwordHash = passwordHash;
+        this.isAdmin = isAdmin;
+        this.countryId = countryId;
+        this.currencyId = currencyId;
+        this.languageId = languageId;
+        this.bio = bio;
+        this.profileImagePath = profileImagePath;
+        this.bannerPath = bannerPath;
+        this.isActive = isActive;
+        this.balance = balance != null ? balance : BigDecimal.ZERO;
+    }
+
     public String getAccountId() {
         return accountId;
     }
@@ -140,7 +158,7 @@ public class Account implements Serializable {
 
     @Override
     public String toString() {
-        return "Account {" +
+        return "Account{" +
                 "accountId='" + accountId + '\'' +
                 ", username='" + username + '\'' +
                 ", email='" + email + '\'' +

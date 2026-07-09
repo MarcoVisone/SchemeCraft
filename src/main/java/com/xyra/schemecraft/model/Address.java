@@ -17,7 +17,18 @@ public class Address implements Serializable {
     public Address() {
     }
 
-    // Getter e Setter
+    public Address(String addressId, String accountId, boolean flagDefault, String streetAddress, String city,
+                   String stateProvince, String postalCode, String countryId) {
+        this.addressId = addressId;
+        this.accountId = accountId;
+        this.flagDefault = flagDefault;
+        this.streetAddress = streetAddress;
+        this.city = city;
+        this.stateProvince = stateProvince;
+        this.postalCode = postalCode;
+        this.countryId = countryId;
+    }
+
     public String getAddressId() {
         return addressId;
     }
@@ -86,6 +97,8 @@ public class Address implements Serializable {
     public String toString() {
         return "Address{" +
                 "addressId='" + addressId + '\'' +
+                ", accountId='" + accountId + '\'' +
+                ", flagDefault=" + flagDefault +
                 ", streetAddress='" + streetAddress + '\'' +
                 ", city='" + city + '\'' +
                 ", stateProvince='" + stateProvince + '\'' +

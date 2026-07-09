@@ -16,32 +16,36 @@ import com.xyra.schemecraft.model.Language;
 public class LanguageDAO {
     private static final Logger logger = LoggerFactory.getLogger(LanguageDAO.class);
 
-    public void save(Language language) {
+    public boolean save(Language language) {
         String sql = "INSERT INTO language (language_id, language_name) VALUES (?, ?)";
 
         try (Connection conn = ConnectionPool.getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setString(1, language.getLanguageId());
             ps.setString(2, language.getLanguageName());
-            ps.executeUpdate();
+            int rowsAffected = ps.executeUpdate();
+            if (rowsAffected > 0) {
+                logger.info("Language successfully saved with ID: {}", language.getLanguageId());
+                return true;
+            }
         } catch (SQLException e) {
-            logger.error("Error occurred while saving language with ID: {}", language.getLanguageId(), e);
+            logger.error("Failed to save language with ID: {} and Name: {}", language.getLanguageId(), language.getLanguageName(), e);
         }
+        return false;
     }
 
     public Language findById(String languageId) {
         String sql = "SELECT * FROM language WHERE language_id = ?";
 
         try (Connection conn = ConnectionPool.getConnection();
-             PreparedStatement ps = conn.prepareStatement(sql)) {
+             PreparedStatement ps = conn.prepareStatement(sql);
+             ResultSet rs = ps.executeQuery()) {
             ps.setString(1, languageId);
-            ResultSet rs = ps.executeQuery();
             if (rs.next()) {
-                String languageName = rs.getString("language_name");
-                return new Language(languageId, languageName);
+                return mapResultSetToLanguage(rs);
             }
         } catch (SQLException e) {
-            logger.error("Error occurred while searching for language with ID: {}", languageId, e);
+            logger.error("Database error while fetching language with ID: {}", languageId, e);
         }
         return null;
     }
@@ -54,38 +58,72 @@ public class LanguageDAO {
              PreparedStatement ps = conn.prepareStatement(sql);
              ResultSet rs = ps.executeQuery()) {
             while (rs.next()) {
-                String languageId = rs.getString("language_id");
-                String languageName = rs.getString("language_name");
-                languages.add(new Language(languageId, languageName));
+                languages.add(mapResultSetToLanguage(rs));
             }
         } catch (SQLException e) {
-            logger.error("Error occurred while retrieving all languages", e);
+            logger.error("Database error while retrieving all languages", e);
         }
         return languages;
     }
 
-    public void update(Language language) {
+    public boolean update(String languageId, Language language) {
         String sql = "UPDATE language SET language_name = ? WHERE language_id = ?";
 
         try (Connection conn = ConnectionPool.getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setString(1, language.getLanguageName());
-            ps.setString(2, language.getLanguageId());
-            ps.executeUpdate();
+            ps.setString(2, languageId); // L'ID passato esplicitamente come filtro WHERE
+            int rowsAffected = ps.executeUpdate();
+            if (rowsAffected > 0) {
+                logger.info("Language with ID: {} successfully updated", languageId);
+                return true;
+            } else {
+                logger.warn("Update issued for non-existent language ID: {}", languageId);
+            }
         } catch (SQLException e) {
-            logger.error("Error occurred while updating language with ID: {}", language.getLanguageId(), e);
+            logger.error("Failed to update language with ID: {}", languageId, e);
         }
+        return false;
     }
 
-    public void deleteById(String languageId) {
+    public boolean update(Language language) {
+        if (language == null || language.getLanguageId() == null) {
+            logger.warn("Attempted to update a null language or a language without an ID");
+            return false;
+        }
+        return update(language.getLanguageId(), language);
+    }
+
+    public boolean delete(String languageId) {
         String sql = "DELETE FROM language WHERE language_id = ?";
 
         try (Connection conn = ConnectionPool.getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setString(1, languageId);
-            ps.executeUpdate();
+            int rowsAffected = ps.executeUpdate();
+            if (rowsAffected > 0) {
+                logger.info("Language with ID: {} successfully deleted", languageId);
+                return true;
+            } else {
+                logger.warn("Delete issued for non-existent language ID: {}", languageId);
+            }
         } catch (SQLException e) {
-            logger.error("Error occurred while deleting language with ID: {}", languageId, e);
+            logger.error("Failed to delete language with ID: {}", languageId, e);
         }
+        return false;
+    }
+
+    public boolean delete(Language language) {
+        if (language == null || language.getLanguageId() == null) {
+            logger.warn("Attempted to delete a null language or a language without an ID");
+            return false;
+        }
+        return delete(language.getLanguageId());
+    }
+
+    private Language mapResultSetToLanguage(ResultSet rs) throws SQLException {
+        String id = rs.getString("language_id");
+        String name = rs.getString("language_name");
+        return new Language(id, name);
     }
 }

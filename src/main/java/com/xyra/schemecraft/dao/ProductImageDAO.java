@@ -21,11 +21,9 @@ public class ProductImageDAO {
 
         try (Connection conn = ConnectionPool.getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
-
             ps.setString(1, productImage.getImageId());
             ps.setString(2, productImage.getProductId());
             ps.setString(3, productImage.getImagePath());
-
             ps.executeUpdate();
         } catch (SQLException e) {
             logger.error("Error occurred while saving product image with ID: {}", productImage.getImageId(), e);
@@ -37,9 +35,7 @@ public class ProductImageDAO {
 
         try (Connection conn = ConnectionPool.getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
-
             ps.setString(1, imageId);
-
             try (ResultSet rs = ps.executeQuery()) {
                 if (rs.next()) {
                     return mapResultSetToProductImage(rs);
@@ -53,29 +49,69 @@ public class ProductImageDAO {
 
     public List<ProductImage> findByProductId(String productId) {
         String sql = "SELECT * FROM product_image WHERE product_id = ?";
-        List<ProductImage> images = new ArrayList<>();
+        List<ProductImage> productImages = new ArrayList<>();
 
         try (Connection conn = ConnectionPool.getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
-
             ps.setString(1, productId);
-
             try (ResultSet rs = ps.executeQuery()) {
                 while (rs.next()) {
-                    images.add(mapResultSetToProductImage(rs));
+                    productImages.add(mapResultSetToProductImage(rs));
                 }
             }
         } catch (SQLException e) {
-            logger.error("Error occurred while fetching images for product ID: {}", productId, e);
+            logger.error("Error occurred while fetching product images for product ID: {}", productId, e);
         }
-        return images;
+        return productImages;
+    }
+
+    public List<ProductImage> findAll() {
+        String sql = "SELECT * FROM product_image";
+        List<ProductImage> productImages = new ArrayList<>();
+
+        try (Connection conn = ConnectionPool.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql);
+             ResultSet rs = ps.executeQuery()) {
+            while (rs.next()) {
+                productImages.add(mapResultSetToProductImage(rs));
+            }
+        } catch (SQLException e) {
+            logger.error("Error occurred while fetching all product images", e);
+        }
+        return productImages;
+    }
+
+    public void update(ProductImage productImage) {
+        String sql = "UPDATE product_image SET product_id = ?, image_path = ? WHERE image_id = ?";
+
+        try (Connection conn = ConnectionPool.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setString(1, productImage.getProductId());
+            ps.setString(2, productImage.getImagePath());
+            ps.setString(3, productImage.getImageId());
+            ps.executeUpdate();
+        } catch (SQLException e) {
+            logger.error("Error occurred while updating product image with ID: {}", productImage.getImageId(), e);
+        }
+    }
+
+    public void deleteById(String imageId) {
+        String sql = "DELETE FROM product_image WHERE image_id = ?";
+
+        try (Connection conn = ConnectionPool.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setString(1, imageId);
+            ps.executeUpdate();
+        } catch (SQLException e) {
+            logger.error("Error occurred while deleting product image with ID: {}", imageId, e);
+        }
     }
 
     private ProductImage mapResultSetToProductImage(ResultSet rs) throws SQLException {
-        ProductImage image = new ProductImage();
-        image.setImageId(rs.getString("image_id"));
-        image.setProductId(rs.getString("product_id"));
-        image.setImagePath(rs.getString("image_path"));
-        return image;
+        ProductImage productImage = new ProductImage();
+        productImage.setImageId(rs.getString("image_id"));
+        productImage.setProductId(rs.getString("product_id"));
+        productImage.setImagePath(rs.getString("image_path"));
+        return productImage;
     }
 }

@@ -17,65 +17,83 @@ import com.xyra.schemecraft.model.PaymentMethodType;
 public class PaymentMethodTypeDAO {
     private static final Logger logger = LoggerFactory.getLogger(PaymentMethodTypeDAO.class);
 
-    public void save(PaymentMethodType type) {
+    public void save(PaymentMethodType paymentMethodType) {
         String sql = "INSERT INTO payment_method_type (type_name) VALUES (?)";
 
         try (Connection conn = ConnectionPool.getConnection();
-             PreparedStatement ps = conn.prepareStatement(sql, PreparedStatement.RETURN_GENERATED_KEYS)) {
-
-            ps.setString(1, type.getTypeName());
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setString(1, paymentMethodType.getTypeName());
             ps.executeUpdate();
-
-            try (ResultSet rs = ps.getGeneratedKeys()) {
-                if (rs.next()) {
-                    type.setTypeId(rs.getInt(1));
-                }
-            }
         } catch (SQLException e) {
-            logger.error("Error occurred while saving payment method type: {}", type.getTypeName(), e);
+            logger.error("Error occurred while saving payment method type: {}", paymentMethodType.getTypeName(), e);
         }
     }
 
-    public PaymentMethodType findById(int typeId) {
+    public PaymentMethodType findById(int paymentMethodTypeId) {
         String sql = "SELECT * FROM payment_method_type WHERE type_id = ?";
 
         try (Connection conn = ConnectionPool.getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
-
-            ps.setInt(1, typeId);
-
+            ps.setInt(1, paymentMethodTypeId);
             try (ResultSet rs = ps.executeQuery()) {
                 if (rs.next()) {
-                    return mapResultSetToType(rs);
+                    return mapResultSetToPaymentMethodType(rs);
                 }
             }
         } catch (SQLException e) {
-            logger.error("Error occurred while searching for payment method type with ID: {}", typeId, e);
+            logger.error("Error occurred while searching for payment method type with ID: {}", paymentMethodTypeId, e);
         }
+
         return null;
     }
 
     public List<PaymentMethodType> findAll() {
-        String query = "SELECT * FROM payment_method_type";
-        List<PaymentMethodType> list = new ArrayList<>();
+        String sql = "SELECT * FROM payment_method_type";
+        List<PaymentMethodType> paymentMethodTypes = new ArrayList<>();
 
         try (Connection conn = ConnectionPool.getConnection();
-             PreparedStatement ps = conn.prepareStatement(query);
+             PreparedStatement ps = conn.prepareStatement(sql);
              ResultSet rs = ps.executeQuery()) {
 
             while (rs.next()) {
-                list.add(mapResultSetToType(rs));
+                PaymentMethodType paymentMethodType = mapResultSetToPaymentMethodType(rs);
+                paymentMethodTypes.add(paymentMethodType);
             }
         } catch (SQLException e) {
-            logger.error("Error occurred while fetching all payment method types", e);
+            logger.error("Error occurred while retrieving all payment method types", e);
         }
-        return list;
+
+        return paymentMethodTypes;
     }
 
-    private PaymentMethodType mapResultSetToType(ResultSet rs) throws SQLException {
-        PaymentMethodType type = new PaymentMethodType();
-        type.setTypeId(rs.getInt("type_id"));
-        type.setTypeName(rs.getString("type_name"));
-        return type;
+    public void update(PaymentMethodType paymentMethodType) {
+        String sql = "UPDATE payment_method_type SET type_id = ? WHERE type_id = ?";
+
+        try (Connection conn = ConnectionPool.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setInt(1, paymentMethodType.getTypeId());
+            ps.setInt(2, paymentMethodType.getTypeId());
+            ps.executeUpdate();
+        } catch (SQLException e) {
+            logger.error("Error occurred while updating payment method type with ID: {}", paymentMethodType.getTypeId(), e);
+        }
+    }
+
+    public void deleteById(int paymentMethodTypeId) {
+        String sql = "DELETE FROM payment_method_type WHERE type_id = ?";
+
+        try (Connection conn = ConnectionPool.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setInt(1, paymentMethodTypeId);
+            ps.executeUpdate();
+        } catch (SQLException e) {
+            logger.error("Error occurred while deleting payment method type with ID: {}", paymentMethodTypeId, e);
+        }
+    }
+
+    private PaymentMethodType mapResultSetToPaymentMethodType(ResultSet rs) throws SQLException {
+        int typeId = rs.getInt("type_id");
+        String typeName = rs.getString("type_name");
+        return new PaymentMethodType(typeId, typeName);
     }
 }

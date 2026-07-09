@@ -18,6 +18,20 @@ public class PaymentMethod implements Serializable {
     public PaymentMethod() {
     }
 
+    public PaymentMethod(String paymentMethodId, String accountId, boolean flagDefault, int methodType,
+                         String paymentToken, String cardBrand, String cardLastFour, String cardExpiration,
+                         String paymentEmail) {
+        this.paymentMethodId = paymentMethodId;
+        this.accountId = accountId;
+        this.flagDefault = flagDefault;
+        this.methodType = methodType;
+        this.paymentToken = paymentToken;
+        this.cardBrand = cardBrand;
+        this.cardLastFour = cardLastFour;
+        this.cardExpiration = cardExpiration;
+        this.paymentEmail = paymentEmail;
+    }
+
     public String getPaymentMethodId() {
         return paymentMethodId;
     }
@@ -96,7 +110,12 @@ public class PaymentMethod implements Serializable {
                 "paymentMethodId='" + paymentMethodId + '\'' +
                 ", accountId='" + accountId + '\'' +
                 ", flagDefault=" + flagDefault +
+                ", methodType=" + methodType +
+                ", paymentToken='" + paymentToken + '\'' +
                 ", cardBrand='" + cardBrand + '\'' +
+                ", cardLastFour='" + cardLastFour + '\'' +
+                ", cardExpiration='" + cardExpiration + '\'' +
+                ", paymentEmail='" + paymentEmail + '\'' +
                 '}';
     }
 }

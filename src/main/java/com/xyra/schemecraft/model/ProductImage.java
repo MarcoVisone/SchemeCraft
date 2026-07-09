@@ -18,7 +18,6 @@ public class ProductImage implements Serializable {
         this.imagePath = imagePath;
     }
 
-    // Getter e Setter
     public String getImageId() {
         return imageId;
     }
@@ -48,6 +47,7 @@ public class ProductImage implements Serializable {
         return "ProductImage{" +
                 "imageId='" + imageId + '\'' +
                 ", productId='" + productId + '\'' +
+                ", imagePath='" + imagePath + '\'' +
                 '}';
     }
 }

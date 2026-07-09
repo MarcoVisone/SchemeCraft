@@ -18,6 +18,12 @@ public class AccountProduct implements Serializable {
         this.productId = productId;
     }
 
+    public AccountProduct(String accountId, String productId, LocalDateTime unlockedAt) {
+        this.accountId = accountId;
+        this.productId = productId;
+        this.unlockedAt = unlockedAt;
+    }
+
     public String getAccountId() {
         return accountId;
     }

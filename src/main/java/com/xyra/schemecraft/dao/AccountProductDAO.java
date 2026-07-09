@@ -23,10 +23,8 @@ public class AccountProductDAO {
 
         try (Connection conn = ConnectionPool.getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
-
             ps.setString(1, accountProduct.getAccountId());
             ps.setString(2, accountProduct.getProductId());
-
             ps.executeUpdate();
         } catch (SQLException e) {
             logger.error("Error occurred while unlocking product {} for account {}",
@@ -55,27 +53,9 @@ public class AccountProductDAO {
         return null;
     }
 
-    public boolean checkOwnership(String accountId, String productId) {
-        String sql = "SELECT 1 FROM account_product WHERE account_id = ? AND product_id = ?";
-
-        try (Connection conn = ConnectionPool.getConnection();
-             PreparedStatement ps = conn.prepareStatement(sql)) {
-
-            ps.setString(1, accountId);
-            ps.setString(2, productId);
-
-            try (ResultSet rs = ps.executeQuery()) {
-                return rs.next();
-            }
-        } catch (SQLException e) {
-            logger.error("Error checking product ownership for Account: {} and Product: {}", accountId, productId, e);
-            return false;
-        }
-    }
-
     public List<AccountProduct> findByAccountId(String accountId) {
         String sql = "SELECT * FROM account_product WHERE account_id = ?";
-        List<AccountProduct> list = new ArrayList<>();
+        List<AccountProduct> accountProducts = new ArrayList<>();
 
         try (Connection conn = ConnectionPool.getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
@@ -84,24 +64,91 @@ public class AccountProductDAO {
 
             try (ResultSet rs = ps.executeQuery()) {
                 while (rs.next()) {
-                    list.add(mapResultSetToAccountProduct(rs));
+                    accountProducts.add(mapResultSetToAccountProduct(rs));
                 }
             }
         } catch (SQLException e) {
-            logger.error("Error occurred while fetching unlocked products for account ID: {}", accountId, e);
+            logger.error("Error occurred while searching for products unlocked by Account: {}", accountId, e);
         }
-        return list;
+        return accountProducts;
+    }
+
+    public List<AccountProduct> findByProductId(String productId) {
+        String sql = "SELECT * FROM account_product WHERE product_id = ?";
+        List<AccountProduct> accountProducts = new ArrayList<>();
+
+        try (Connection conn = ConnectionPool.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+
+            ps.setString(1, productId);
+
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    accountProducts.add(mapResultSetToAccountProduct(rs));
+                }
+            }
+        } catch (SQLException e) {
+            logger.error("Error occurred while searching for accounts that unlocked Product: {}", productId, e);
+        }
+        return accountProducts;
+    }
+
+    public List<AccountProduct> findAll() {
+        String sql = "SELECT * FROM account_product";
+        List<AccountProduct> accountProducts = new ArrayList<>();
+
+        try (Connection conn = ConnectionPool.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql);
+             ResultSet rs = ps.executeQuery()) {
+
+            while (rs.next()) {
+                accountProducts.add(mapResultSetToAccountProduct(rs));
+            }
+        } catch (SQLException e) {
+            logger.error("Error occurred while fetching all account_product relations", e);
+        }
+        return accountProducts;
+    }
+
+    public void update(AccountProduct accountProduct) {
+        String sql = "UPDATE account_product SET unlocked_at = ? WHERE account_id = ? AND product_id = ?";
+
+        try (Connection conn = ConnectionPool.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+
+            ps.setTimestamp(1, accountProduct.getUnlockedAt() != null ?
+                    Timestamp.valueOf(accountProduct.getUnlockedAt()) : null);
+            ps.setString(2, accountProduct.getAccountId());
+            ps.setString(3, accountProduct.getProductId());
+
+            ps.executeUpdate();
+        } catch (SQLException e) {
+            logger.error("Error occurred while updating account_product relation for Account: {} and Product: {}",
+                    accountProduct.getAccountId(), accountProduct.getProductId(), e);
+        }
+    }
+
+    public void deleteById(String accountId, String productId) {
+        String sql = "DELETE FROM account_product WHERE account_id = ? AND product_id = ?";
+
+        try (Connection conn = ConnectionPool.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+
+            ps.setString(1, accountId);
+            ps.setString(2, productId);
+
+            ps.executeUpdate();
+        } catch (SQLException e) {
+            logger.error("Error occurred while deleting account_product relation for Account: {} and Product: {}",
+                    accountId, productId, e);
+        }
     }
 
     private AccountProduct mapResultSetToAccountProduct(ResultSet rs) throws SQLException {
-        AccountProduct ap = new AccountProduct();
-        ap.setAccountId(rs.getString("account_id"));
-        ap.setProductId(rs.getString("product_id"));
-
-        Timestamp timestamp = rs.getTimestamp("unlocked_at");
-        if (timestamp != null) {
-            ap.setUnlockedAt(timestamp.toLocalDateTime());
-        }
-        return ap;
+        String accountId = rs.getString("account_id");
+        String productId = rs.getString("product_id");
+        Timestamp unlockedAtTimestamp = rs.getTimestamp("unlocked_at");
+        return new AccountProduct(accountId, productId, unlockedAtTimestamp != null ?
+                unlockedAtTimestamp.toLocalDateTime() : null);
     }
 }

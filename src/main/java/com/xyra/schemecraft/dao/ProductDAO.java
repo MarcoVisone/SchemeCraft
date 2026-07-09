@@ -25,23 +25,19 @@ public class ProductDAO {
 
         try (Connection conn = ConnectionPool.getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
-
             ps.setString(1, product.getProductId());
             ps.setString(2, product.getAccountId());
             ps.setString(3, product.getCurrencyId());
             ps.setString(4, product.getProductName());
-            ps.setBigDecimal(5, product.getDiscount());
+            ps.setBigDecimal(5, product.getDiscount() != null ? product.getDiscount() : BigDecimal.ZERO);
             ps.setString(6, product.getDescription());
-            ps.setBigDecimal(7, product.getPrice());
-
+            ps.setBigDecimal(7, product.getPrice() != null ? product.getPrice() : BigDecimal.ZERO);
             if (product.getStockQuantity() != null) {
                 ps.setInt(8, product.getStockQuantity());
             } else {
                 ps.setNull(8, java.sql.Types.INTEGER);
             }
-
             ps.setBoolean(9, product.isActive());
-
             ps.executeUpdate();
         } catch (SQLException e) {
             logger.error("Error occurred while saving product: {}", product.getProductName(), e);
@@ -53,9 +49,7 @@ public class ProductDAO {
 
         try (Connection conn = ConnectionPool.getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
-
             ps.setString(1, productId);
-
             try (ResultSet rs = ps.executeQuery()) {
                 if (rs.next()) {
                     return mapResultSetToProduct(rs);
@@ -67,6 +61,24 @@ public class ProductDAO {
         return null;
     }
 
+    public List<Product> findByAccountId(String accountId) {
+        String sql = "SELECT * FROM product WHERE account_id = ?";
+        List<Product> products = new ArrayList<>();
+
+        try (Connection conn = ConnectionPool.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setString(1, accountId);
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    products.add(mapResultSetToProduct(rs));
+                }
+            }
+        } catch (SQLException e) {
+            logger.error("Error occurred while searching for products with Account ID: {}", accountId, e);
+        }
+        return products;
+    }
+
     public List<Product> searchProducts(String keyword) {
         String sql = "SELECT * FROM product WHERE MATCH(product_name, description) " +
                 "AGAINST(? IN NATURAL LANGUAGE MODE) AND is_active = TRUE";
@@ -74,9 +86,7 @@ public class ProductDAO {
 
         try (Connection conn = ConnectionPool.getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
-
             ps.setString(1, keyword);
-
             try (ResultSet rs = ps.executeQuery()) {
                 while (rs.next()) {
                     products.add(mapResultSetToProduct(rs));
@@ -88,34 +98,82 @@ public class ProductDAO {
         return products;
     }
 
+    public List<Product> findAll() {
+        String sql = "SELECT * FROM product";
+        List<Product> products = new ArrayList<>();
+
+        try (Connection conn = ConnectionPool.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql);
+             ResultSet rs = ps.executeQuery()) {
+            while (rs.next()) {
+                products.add(mapResultSetToProduct(rs));
+            }
+        } catch (SQLException e) {
+            logger.error("Error occurred while fetching all products", e);
+        }
+        return products;
+    }
+
+    public void update(Product product) {
+        String sql = "UPDATE product SET account_id = ?, currency_id = ?, product_name = ?, " +
+                "discount = ?, description = ?, price = ?, stock_quantity = ?, is_active = ? " +
+                "WHERE product_id = ?";
+
+        try (Connection conn = ConnectionPool.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setString(1, product.getAccountId());
+            ps.setString(2, product.getCurrencyId());
+            ps.setString(3, product.getProductName());
+            ps.setBigDecimal(4, product.getDiscount() != null ? product.getDiscount() : BigDecimal.ZERO);
+            ps.setString(5, product.getDescription());
+            ps.setBigDecimal(6, product.getPrice() != null ? product.getPrice() : BigDecimal.ZERO);
+            if (product.getStockQuantity() != null) {
+                ps.setInt(7, product.getStockQuantity());
+            } else {
+                ps.setNull(7, java.sql.Types.INTEGER);
+            }
+            ps.setBoolean(8, product.isActive());
+            ps.setString(9, product.getProductId());
+            ps.executeUpdate();
+        } catch (SQLException e) {
+            logger.error("Error occurred while updating product: {}", product.getProductName(), e);
+        }
+    }
+
+    public void deleteById(String productId) {
+        String sql = "DELETE FROM product WHERE product_id = ?";
+
+        try (Connection conn = ConnectionPool.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setString(1, productId);
+            ps.executeUpdate();
+        } catch (SQLException e) {
+            logger.error("Error occurred while deleting product with ID: {}", productId, e);
+        }
+    }
+
     private Product mapResultSetToProduct(ResultSet rs) throws SQLException {
         Product product = new Product();
         product.setProductId(rs.getString("product_id"));
         product.setAccountId(rs.getString("account_id"));
         product.setCurrencyId(rs.getString("currency_id"));
         product.setProductName(rs.getString("product_name"));
-
-        BigDecimal discount = rs.getBigDecimal("discount");
-        product.setDiscount(discount != null ? discount : BigDecimal.ZERO);
-
+        product.setDiscount(rs.getBigDecimal("discount"));
         product.setDescription(rs.getString("description"));
         product.setPrice(rs.getBigDecimal("price"));
-
-        int stock = rs.getInt("stock_quantity");
-        product.setStockQuantity(rs.wasNull() ? null : stock);
-
+        int stockQuantity = rs.getInt("stock_quantity");
+        if (!rs.wasNull()) {
+            product.setStockQuantity(stockQuantity);
+        }
         product.setActive(rs.getBoolean("is_active"));
-
-        Timestamp latestUpdateTs = rs.getTimestamp("latest_update");
-        if (latestUpdateTs != null) {
-            product.setLatestUpdate(latestUpdateTs.toLocalDateTime());
+        Timestamp latestUpdateTimestamp = rs.getTimestamp("latest_update");
+        if (latestUpdateTimestamp != null) {
+            product.setLatestUpdate(latestUpdateTimestamp.toLocalDateTime());
         }
-
-        Timestamp createdAtTs = rs.getTimestamp("created_at");
-        if (createdAtTs != null) {
-            product.setCreatedAt(createdAtTs.toLocalDateTime());
+        Timestamp createdAtTimestamp = rs.getTimestamp("created_at");
+        if (createdAtTimestamp != null) {
+            product.setCreatedAt(createdAtTimestamp.toLocalDateTime());
         }
-
         return product;
     }
 }

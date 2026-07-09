@@ -11,6 +11,11 @@ public class PaymentMethodType implements Serializable {
     public PaymentMethodType() {
     }
 
+    public PaymentMethodType(int typeId, String typeName) {
+        this.typeId = typeId;
+        this.typeName = typeName;
+    }
+
     public PaymentMethodType(String typeName) {
         this.typeName = typeName;
     }

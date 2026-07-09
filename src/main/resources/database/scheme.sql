@@ -31,11 +31,10 @@ CREATE TABLE IF NOT EXISTS account (
     profile_image_path VARCHAR(255) DEFAULT 'uploads/avatars/default-avatar.png',
     banner_path VARCHAR(255) DEFAULT 'uploads/banners/default-banner.png',
     is_active BOOLEAN DEFAULT TRUE,
-    balance DECIMAL(10, 2) DEFAULT 0.00 NOT NULL CHECK (balance >= 0.00),
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    CONSTRAINT fk_account_country FOREIGN KEY (country_id) REFERENCES country(country_id),
-    CONSTRAINT fk_account_currency FOREIGN KEY (currency_id) REFERENCES currency(currency_id),
-    CONSTRAINT fk_account_lang FOREIGN KEY (language_id) REFERENCES language(language_id)
+    CONSTRAINT fk_account_country FOREIGN KEY (country_id) REFERENCES country(country_id) ON DELETE SET NULL,
+    CONSTRAINT fk_account_currency FOREIGN KEY (currency_id) REFERENCES currency(currency_id) ON DELETE SET NULL,
+    CONSTRAINT fk_account_lang FOREIGN KEY (language_id) REFERENCES language(language_id) ON DELETE SET NULL
 );
 
 CREATE TABLE IF NOT EXISTS address (
@@ -173,19 +172,6 @@ CREATE TABLE IF NOT EXISTS order_item (
     CONSTRAINT fk_order_item_order FOREIGN KEY (order_id) REFERENCES order_table(order_id) ON DELETE CASCADE,
     CONSTRAINT fk_order_item_product FOREIGN KEY (product_id) REFERENCES product(product_id) ON DELETE RESTRICT
 );
-
-CREATE TABLE IF NOT EXISTS balance_transaction (
-    transaction_id VARCHAR(36) PRIMARY KEY,
-    account_id VARCHAR(36) NOT NULL,
-    order_item_id VARCHAR(36) NULL,
-    amount DECIMAL(10, 2) NOT NULL,
-    transaction_type ENUM('EARNING', 'WITHDRAWAL') NOT NULL,
-    description VARCHAR(255) NULL,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    CONSTRAINT fk_balance_account FOREIGN KEY (account_id) REFERENCES account(account_id) ON DELETE RESTRICT,
-    CONSTRAINT fk_balance_order_item FOREIGN KEY (order_item_id) REFERENCES order_item(order_item_id) ON DELETE SET NULL
-);
-CREATE INDEX idx_balance_account_date ON balance_transaction(account_id, created_at);
 
 CREATE TABLE IF NOT EXISTS category (
     category_id VARCHAR(36) PRIMARY KEY,

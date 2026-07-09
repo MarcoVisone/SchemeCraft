@@ -25,6 +25,22 @@ public class Product implements Serializable {
         this.isActive = true;
     }
 
+    public Product(String productId, String accountId, String currencyId, String productName, BigDecimal discount,
+                   String description, BigDecimal price, Integer stockQuantity, boolean isActive,
+                   LocalDateTime latestUpdate, LocalDateTime createdAt) {
+        this.productId = productId;
+        this.accountId = accountId;
+        this.currencyId = currencyId;
+        this.productName = productName;
+        this.discount = discount != null ? discount : BigDecimal.ZERO;
+        this.description = description;
+        this.price = price != null ? price : BigDecimal.ZERO;
+        this.stockQuantity = stockQuantity;
+        this.isActive = isActive;
+        this.latestUpdate = latestUpdate;
+        this.createdAt = createdAt;
+    }
+
     public String getProductId() {
         return productId;
     }
@@ -117,9 +133,16 @@ public class Product implements Serializable {
     public String toString() {
         return "Product{" +
                 "productId='" + productId + '\'' +
+                ", accountId='" + accountId + '\'' +
+                ", currencyId='" + currencyId + '\'' +
                 ", productName='" + productName + '\'' +
+                ", discount=" + discount +
+                ", description='" + description + '\'' +
                 ", price=" + price +
+                ", stockQuantity=" + stockQuantity +
                 ", isActive=" + isActive +
+                ", latestUpdate=" + latestUpdate +
+                ", createdAt=" + createdAt +
                 '}';
     }
 }
