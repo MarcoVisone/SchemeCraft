@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Context>
+    <Resource name="jdbc/schemecraftdb"
+              auth="Container"
+              type="javax.sql.DataSource"
+              driverClassName="com.mysql.cj.jdbc.Driver"
+              url="jdbc:mysql://localhost:3606/schemecraftdb?allowPublicKeyRetrieval=true&amp;useSSL=false&amp;serverTimezone=UTC"
+              username="IlTuoUsername"
+              password="LaTuaPassword"
+              maxTotal="20"
+              maxIdle="10"
+              maxWaitMillis="-1"/>
+</Context>

@@ -2,12 +2,13 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>JSP - Hello World</title>
+    <meta charset="UTF-8">
+    <title>Pagina di Test Layout</title>
+    <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
-<h1><%= "Hello World!" %>
-</h1>
-<br/>
-<a href="hello-servlet">Hello Servlet</a>
+<%@ include file="/WEB-INF/fragments/header.jsp" %>
+
+<%@ include file="/WEB-INF/fragments/footer.jsp" %>
 </body>
 </html>
