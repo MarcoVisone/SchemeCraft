@@ -1,6 +1,5 @@
 package com.xyra.schemecraft.dao;
 
-import java.math.BigDecimal;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -8,131 +7,175 @@ import java.sql.SQLException;
 import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import com.xyra.schemecraft.connection.ConnectionPool;
+import com.xyra.schemecraft.exception.DAOException;
+import com.xyra.schemecraft.exception.DuplicateEntityException;
 import com.xyra.schemecraft.model.Account;
 
-public class AccountDAO {
-    private static final Logger logger = LoggerFactory.getLogger(AccountDAO.class);
+import static com.xyra.schemecraft.constant.DatabaseConstants.*;
 
-    public boolean insert(Account account) {
-        String sql = "INSERT INTO account (account_id, username, email, password_hash, is_admin, " +
-                "country_id, currency_id, language_id, bio, profile_image_path, banner_path, is_active, balance) " +
-                "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+public class AccountDAO extends BaseDAO {
+    private static final String SELECT_BASE = "SELECT account_id, username, email, country_id, currency_id, " +
+            "language_id, banner_path, bio, created_at,is_active, is_admin, password_hash, " +
+            "profile_image_path FROM account";
 
-        try (Connection conn = ConnectionPool.getConnection();
-             PreparedStatement ps = conn.prepareStatement(sql)) {
+    public void insert(Connection conn, Account account) throws DAOException {
+        if (account == null) {
+            throw new IllegalArgumentException("Cannot insert a null Account");
+        }
+
+        String sql = "INSERT INTO account (account_id, username, email, country_id, currency_id, language_id, " +
+                "banner_path, bio, is_active, is_admin, password_hash, profile_image_path) " +
+                "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+
+        try (PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setString(1, account.getAccountId());
             ps.setString(2, account.getUsername());
             ps.setString(3, account.getEmail());
-            ps.setString(4, account.getPasswordHash());
-            ps.setBoolean(5, account.isAdmin());
-            ps.setString(6, account.getCountryId());
-            ps.setString(7, account.getCurrencyId());
-            ps.setString(8, account.getLanguageId());
-            ps.setString(9, account.getBio());
-            ps.setString(10, account.getProfileImagePath());
-            ps.setString(11, account.getBannerPath());
-            ps.setBoolean(12, account.isActive());
-            ps.setBigDecimal(13, account.getBalance() != null ? account.getBalance() : BigDecimal.ZERO);
-            int rowsAffected = ps.executeUpdate();
-            if (rowsAffected > 0) {
-                logger.info("Account successfully inserted with ID: {} and Username: {}", account.getAccountId(), account.getUsername());
-                return true;
-            }
+            ps.setString(4, account.getCountryId());
+            ps.setString(5, account.getCurrencyId());
+            ps.setString(6, account.getLanguageId());
+            ps.setString(7, account.getBannerPath());
+            ps.setString(8, account.getBio());
+            ps.setBoolean(9, account.isActive());
+            ps.setBoolean(10, account.isAdmin());
+            ps.setString(11, account.getPasswordHash());
+            ps.setString(12, account.getProfileImagePath());
+
+            ps.executeUpdate();
+            logger.info("Account successfully inserted with ID: {} and Username: {}", account.getAccountId(),
+                    account.getUsername());
         } catch (SQLException e) {
             logger.error("Failed to insert account with Username: {}", account.getUsername(), e);
+            if (MYSQL_DUPLICATE_KEY_STATE.equals(e.getSQLState()) || e.getErrorCode() == MYSQL_DUPLICATE_KEY_CODE) {
+                throw new DuplicateEntityException("Username or Email already exists: " + account.getUsername(), e);
+            }
+            throw new DAOException("Error occurred while inserting account", e);
         }
-        return false;
     }
 
-    public Account findById(String accountId) {
-        String sql = "SELECT * FROM account WHERE account_id = ?";
+    public Optional<Account> findById(Connection conn, String accountId) throws DAOException {
+        String sql = SELECT_BASE + " WHERE account_id = ?";
 
-        try (Connection conn = ConnectionPool.getConnection();
-             PreparedStatement ps = conn.prepareStatement(sql);
-             ResultSet rs = ps.executeQuery()) {
+        try (PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setString(1, accountId);
-            if (rs.next()) {
-                return mapResultSetToAccount(rs);
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    return Optional.of(mapRow(rs));
+                }
             }
         } catch (SQLException e) {
             logger.error("Database error while fetching account with ID: {}", accountId, e);
+            throw new DAOException("Error fetching account by ID", e);
         }
-        return null;
+        return Optional.empty();
     }
 
-    public Account findByUsername(String username) {
-        String sql = "SELECT * FROM account WHERE username = ?";
+    public Optional<Account> findByUsername(Connection conn, String username) throws DAOException {
+        String sql = SELECT_BASE + " WHERE username = ?";
 
-        try (Connection conn = ConnectionPool.getConnection();
-             PreparedStatement ps = conn.prepareStatement(sql);
-             ResultSet rs = ps.executeQuery()) {
+        try (PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setString(1, username);
-            if (rs.next()) {
-                return mapResultSetToAccount(rs);
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    return Optional.of(mapRow(rs));
+                }
             }
         } catch (SQLException e) {
             logger.error("Database error while searching for account with Username: {}", username, e);
+            throw new DAOException("Error fetching account by username", e);
         }
-        return null;
+        return Optional.empty();
     }
 
-    public Account findByEmail(String email) {
-        String sql = "SELECT * FROM account WHERE email = ?";
+    public Optional<Account> findByEmail(Connection conn, String email) throws DAOException {
+        String sql = SELECT_BASE + " WHERE email = ?";
 
-        try (Connection conn = ConnectionPool.getConnection();
-             PreparedStatement ps = conn.prepareStatement(sql);
-             ResultSet rs = ps.executeQuery()) {
+        try (PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setString(1, email);
-            if (rs.next()) {
-                return mapResultSetToAccount(rs);
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    return Optional.of(mapRow(rs));
+                }
             }
         } catch (SQLException e) {
             logger.error("Database error while searching for account with Email: {}", email, e);
+            throw new DAOException("Error fetching account by email", e);
         }
-        return null;
+        return Optional.empty();
     }
 
-    public List<Account> findAll() {
-        String sql = "SELECT * FROM account";
+    public List<Account> findAll(Connection conn) throws DAOException {
         List<Account> accounts = new ArrayList<>();
 
-        try (Connection conn = ConnectionPool.getConnection();
-             PreparedStatement ps = conn.prepareStatement(sql);
+        try (PreparedStatement ps = conn.prepareStatement(SELECT_BASE);
              ResultSet rs = ps.executeQuery()) {
             while (rs.next()) {
-                accounts.add(mapResultSetToAccount(rs));
+                accounts.add(mapRow(rs));
             }
         } catch (SQLException e) {
             logger.error("Database error while retrieving all accounts", e);
+            throw new DAOException("Error retrieving all accounts", e);
         }
         return accounts;
     }
 
-    public boolean update(String accountId, Account account) {
-        String sql = "UPDATE account SET username = ?, email = ?, password_hash = ?, is_admin = ?, " +
-                "country_id = ?, currency_id = ?, language_id = ?, bio = ?, profile_image_path = ?, " +
-                "banner_path = ?, is_active = ?, balance = ? WHERE account_id = ?";
+    public List<Account> findAllActive(Connection conn) throws DAOException {
+        String sql = SELECT_BASE + " WHERE is_active = TRUE";
+        List<Account> accounts = new ArrayList<>();
 
-        try (Connection conn = ConnectionPool.getConnection();
-             PreparedStatement ps = conn.prepareStatement(sql)) {
+        try (PreparedStatement ps = conn.prepareStatement(sql);
+             ResultSet rs = ps.executeQuery()) {
+            while (rs.next()) {
+                accounts.add(mapRow(rs));
+            }
+        } catch (SQLException e) {
+            logger.error("Database error while retrieving all active accounts", e);
+            throw new DAOException("Error retrieving all active accounts", e);
+        }
+        return accounts;
+    }
+
+    public List<Account> findAllAdmin(Connection conn) throws DAOException {
+        String sql = SELECT_BASE + " WHERE is_admin = TRUE";
+        List<Account> accounts = new ArrayList<>();
+
+        try (PreparedStatement ps = conn.prepareStatement(sql);
+             ResultSet rs = ps.executeQuery()) {
+            while (rs.next()) {
+                accounts.add(mapRow(rs));
+            }
+        } catch (SQLException e) {
+            logger.error("Database error while retrieving all admin accounts", e);
+            throw new DAOException("Error retrieving all admin accounts", e);
+        }
+        return accounts;
+    }
+
+    public boolean update(Connection conn, String accountId, Account account) throws DAOException {
+        if (account == null) {
+            throw new IllegalArgumentException("Cannot update with a null Account object");
+        }
+
+        String sql = "UPDATE account SET username = ?, email = ?, country_id = ?, currency_id = ?, language_id = ?, " +
+                "banner_path = ?, bio = ?, is_active = ?, is_admin = ?, password_hash = ?, profile_image_path = ? " +
+                "WHERE account_id = ?";
+
+        try (PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setString(1, account.getUsername());
             ps.setString(2, account.getEmail());
-            ps.setString(3, account.getPasswordHash());
-            ps.setBoolean(4, account.isAdmin());
-            ps.setString(5, account.getCountryId());
-            ps.setString(6, account.getCurrencyId());
-            ps.setString(7, account.getLanguageId());
-            ps.setString(8, account.getBio());
-            ps.setString(9, account.getProfileImagePath());
-            ps.setString(10, account.getBannerPath());
-            ps.setBoolean(11, account.isActive());
-            ps.setBigDecimal(12, account.getBalance() != null ? account.getBalance() : BigDecimal.ZERO);
-            ps.setString(13, accountId);
+            ps.setString(3, account.getCountryId());
+            ps.setString(4, account.getCurrencyId());
+            ps.setString(5, account.getLanguageId());
+            ps.setString(6, account.getBannerPath());
+            ps.setString(7, account.getBio());
+            ps.setBoolean(8, account.isActive());
+            ps.setBoolean(9, account.isAdmin());
+            ps.setString(10, account.getPasswordHash());
+            ps.setString(11, account.getProfileImagePath());
+            ps.setString(12, account.getAccountId());
+            ps.setString(13, account.getAccountId());
 
             int rowsAffected = ps.executeUpdate();
             if (rowsAffected > 0) {
@@ -143,73 +186,123 @@ public class AccountDAO {
             }
         } catch (SQLException e) {
             logger.error("Failed to update account with ID: {}", accountId, e);
+            if (MYSQL_DUPLICATE_KEY_STATE.equals(e.getSQLState()) || e.getErrorCode() == MYSQL_DUPLICATE_KEY_CODE) {
+                throw new DuplicateEntityException("Username or Email already exists for update: " +
+                        account.getUsername(), e);
+            }
+            throw new DAOException("Error updating account", e);
         }
         return false;
     }
 
-    public boolean update(Account account) {
+    public boolean update(Connection conn, Account account) throws DAOException {
         if (account == null || account.getAccountId() == null) {
-            logger.warn("Attempted to update a null account or a account without an ID");
-            return false;
+            throw new IllegalArgumentException("Attempted to update a null account or an account without an ID");
         }
-        return update(account.getCurrencyId(), account);
+        return update(conn, account.getAccountId(), account);
     }
 
-    public boolean deactivate(String accountId) {
+    public boolean updatePassword(Connection conn, String accountId, String newPasswordHash) throws DAOException {
+        if (accountId == null || newPasswordHash == null) {
+            throw new IllegalArgumentException("Account ID and password hash cannot be null");
+        }
+        String sql = "UPDATE account SET password_hash = ? WHERE account_id = ?";
+
+        try (PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setString(1, newPasswordHash);
+            ps.setString(2, accountId);
+
+            int rowsAffected = ps.executeUpdate();
+            return rowsAffected > 0;
+        } catch (SQLException e) {
+            logger.error("Failed to update password for account ID: {}", accountId, e);
+            throw new DAOException("Error updating account password", e);
+        }
+    }
+
+    public boolean activate(Connection conn, String accountId) throws DAOException {
+        if (accountId == null || accountId.trim().isEmpty()) {
+            throw new IllegalArgumentException("Account ID cannot be null or empty for activation");
+        }
+
+        String sql = "UPDATE account SET is_active = TRUE WHERE account_id = ?";
+
+        try (PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setString(1, accountId);
+            int rowsAffected = ps.executeUpdate();
+            if (rowsAffected > 0) {
+                logger.info("Account with ID: {} successfully reactivated", accountId);
+                return true;
+            } else {
+                logger.warn("Activation issued for non-existent account ID: {}", accountId);
+            }
+        } catch (SQLException e) {
+            logger.error("Failed to activate account with ID: {}", accountId, e);
+            throw new DAOException("Error activating account", e);
+        }
+        return false;
+    }
+
+    public boolean activate(Connection conn, Account account) throws DAOException, IllegalArgumentException {
+        if (account == null || account.getAccountId() == null) {
+            throw new IllegalArgumentException("Attempted to activate a null account or an account without an ID");
+        }
+        return activate(conn, account.getAccountId());
+    }
+
+    public boolean deactivate(Connection conn, String accountId) throws DAOException {
         String sql = "UPDATE account SET is_active = FALSE WHERE account_id = ?";
 
-        try (Connection conn = ConnectionPool.getConnection();
-             PreparedStatement ps = conn.prepareStatement(sql)) {
+        try (PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setString(1, accountId);
             int rowsAffected = ps.executeUpdate();
             if (rowsAffected > 0) {
-                logger.info("Account with ID: {} successfully deactivated (Soft Delete)", accountId);
+                logger.info("Account with ID: {} successfully deactivated", accountId);
                 return true;
             } else {
-                logger.warn("Soft delete issued for non-existent account ID: {}", accountId);
+                logger.warn("Deactivation issued for non-existent account ID: {}", accountId);
             }
         } catch (SQLException e) {
-            logger.error("Failed to logically delete account with ID: {}", accountId, e);
+            logger.error("Failed to deactivate account with ID: {}", accountId, e);
+            throw new DAOException("Error deactivating account", e);
         }
         return false;
     }
 
-    public boolean deactivate(Account account) {
+    public boolean deactivate(Connection conn, Account account) throws DAOException {
         if (account == null || account.getAccountId() == null) {
-            logger.warn("Attempted to deactivate a null account or an account without an ID");
-            return false;
+            throw new IllegalArgumentException("Attempted to deactivate a null account or an account without an ID");
         }
-        return deactivate(account.getAccountId());
+        return deactivate(conn, account.getAccountId());
     }
 
-    public boolean strongDelete(String accountId) {
+    public boolean forceDelete(Connection conn, String accountId) throws DAOException {
         String sql = "DELETE FROM account WHERE account_id = ?";
 
-        try (Connection conn = ConnectionPool.getConnection();
-             PreparedStatement ps = conn.prepareStatement(sql)) {
+        try (PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setString(1, accountId);
             int rowsAffected = ps.executeUpdate();
             if (rowsAffected > 0) {
-                logger.info("Account with ID: {} successfully deleted", accountId);
+                logger.info("Account with ID: {} successfully force deleted from database", accountId);
                 return true;
             } else {
-                logger.warn("Delete issued for non-existent account ID: {}", accountId);
+                logger.warn("Force delete issued for non-existent account ID: {}", accountId);
             }
         } catch (SQLException e) {
-            logger.error("Failed to delete account with ID: {}", accountId, e);
+            logger.error("Failed to force delete account with ID: {}", accountId, e);
+            throw new DAOException("Error force deleting account", e);
         }
         return false;
     }
 
-    public boolean strongDelete(Account account) {
+    public boolean forceDelete(Connection conn, Account account) throws DAOException {
         if (account == null || account.getAccountId() == null) {
-            logger.warn("Attempted to delete a null account or an account without an ID");
-            return false;
+            throw new IllegalArgumentException("Attempted to force delete a null account or an account without an ID");
         }
-        return strongDelete(account.getAccountId());
+        return forceDelete(conn, account.getAccountId());
     }
 
-    private Account mapResultSetToAccount(ResultSet rs) throws SQLException {
+    private Account mapRow(ResultSet rs) throws SQLException {
         Account account = new Account();
         account.setAccountId(rs.getString("account_id"));
         account.setUsername(rs.getString("username"));
@@ -223,9 +316,6 @@ public class AccountDAO {
         account.setProfileImagePath(rs.getString("profile_image_path"));
         account.setBannerPath(rs.getString("banner_path"));
         account.setActive(rs.getBoolean("is_active"));
-
-        BigDecimal balance = rs.getBigDecimal("balance");
-        account.setBalance(balance != null ? balance : BigDecimal.ZERO);
 
         Timestamp timestamp = rs.getTimestamp("created_at");
         if (timestamp != null) {

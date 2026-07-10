@@ -10,35 +10,39 @@ public class Product implements Serializable {
     private String productId;
     private String accountId;
     private String currencyId;
-    private String productName;
+    private BigDecimal averageRating;
+    private LocalDateTime createdAt;
     private BigDecimal discount;
     private String description;
-    private BigDecimal price;
-    private Integer stockQuantity;
     private boolean isActive;
     private LocalDateTime latestUpdate;
-    private LocalDateTime createdAt;
+    private BigDecimal price;
+    private String productName;
+    private Integer stockQuantity;
+    private Integer totalDownloads;
+    private Integer totalReviews;
 
     public Product() {
-        this.discount = BigDecimal.ZERO;
-        this.price = BigDecimal.ZERO;
-        this.isActive = true;
     }
 
-    public Product(String productId, String accountId, String currencyId, String productName, BigDecimal discount,
-                   String description, BigDecimal price, Integer stockQuantity, boolean isActive,
-                   LocalDateTime latestUpdate, LocalDateTime createdAt) {
+    public Product(String productId, String accountId, String currencyId, BigDecimal averageRating,
+                   LocalDateTime createdAt,  BigDecimal discount, String description, boolean isActive,
+                   LocalDateTime latestUpdate, BigDecimal price, String productName, Integer stockQuantity,
+                   Integer totalDownloads, Integer totalReviews) {
         this.productId = productId;
         this.accountId = accountId;
         this.currencyId = currencyId;
-        this.productName = productName;
-        this.discount = discount != null ? discount : BigDecimal.ZERO;
+        this.averageRating = averageRating;
+        this.createdAt = createdAt;
+        this.discount = discount;
         this.description = description;
-        this.price = price != null ? price : BigDecimal.ZERO;
-        this.stockQuantity = stockQuantity;
         this.isActive = isActive;
         this.latestUpdate = latestUpdate;
-        this.createdAt = createdAt;
+        this.price = price;
+        this.productName = productName;
+        this.stockQuantity = stockQuantity;
+        this.totalDownloads = totalDownloads;
+        this.totalReviews = totalReviews;
     }
 
     public String getProductId() {
@@ -65,12 +69,20 @@ public class Product implements Serializable {
         this.currencyId = currencyId;
     }
 
-    public String getProductName() {
-        return productName;
+    public BigDecimal getAverageRating() {
+        return averageRating;
     }
 
-    public void setProductName(String productName) {
-        this.productName = productName;
+    public void setAverageRating(BigDecimal averageRating) {
+        this.averageRating = averageRating;
+    }
+
+    public LocalDateTime getCreatedAt() {
+        return createdAt;
+    }
+
+    public void setCreatedAt(LocalDateTime createdAt) {
+        this.createdAt = createdAt;
     }
 
     public BigDecimal getDiscount() {
@@ -89,28 +101,12 @@ public class Product implements Serializable {
         this.description = description;
     }
 
-    public BigDecimal getPrice() {
-        return price;
-    }
-
-    public void setPrice(BigDecimal price) {
-        this.price = price;
-    }
-
-    public Integer getStockQuantity() {
-        return stockQuantity;
-    }
-
-    public void setStockQuantity(Integer stockQuantity) {
-        this.stockQuantity = stockQuantity;
-    }
-
     public boolean isActive() {
         return isActive;
     }
 
     public void setActive(boolean active) {
-        this.isActive = active;
+        isActive = active;
     }
 
     public LocalDateTime getLatestUpdate() {
@@ -121,13 +117,46 @@ public class Product implements Serializable {
         this.latestUpdate = latestUpdate;
     }
 
-    public LocalDateTime getCreatedAt() {
-        return createdAt;
+    public BigDecimal getPrice() {
+        return price;
     }
 
-    public void setCreatedAt(LocalDateTime createdAt) {
-        this.createdAt = createdAt;
+    public void setPrice(BigDecimal price) {
+        this.price = price;
     }
+
+    public String getProductName() {
+        return productName;
+    }
+
+    public void setProductName(String productName) {
+        this.productName = productName;
+    }
+
+    public Integer getStockQuantity() {
+        return stockQuantity;
+    }
+
+    public void setStockQuantity(Integer stockQuantity) {
+        this.stockQuantity = stockQuantity;
+    }
+
+    public Integer getTotalDownloads() {
+        return totalDownloads;
+    }
+
+    public void setTotalDownloads(Integer totalDownloads) {
+        this.totalDownloads = totalDownloads;
+    }
+
+    public Integer getTotalReviews() {
+        return totalReviews;
+    }
+
+    public void setTotalReviews(Integer totalReviews) {
+        this.totalReviews = totalReviews;
+    }
+
 
     @Override
     public String toString() {
@@ -135,14 +164,17 @@ public class Product implements Serializable {
                 "productId='" + productId + '\'' +
                 ", accountId='" + accountId + '\'' +
                 ", currencyId='" + currencyId + '\'' +
-                ", productName='" + productName + '\'' +
+                ", averageRating=" + averageRating +
+                ", createdAt=" + createdAt +
                 ", discount=" + discount +
                 ", description='" + description + '\'' +
-                ", price=" + price +
-                ", stockQuantity=" + stockQuantity +
                 ", isActive=" + isActive +
                 ", latestUpdate=" + latestUpdate +
-                ", createdAt=" + createdAt +
+                ", price=" + price +
+                ", productName='" + productName + '\'' +
+                ", stockQuantity=" + stockQuantity +
+                ", totalDownloads=" + totalDownloads +
+                ", totalReviews=" + totalReviews +
                 '}';
     }
 }

@@ -1,131 +1,109 @@
 package com.xyra.schemecraft.dao;
 
-import com.xyra.schemecraft.connection.ConnectionPool;
-import com.xyra.schemecraft.model.Favorite;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import java.sql.*;
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 
-public class FavoriteDAO {
-    private static final Logger logger = LoggerFactory.getLogger(FavoriteDAO.class);
+import com.xyra.schemecraft.exception.DAOException;
+import com.xyra.schemecraft.exception.DuplicateEntityException;
+import com.xyra.schemecraft.model.Favorite;
 
-    public void save(Favorite favorite) {
-        String sql = "INSERT INTO favorite (favorite_id, account_id, product_id) VALUES (?, ?, ?)";
+import static com.xyra.schemecraft.constant.DatabaseConstants.*;
 
-        try (Connection conn = ConnectionPool.getConnection();
-             PreparedStatement ps = conn.prepareStatement(sql)) {
-            ps.setString(1, favorite.getFavoriteId());
-            ps.setString(2, favorite.getAccountId());
-            ps.setString(3, favorite.getProductId());
+public class FavoriteDAO extends BaseDAO {
+    private static final String SELECT_BASE = "SELECT account_id, product_id FROM favorite";
+
+    public void insert(Connection conn, Favorite favorite) throws DAOException {
+        if (favorite == null) {
+            throw new IllegalArgumentException("Cannot insert a null Favorite association");
+        }
+
+        String sql = "INSERT INTO favorite (account_id, product_id) VALUES (?, ?)";
+
+        try (PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setString(1, favorite.getAccountId());
+            ps.setString(2, favorite.getProductId());
+
             ps.executeUpdate();
+            logger.info("Product ID: {} successfully added to favorites for Account ID: {}",
+                    favorite.getProductId(), favorite.getAccountId());
         } catch (SQLException e) {
-            logger.error("Error occurred while adding product {} to favorites for account {}",
-                    favorite.getProductId(), favorite.getAccountId(), e);
+            logger.error("Failed to add product {} to favorites for account {}", favorite.getProductId(),
+                    favorite.getAccountId(), e);
+            if (MYSQL_DUPLICATE_KEY_STATE.equals(e.getSQLState()) || e.getErrorCode() == MYSQL_DUPLICATE_KEY_CODE) {
+                throw new DuplicateEntityException("Product is already in the favorites list for this account", e);
+            }
+            throw new DAOException("Error occurred while adding product to favorites", e);
         }
     }
 
-    public Favorite findById(String favoriteId) {
-        String sql = "SELECT * FROM favorite WHERE favorite_id = ?";
+    public Optional<Favorite> findById(Connection conn, String accountId, String productId) throws DAOException {
+        String sql = SELECT_BASE + " WHERE account_id = ? AND product_id = ?";
 
-        try (Connection conn = ConnectionPool.getConnection();
-             PreparedStatement ps = conn.prepareStatement(sql)) {
-            ps.setString(1, favoriteId);
+        try (PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setString(1, accountId);
+            ps.setString(2, productId);
             try (ResultSet rs = ps.executeQuery()) {
                 if (rs.next()) {
-                    return mapResultSetToFavorite(rs);
+                    return Optional.of(mapRow(rs));
                 }
             }
         } catch (SQLException e) {
-            logger.error("Error occurred while searching for favorite with ID: {}", favoriteId, e);
+            logger.error("Database error while checking favorite for account {} and product {}",
+                    accountId, productId, e);
+            throw new DAOException("Error fetching favorite association", e);
         }
-        return null;
+        return Optional.empty();
     }
 
-    public List<Favorite> findByAccountId(String accountId) {
-        String sql = "SELECT * FROM favorite WHERE account_id = ?";
-        List<Favorite> favorites = new ArrayList<>();
+    public List<Favorite> findAllByAccountId(Connection conn, String accountId) throws DAOException {
+        String sql = SELECT_BASE + " WHERE account_id = ?";
+        List<Favorite> list = new ArrayList<>();
 
-        try (Connection conn = ConnectionPool.getConnection();
-             PreparedStatement ps = conn.prepareStatement(sql)) {
+        try (PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setString(1, accountId);
             try (ResultSet rs = ps.executeQuery()) {
                 while (rs.next()) {
-                    favorites.add(mapResultSetToFavorite(rs));
+                    list.add(mapRow(rs));
                 }
             }
         } catch (SQLException e) {
-            logger.error("Error occurred while searching for favorites for account ID: {}", accountId, e);
+            logger.error("Database error while retrieving favorites for account ID: {}", accountId, e);
+            throw new DAOException("Error retrieving favorites by account ID", e);
         }
-        return favorites;
+        return list;
     }
 
-    public List<Favorite> findByProductId(String productId) {
-        String sql = "SELECT * FROM favorite WHERE product_id = ?";
-        List<Favorite> favorites = new ArrayList<>();
+    public boolean delete(Connection conn, String accountId, String productId) throws DAOException {
+        String sql = "DELETE FROM favorite WHERE account_id = ? AND product_id = ?";
 
-        try (Connection conn = ConnectionPool.getConnection();
-             PreparedStatement ps = conn.prepareStatement(sql)) {
-            ps.setString(1, productId);
-            try (ResultSet rs = ps.executeQuery()) {
-                while (rs.next()) {
-                    favorites.add(mapResultSetToFavorite(rs));
-                }
-            }
+        try (PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setString(1, accountId);
+            ps.setString(2, productId);
+            int rowsAffected = ps.executeUpdate();
+            return rowsAffected > 0;
         } catch (SQLException e) {
-            logger.error("Error occurred while searching for favorites for product ID: {}", productId, e);
-        }
-        return favorites;
-    }
-
-    public List<Favorite> findAll() {
-        String sql = "SELECT * FROM favorite";
-        List<Favorite> favorites = new ArrayList<>();
-
-        try (Connection conn = ConnectionPool.getConnection();
-             PreparedStatement ps = conn.prepareStatement(sql);
-             ResultSet rs = ps.executeQuery()) {
-            while (rs.next()) {
-                favorites.add(mapResultSetToFavorite(rs));
-            }
-        } catch (SQLException e) {
-            logger.error("Error occurred while fetching all favorites", e);
-        }
-        return favorites;
-    }
-
-    public void update(Favorite favorite) {
-        String sql = "UPDATE favorite SET account_id = ?, product_id = ? WHERE favorite_id = ?";
-
-        try (Connection conn = ConnectionPool.getConnection();
-             PreparedStatement ps = conn.prepareStatement(sql)) {
-            ps.setString(1, favorite.getAccountId());
-            ps.setString(2, favorite.getProductId());
-            ps.setString(3, favorite.getFavoriteId());
-            ps.executeUpdate();
-        } catch (SQLException e) {
-            logger.error("Error occurred while updating favorite with ID: {}", favorite.getFavoriteId(), e);
+            logger.error("Failed to remove product {} from favorites for account {}", productId, accountId, e);
+            throw new DAOException("Error removing product from favorites", e);
         }
     }
 
-    public void deleteById(String favoriteId) {
-        String sql = "DELETE FROM favorite WHERE favorite_id = ?";
-
-        try (Connection conn = ConnectionPool.getConnection();
-             PreparedStatement ps = conn.prepareStatement(sql)) {
-            ps.setString(1, favoriteId);
-            ps.executeUpdate();
-        } catch (SQLException e) {
-            logger.error("Error occurred while deleting favorite with ID: {}", favoriteId, e);
+    public boolean delete(Connection conn, Favorite favorite) throws DAOException {
+        if (favorite == null || favorite.getAccountId() == null || favorite.getProductId() == null) {
+            throw new IllegalArgumentException("Attempted to delete a null favorite " +
+                    "or an object with missing composite keys");
         }
+        return delete(conn, favorite.getAccountId(), favorite.getProductId());
     }
 
-    private Favorite mapResultSetToFavorite(ResultSet rs) throws SQLException {
-        return new Favorite(
-                rs.getString("favorite_id"),
-                rs.getString("account_id"),
-                rs.getString("product_id")
-        );
+    private Favorite mapRow(ResultSet rs) throws SQLException {
+        Favorite favorite = new Favorite();
+        favorite.setAccountId(rs.getString("account_id"));
+        favorite.setProductId(rs.getString("product_id"));
+        return favorite;
     }
 }

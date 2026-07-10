@@ -7,26 +7,28 @@ public class Address implements Serializable {
 
     private String addressId;
     private String accountId;
-    private boolean flagDefault;
-    private String streetAddress;
-    private String city;
-    private String stateProvince;
-    private String postalCode;
     private String countryId;
+    private String city;
+    private boolean flagDefault;
+    private boolean isActive;
+    private String postalCode;
+    private String stateProvince;
+    private String streetAddress;
 
     public Address() {
     }
 
-    public Address(String addressId, String accountId, boolean flagDefault, String streetAddress, String city,
-                   String stateProvince, String postalCode, String countryId) {
+    public Address(String addressId, String accountId, String countryId, String city, boolean flagDefault,
+                   boolean isActive, String postalCode, String stateProvince, String streetAddress) {
         this.addressId = addressId;
         this.accountId = accountId;
-        this.flagDefault = flagDefault;
-        this.streetAddress = streetAddress;
-        this.city = city;
-        this.stateProvince = stateProvince;
-        this.postalCode = postalCode;
         this.countryId = countryId;
+        this.city = city;
+        this.flagDefault = flagDefault;
+        this.isActive = isActive;
+        this.postalCode = postalCode;
+        this.stateProvince = stateProvince;
+        this.streetAddress = streetAddress;
     }
 
     public String getAddressId() {
@@ -45,20 +47,12 @@ public class Address implements Serializable {
         this.accountId = accountId;
     }
 
-    public boolean isFlagDefault() {
-        return flagDefault;
+    public String getCountryId() {
+        return countryId;
     }
 
-    public void setFlagDefault(boolean flagDefault) {
-        this.flagDefault = flagDefault;
-    }
-
-    public String getStreetAddress() {
-        return streetAddress;
-    }
-
-    public void setStreetAddress(String streetAddress) {
-        this.streetAddress = streetAddress;
+    public void setCountryId(String countryId) {
+        this.countryId = countryId;
     }
 
     public String getCity() {
@@ -69,12 +63,20 @@ public class Address implements Serializable {
         this.city = city;
     }
 
-    public String getStateProvince() {
-        return stateProvince;
+    public boolean isDefault() {
+        return flagDefault;
     }
 
-    public void setStateProvince(String stateProvince) {
-        this.stateProvince = stateProvince;
+    public void setDefault(boolean flagDefault) {
+        this.flagDefault = flagDefault;
+    }
+
+    public boolean isActive() {
+        return isActive;
+    }
+
+    public void setActive(boolean isActive) {
+        this.isActive = isActive;
     }
 
     public String getPostalCode() {
@@ -85,12 +87,20 @@ public class Address implements Serializable {
         this.postalCode = postalCode;
     }
 
-    public String getCountryId() {
-        return countryId;
+    public String getStateProvince() {
+        return stateProvince;
     }
 
-    public void setCountryId(String countryId) {
-        this.countryId = countryId;
+    public void setStateProvince(String stateProvince) {
+        this.stateProvince = stateProvince;
+    }
+
+    public String getStreetAddress() {
+        return streetAddress;
+    }
+
+    public void setStreetAddress(String streetAddress) {
+        this.streetAddress = streetAddress;
     }
 
     @Override
@@ -98,12 +108,13 @@ public class Address implements Serializable {
         return "Address{" +
                 "addressId='" + addressId + '\'' +
                 ", accountId='" + accountId + '\'' +
-                ", flagDefault=" + flagDefault +
-                ", streetAddress='" + streetAddress + '\'' +
-                ", city='" + city + '\'' +
-                ", stateProvince='" + stateProvince + '\'' +
-                ", postalCode='" + postalCode + '\'' +
                 ", countryId='" + countryId + '\'' +
+                ", city='" + city + '\'' +
+                ", flagDefault=" + flagDefault +
+                ", isActive=" + isActive +
+                ", postalCode='" + postalCode + '\'' +
+                ", stateProvince='" + stateProvince + '\'' +
+                ", streetAddress='" + streetAddress + '\'' +
                 '}';
     }
 }

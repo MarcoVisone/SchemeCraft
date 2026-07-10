@@ -1,7 +1,6 @@
 package com.xyra.schemecraft.model;
 
 import java.io.Serializable;
-import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
 public class Account implements Serializable {
@@ -10,38 +9,36 @@ public class Account implements Serializable {
     private String accountId;
     private String username;
     private String email;
-    private String passwordHash;
-    private boolean isAdmin;
     private String countryId;
     private String currencyId;
     private String languageId;
-    private String bio;
-    private String profileImagePath;
     private String bannerPath;
-    private boolean isActive;
-    private BigDecimal balance;
+    private String bio;
     private LocalDateTime createdAt;
+    private boolean isActive;
+    private boolean isAdmin;
+    private String passwordHash;
+    private String profileImagePath;
 
     public Account() {
-        this.balance = BigDecimal.ZERO;
     }
 
-    public Account(String accountId, String username, String email, String passwordHash, boolean isAdmin,
-                   String countryId, String currencyId, String languageId, String bio, String profileImagePath,
-                   String bannerPath, boolean isActive, BigDecimal balance) {
+    public Account(String accountId, String username, String email, String countryId, String currencyId,
+                   String languageId, String bannerPath, String bio, LocalDateTime createdAt, boolean isActive,
+                   boolean isAdmin, String passwordHash, String profileImagePath) {
         this.accountId = accountId;
         this.username = username;
         this.email = email;
-        this.passwordHash = passwordHash;
-        this.isAdmin = isAdmin;
         this.countryId = countryId;
         this.currencyId = currencyId;
         this.languageId = languageId;
-        this.bio = bio;
-        this.profileImagePath = profileImagePath;
         this.bannerPath = bannerPath;
+        this.bio = bio;
+        this.createdAt = createdAt;
         this.isActive = isActive;
-        this.balance = balance != null ? balance : BigDecimal.ZERO;
+        this.isAdmin = isAdmin;
+        this.passwordHash = passwordHash;
+        this.profileImagePath = profileImagePath;
     }
 
     public String getAccountId() {
@@ -68,22 +65,6 @@ public class Account implements Serializable {
         this.email = email;
     }
 
-    public String getPasswordHash() {
-        return passwordHash;
-    }
-
-    public void setPasswordHash(String passwordHash) {
-        this.passwordHash = passwordHash;
-    }
-
-    public boolean isAdmin() {
-        return isAdmin;
-    }
-
-    public void setAdmin(boolean admin) {
-        this.isAdmin = admin;
-    }
-
     public String getCountryId() {
         return countryId;
     }
@@ -108,22 +89,6 @@ public class Account implements Serializable {
         this.languageId = languageId;
     }
 
-    public String getBio() {
-        return bio;
-    }
-
-    public void setBio(String bio) {
-        this.bio = bio;
-    }
-
-    public String getProfileImagePath() {
-        return profileImagePath;
-    }
-
-    public void setProfileImagePath(String profileImagePath) {
-        this.profileImagePath = profileImagePath;
-    }
-
     public String getBannerPath() {
         return bannerPath;
     }
@@ -132,20 +97,12 @@ public class Account implements Serializable {
         this.bannerPath = bannerPath;
     }
 
-    public boolean isActive() {
-        return isActive;
+    public String getBio() {
+        return bio;
     }
 
-    public void setActive(boolean active) {
-        this.isActive = active;
-    }
-
-    public BigDecimal getBalance() {
-        return balance;
-    }
-
-    public void setBalance(BigDecimal balance) {
-        this.balance = balance;
+    public void setBio(String bio) {
+        this.bio = bio;
     }
 
     public LocalDateTime getCreatedAt() {
@@ -156,23 +113,54 @@ public class Account implements Serializable {
         this.createdAt = createdAt;
     }
 
+    public boolean isActive() {
+        return isActive;
+    }
+
+    public void setActive(boolean active) {
+        isActive = active;
+    }
+
+    public boolean isAdmin() {
+        return isAdmin;
+    }
+
+    public void setAdmin(boolean admin) {
+        isAdmin = admin;
+    }
+
+    public String getPasswordHash() {
+        return passwordHash;
+    }
+
+    public void setPasswordHash(String passwordHash) {
+        this.passwordHash = passwordHash;
+    }
+
+    public String getProfileImagePath() {
+        return profileImagePath;
+    }
+
+    public void setProfileImagePath(String profileImagePath) {
+        this.profileImagePath = profileImagePath;
+    }
+
     @Override
     public String toString() {
         return "Account{" +
                 "accountId='" + accountId + '\'' +
                 ", username='" + username + '\'' +
                 ", email='" + email + '\'' +
-                ", passwordHash='" + passwordHash + '\'' +
-                ", isAdmin=" + isAdmin +
                 ", countryId='" + countryId + '\'' +
                 ", currencyId='" + currencyId + '\'' +
                 ", languageId='" + languageId + '\'' +
-                ", bio='" + bio + '\'' +
-                ", profileImagePath='" + profileImagePath + '\'' +
                 ", bannerPath='" + bannerPath + '\'' +
-                ", isActive=" + isActive +
-                ", balance=" + balance +
+                ", bio='" + bio + '\'' +
                 ", createdAt=" + createdAt +
+                ", isActive=" + isActive +
+                ", isAdmin=" + isAdmin +
+                ", passwordHash='" + passwordHash + '\'' +
+                ", profileImagePath='" + profileImagePath + '\'' +
                 '}';
     }
 }

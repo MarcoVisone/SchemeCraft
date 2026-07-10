@@ -1,78 +1,126 @@
 package com.xyra.schemecraft.dao;
 
+import java.math.BigDecimal;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import com.xyra.schemecraft.connection.ConnectionPool;
+import com.xyra.schemecraft.exception.DAOException;
+import com.xyra.schemecraft.exception.DuplicateEntityException;
 import com.xyra.schemecraft.model.Country;
 
-public class CountryDAO {
-    private static final Logger logger = LoggerFactory.getLogger(CountryDAO.class);
+import static com.xyra.schemecraft.constant.DatabaseConstants.*;
 
-    public boolean save(Country country) {
-        String sql = "INSERT INTO country (country_id, country_name) VALUES (?, ?)";
+public class CountryDAO extends BaseDAO {
+    private static final String SELECT_BASE = "SELECT country_id, country_name, is_active, tax FROM country";
 
-        try (Connection conn = ConnectionPool.getConnection();
-             PreparedStatement ps = conn.prepareStatement(sql)) {
+    public void insert(Connection conn, Country country) throws DAOException {
+        if (country == null) {
+            throw new IllegalArgumentException("Cannot insert a null Country");
+        }
+
+        String sql = "INSERT INTO country (country_id, country_name, is_active, tax) VALUES (?, ?, ?, ?)";
+
+        try (PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setString(1, country.getCountryId());
             ps.setString(2, country.getCountryName());
+            ps.setBoolean(3, country.isActive());
+            ps.setBigDecimal(4, country.getTax());
+
             ps.executeUpdate();
-            int rowsAffected = ps.executeUpdate();
-            if (rowsAffected > 0) {
-                logger.info("Country successfully saved with ID: {}", country.getCountryId());
-                return true;
-            }
+            logger.info("Country successfully inserted with ID: {}", country.getCountryId());
         } catch (SQLException e) {
-            logger.error("Failed to save country with ID: {} and Name: {}", country.getCountryId(), country.getCountryName(), e);
+            logger.error("Failed to insert country. ID: {}, Name: {}, Tax: {}, Is Active: {}",
+                    country.getCountryId(), country.getCountryName(), country.getTax(), country.isActive(), e);
+            if (MYSQL_DUPLICATE_KEY_STATE.equals(e.getSQLState()) || e.getErrorCode() == MYSQL_DUPLICATE_KEY_CODE) {
+                throw new DuplicateEntityException("Country ID or Name already exists: " + country.getCountryId(), e);
+            }
+            throw new DAOException("Error occurred while inserting country", e);
         }
-        return false;
     }
 
-    public Country findById(String countryId) {
-        String sql = "SELECT * FROM country WHERE country_id = ?";
+    public Optional<Country> findById(Connection conn, String countryId) throws DAOException {
+        String sql = SELECT_BASE + " WHERE country_id = ?";
 
-        try (Connection conn = ConnectionPool.getConnection();
-             PreparedStatement ps = conn.prepareStatement(sql);
-             ResultSet rs = ps.executeQuery(sql)) {
-            if (rs.next()) {
-                return mapResultSetToCountry(rs);
+        try (PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setString(1, countryId);
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    return Optional.of(mapRow(rs));
+                }
             }
         } catch (SQLException e) {
             logger.error("Database error while fetching country with ID: {}", countryId, e);
+            throw new DAOException("Error fetching country by ID", e);
         }
-        return null;
+        return Optional.empty();
     }
 
-    public List<Country> findAll() {
-        String sql = "SELECT * FROM country";
+    public Optional<Country> findByName(Connection conn, String countryName) throws DAOException {
+        String sql = SELECT_BASE + " WHERE country_name = ?";
+
+        try (PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setString(1, countryName);
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    return Optional.of(mapRow(rs));
+                }
+            }
+        } catch (SQLException e) {
+            logger.error("Database error while fetching country with Name: {}", countryName, e);
+            throw new DAOException("Error fetching country by Name", e);
+        }
+        return Optional.empty();
+    }
+
+    public List<Country> findAll(Connection conn) throws DAOException {
         List<Country> countries = new ArrayList<>();
 
-        try (Connection conn = ConnectionPool.getConnection();
-             PreparedStatement ps = conn.prepareStatement(sql);
+        try (PreparedStatement ps = conn.prepareStatement(SELECT_BASE);
              ResultSet rs = ps.executeQuery()) {
             while (rs.next()) {
-                countries.add(mapResultSetToCountry(rs));
+                countries.add(mapRow(rs));
             }
         } catch (SQLException e) {
             logger.error("Database error while retrieving all countries", e);
+            throw new DAOException("Error retrieving all countries", e);
         }
         return countries;
     }
 
-    public boolean update(String countryId, Country country) {
-        String sql = "UPDATE country SET country_name = ? WHERE country_id = ?";
+    public List<Country> findAllActive(Connection conn) throws DAOException {
+        String sql = SELECT_BASE + " WHERE is_active = TRUE";
+        List<Country> countries = new ArrayList<>();
 
-        try (Connection conn = ConnectionPool.getConnection();
-             PreparedStatement ps = conn.prepareStatement(sql)) {
+        try (PreparedStatement ps = conn.prepareStatement(sql);
+             ResultSet rs = ps.executeQuery()) {
+            while (rs.next()) {
+                countries.add(mapRow(rs));
+            }
+        } catch (SQLException e) {
+            logger.error("Database error while retrieving all active countries", e);
+            throw new DAOException("Error retrieving all active countries", e);
+        }
+        return countries;
+    }
+
+    public boolean update(Connection conn, String countryId, Country country) throws DAOException {
+        if (country == null) {
+            throw new IllegalArgumentException("Cannot update with a null Country object");
+        }
+
+        String sql = "UPDATE country SET country_name = ?, is_active = ?, tax = ? WHERE country_id = ?";
+
+        try (PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setString(1, country.getCountryName());
-            ps.setString(2, countryId);
+            ps.setBoolean(2, country.isActive());
+            ps.setBigDecimal(3, country.getTax());
+            ps.setString(4, countryId);
+
             int rowsAffected = ps.executeUpdate();
             if (rowsAffected > 0) {
                 logger.info("Country with ID: {} successfully updated", countryId);
@@ -82,48 +130,113 @@ public class CountryDAO {
             }
         } catch (SQLException e) {
             logger.error("Failed to update country with ID: {}", countryId, e);
+            if (MYSQL_DUPLICATE_KEY_STATE.equals(e.getSQLState()) || e.getErrorCode() == MYSQL_DUPLICATE_KEY_CODE) {
+                throw new DuplicateEntityException("Country name already exists: " + country.getCountryName(), e);
+            }
+            throw new DAOException("Error updating country", e);
         }
         return false;
     }
 
-    public boolean update(Country country) {
+    public boolean update(Connection conn, Country country) throws DAOException {
         if (country == null || country.getCountryId() == null) {
-            logger.warn("Attempted to update a null country or a country without an ID");
-            return false;
+            throw new IllegalArgumentException("Attempted to update a null country or a country without an ID");
         }
-        return update(country.getCountryId(), country);
+        return update(conn, country.getCountryId(), country);
     }
 
-    public boolean delete(String countryId) {
-        String sql = "DELETE FROM country WHERE country_id = ?";
+    public boolean activate(Connection conn, String countryId) throws DAOException {
+        if (countryId == null || countryId.trim().isEmpty()) {
+            throw new IllegalArgumentException("Country ID cannot be null or empty for activation");
+        }
 
-        try (Connection conn = ConnectionPool.getConnection();
-             PreparedStatement ps = conn.prepareStatement(sql)) {
+        String sql = "UPDATE country SET is_active = TRUE WHERE country_id = ?";
+
+        try (PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setString(1, countryId);
             int rowsAffected = ps.executeUpdate();
             if (rowsAffected > 0) {
-                logger.info("Country with ID: {} successfully deleted", countryId);
+                logger.info("Country with ID: {} successfully reactivated", countryId);
                 return true;
             } else {
-                logger.warn("Delete issued for non-existent country ID: {}", countryId);
+                logger.warn("Activation issued for non-existent country ID: {}", countryId);
             }
         } catch (SQLException e) {
-            logger.error("Failed to delete country with ID: {}", countryId, e);
+            logger.error("Failed to activate country with ID: {}", countryId, e);
+            throw new DAOException("Error activating country", e);
         }
         return false;
     }
 
-    public boolean delete(Country country) {
+    public boolean activate(Connection conn, Country country) throws DAOException {
         if (country == null || country.getCountryId() == null) {
-            logger.warn("Attempted to delete a null country or a country without an ID");
-            return false;
+            throw new IllegalArgumentException("Attempted to activate a null country or a country without an ID");
         }
-        return delete(country.getCountryId());
+        return activate(conn, country.getCountryId());
     }
 
-    private Country mapResultSetToCountry(ResultSet rs) throws SQLException {
+    public boolean deactivate(Connection conn, String countryId) throws DAOException {
+        String sql = "UPDATE country SET is_active = FALSE WHERE country_id = ?";
+
+        try (PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setString(1, countryId);
+            int rowsAffected = ps.executeUpdate();
+            if (rowsAffected > 0) {
+                logger.info("Country with ID: {} successfully deactivated", countryId);
+                return true;
+            } else {
+                logger.warn("Deactivation issued for non-existent country ID: {}", countryId);
+            }
+        } catch (SQLException e) {
+            logger.error("Failed to deactivate country with ID: {}", countryId, e);
+            throw new DAOException("Error deactivating country", e);
+        }
+        return false;
+    }
+
+    public boolean deactivate(Connection conn, Country country) throws DAOException {
+        if (country == null || country.getCountryId() == null) {
+            throw new IllegalArgumentException("Attempted to deactivate a null country or a country without an ID");
+        }
+        return deactivate(conn, country.getCountryId());
+    }
+
+    public boolean forceDelete(Connection conn, String countryId) throws DAOException {
+        if (countryId == null || countryId.trim().isEmpty()) {
+            throw new IllegalArgumentException("Country ID cannot be null or empty for force delete");
+        }
+
+        String sql = "DELETE FROM country WHERE country_id = ?";
+
+        try (PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setString(1, countryId);
+            int rowsAffected = ps.executeUpdate();
+            if (rowsAffected > 0) {
+                logger.info("CRITICAL: Country with ID: {} has been PERMANENTLY deleted from the database", countryId);
+                return true;
+            } else {
+                logger.warn("Force delete issued for non-existent country ID: {}", countryId);
+            }
+        } catch (SQLException e) {
+            logger.error("Failed to force delete country with ID: {}", countryId, e);
+            throw new DAOException("Error permanently deleting country", e);
+        }
+        return false;
+    }
+
+    public boolean forceDelete(Connection conn, Country country) throws DAOException {
+        if (country == null || country.getCountryId() == null) {
+            throw new IllegalArgumentException("Attempted to force delete a null country or a country without an ID");
+        }
+        return forceDelete(conn, country.getCountryId());
+    }
+
+    private Country mapRow(ResultSet rs) throws SQLException {
         String id = rs.getString("country_id");
         String name = rs.getString("country_name");
-        return new Country(id, name);
+        BigDecimal tax = rs.getBigDecimal("tax");
+        boolean isActive = rs.getBoolean("is_active");
+
+        return new Country(id, name, isActive, tax);
     }
 }

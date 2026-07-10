@@ -2,16 +2,16 @@ package com.xyra.schemecraft.model;
 
 import java.io.Serializable;
 
-public class Favorite implements Serializable {
+public class Cart implements Serializable {
     private static final long serialVersionUID = 1L;
 
     private String accountId;
     private String productId;
 
-    public Favorite() {
+    public Cart() {
     }
 
-    public Favorite(String accountId, String productId) {
+    public Cart(String accountId, String productId) {
         this.accountId = accountId;
         this.productId = productId;
     }
@@ -34,9 +34,9 @@ public class Favorite implements Serializable {
 
     @Override
     public String toString() {
-        return "Favorite{" +
-                "accountId='" + accountId + '\'' +
-                ", productId='" + productId + '\'' +
+        return "Cart{" +
+                "accountId=" + accountId +
+                ", productId=" + productId +
                 '}';
     }
 }

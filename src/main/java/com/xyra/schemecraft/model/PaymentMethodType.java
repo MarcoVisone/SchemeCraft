@@ -6,13 +6,15 @@ public class PaymentMethodType implements Serializable {
     private static final long serialVersionUID = 1L;
 
     private int typeId;
+    private boolean isActive;
     private String typeName;
 
     public PaymentMethodType() {
     }
 
-    public PaymentMethodType(int typeId, String typeName) {
+    public PaymentMethodType(int typeId, boolean isActive, String typeName) {
         this.typeId = typeId;
+        this.isActive = isActive;
         this.typeName = typeName;
     }
 
@@ -28,6 +30,14 @@ public class PaymentMethodType implements Serializable {
         this.typeId = typeId;
     }
 
+    public boolean isActive() {
+        return isActive;
+    }
+
+    public void setActive(boolean isActive) {
+        this.isActive = isActive;
+    }
+
     public String getTypeName() {
         return typeName;
     }
@@ -40,6 +50,7 @@ public class PaymentMethodType implements Serializable {
     public String toString() {
         return "PaymentMethodType{" +
                 "typeId=" + typeId +
+                ", isActive=" + isActive +
                 ", typeName='" + typeName + '\'' +
                 '}';
     }

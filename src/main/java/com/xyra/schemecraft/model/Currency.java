@@ -7,14 +7,16 @@ public class Currency implements Serializable {
 
     private String currencyId;
     private String currencyName;
+    private boolean isActive;
     private String symbol;
 
     public Currency() {
     }
 
-    public Currency(String currencyId, String currencyName, String symbol) {
+    public Currency(String currencyId, String currencyName, boolean isActive, String symbol) {
         this.currencyId = currencyId;
         this.currencyName = currencyName;
+        this.isActive = isActive;
         this.symbol = symbol;
     }
 
@@ -34,6 +36,14 @@ public class Currency implements Serializable {
         this.currencyName = currencyName;
     }
 
+    public boolean isActive() {
+        return isActive;
+    }
+
+    public void setActive(boolean active) {
+        isActive = active;
+    }
+
     public String getSymbol() {
         return symbol;
     }
@@ -47,6 +57,7 @@ public class Currency implements Serializable {
         return "Currency{" +
                 "currencyId='" + currencyId + '\'' +
                 ", currencyName='" + currencyName + '\'' +
+                ", isActive=" + isActive +
                 ", symbol='" + symbol + '\'' +
                 '}';
     }

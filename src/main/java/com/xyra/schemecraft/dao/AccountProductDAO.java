@@ -7,148 +7,127 @@ import java.sql.SQLException;
 import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import com.xyra.schemecraft.connection.ConnectionPool;
+import com.xyra.schemecraft.exception.DAOException;
+import com.xyra.schemecraft.exception.DuplicateEntityException;
 import com.xyra.schemecraft.model.AccountProduct;
 
+import static com.xyra.schemecraft.constant.DatabaseConstants.*;
 
-public class AccountProductDAO {
-    private static final Logger logger = LoggerFactory.getLogger(AccountProductDAO.class);
+public class AccountProductDAO extends BaseDAO {
+    private static final String SELECT_BASE = "SELECT account_id, product_id, unlocked_at FROM account_product";
 
-    public void save(AccountProduct accountProduct) {
+    public void insert(Connection conn, AccountProduct association) throws DAOException {
+        if (association == null) {
+            throw new IllegalArgumentException("Cannot insert a null AccountProduct association");
+        }
+
         String sql = "INSERT INTO account_product (account_id, product_id) VALUES (?, ?)";
 
-        try (Connection conn = ConnectionPool.getConnection();
-             PreparedStatement ps = conn.prepareStatement(sql)) {
-            ps.setString(1, accountProduct.getAccountId());
-            ps.setString(2, accountProduct.getProductId());
+        try (PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setString(1, association.getAccountId());
+            ps.setString(2, association.getProductId());
+
             ps.executeUpdate();
+            logger.info("Product ID: {} successfully unlocked for Account ID: {}",
+                    association.getProductId(), association.getAccountId());
         } catch (SQLException e) {
-            logger.error("Error occurred while unlocking product {} for account {}",
-                    accountProduct.getProductId(), accountProduct.getAccountId(), e);
+            logger.error("Failed to link account {} with product {}", association.getAccountId(),
+                    association.getProductId(), e);
+            if (MYSQL_DUPLICATE_KEY_STATE.equals(e.getSQLState()) || e.getErrorCode() == MYSQL_DUPLICATE_KEY_CODE) {
+                throw new DuplicateEntityException("Product already unlocked for this account", e);
+            }
+            throw new DAOException("Error occurred while unlocking product for account", e);
         }
     }
 
-    public AccountProduct findById(String accountId, String productId) {
-        String sql = "SELECT * FROM account_product WHERE account_id = ? AND product_id = ?";
+    public Optional<AccountProduct> findById(Connection conn, String accountId, String productId) throws DAOException {
+        String sql = SELECT_BASE + " WHERE account_id = ? AND product_id = ?";
 
-        try (Connection conn = ConnectionPool.getConnection();
-             PreparedStatement ps = conn.prepareStatement(sql)) {
-
+        try (PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setString(1, accountId);
             ps.setString(2, productId);
-
             try (ResultSet rs = ps.executeQuery()) {
                 if (rs.next()) {
-                    return mapResultSetToAccountProduct(rs);
+                    return Optional.of(mapRow(rs));
                 }
             }
         } catch (SQLException e) {
-            logger.error("Error occurred while searching account_product relation for Account: {} and Product: {}",
+            logger.error("Database error while fetching association for account {} and product {}",
                     accountId, productId, e);
+            throw new DAOException("Error fetching account-product association", e);
         }
-        return null;
+        return Optional.empty();
     }
 
-    public List<AccountProduct> findByAccountId(String accountId) {
-        String sql = "SELECT * FROM account_product WHERE account_id = ?";
-        List<AccountProduct> accountProducts = new ArrayList<>();
+    public List<AccountProduct> findAllByAccountId(Connection conn, String accountId) throws DAOException {
+        String sql = SELECT_BASE + " WHERE account_id = ? ORDER BY unlocked_at DESC";
+        List<AccountProduct> list = new ArrayList<>();
 
-        try (Connection conn = ConnectionPool.getConnection();
-             PreparedStatement ps = conn.prepareStatement(sql)) {
-
+        try (PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setString(1, accountId);
-
             try (ResultSet rs = ps.executeQuery()) {
                 while (rs.next()) {
-                    accountProducts.add(mapResultSetToAccountProduct(rs));
+                    list.add(mapRow(rs));
                 }
             }
         } catch (SQLException e) {
-            logger.error("Error occurred while searching for products unlocked by Account: {}", accountId, e);
+            logger.error("Database error while retrieving unlocked products for account ID: {}", accountId, e);
+            throw new DAOException("Error retrieving unlocked products by account ID", e);
         }
-        return accountProducts;
+        return list;
     }
 
-    public List<AccountProduct> findByProductId(String productId) {
-        String sql = "SELECT * FROM account_product WHERE product_id = ?";
-        List<AccountProduct> accountProducts = new ArrayList<>();
+    public List<AccountProduct> findAllByProductId(Connection conn, String productId) throws DAOException {
+        String sql = SELECT_BASE + " WHERE product_id = ? ORDER BY unlocked_at DESC";
+        List<AccountProduct> list = new ArrayList<>();
 
-        try (Connection conn = ConnectionPool.getConnection();
-             PreparedStatement ps = conn.prepareStatement(sql)) {
-
+        try (PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setString(1, productId);
-
             try (ResultSet rs = ps.executeQuery()) {
                 while (rs.next()) {
-                    accountProducts.add(mapResultSetToAccountProduct(rs));
+                    list.add(mapRow(rs));
                 }
             }
         } catch (SQLException e) {
-            logger.error("Error occurred while searching for accounts that unlocked Product: {}", productId, e);
+            logger.error("Database error while retrieving accounts for product ID: {}", productId, e);
+            throw new DAOException("Error retrieving accounts by product ID", e);
         }
-        return accountProducts;
+        return list;
     }
 
-    public List<AccountProduct> findAll() {
-        String sql = "SELECT * FROM account_product";
-        List<AccountProduct> accountProducts = new ArrayList<>();
-
-        try (Connection conn = ConnectionPool.getConnection();
-             PreparedStatement ps = conn.prepareStatement(sql);
-             ResultSet rs = ps.executeQuery()) {
-
-            while (rs.next()) {
-                accountProducts.add(mapResultSetToAccountProduct(rs));
-            }
-        } catch (SQLException e) {
-            logger.error("Error occurred while fetching all account_product relations", e);
-        }
-        return accountProducts;
-    }
-
-    public void update(AccountProduct accountProduct) {
-        String sql = "UPDATE account_product SET unlocked_at = ? WHERE account_id = ? AND product_id = ?";
-
-        try (Connection conn = ConnectionPool.getConnection();
-             PreparedStatement ps = conn.prepareStatement(sql)) {
-
-            ps.setTimestamp(1, accountProduct.getUnlockedAt() != null ?
-                    Timestamp.valueOf(accountProduct.getUnlockedAt()) : null);
-            ps.setString(2, accountProduct.getAccountId());
-            ps.setString(3, accountProduct.getProductId());
-
-            ps.executeUpdate();
-        } catch (SQLException e) {
-            logger.error("Error occurred while updating account_product relation for Account: {} and Product: {}",
-                    accountProduct.getAccountId(), accountProduct.getProductId(), e);
-        }
-    }
-
-    public void deleteById(String accountId, String productId) {
+    public boolean delete(Connection conn, String accountId, String productId) throws DAOException {
         String sql = "DELETE FROM account_product WHERE account_id = ? AND product_id = ?";
 
-        try (Connection conn = ConnectionPool.getConnection();
-             PreparedStatement ps = conn.prepareStatement(sql)) {
-
+        try (PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setString(1, accountId);
             ps.setString(2, productId);
-
-            ps.executeUpdate();
+            int rowsAffected = ps.executeUpdate();
+            return rowsAffected > 0;
         } catch (SQLException e) {
-            logger.error("Error occurred while deleting account_product relation for Account: {} and Product: {}",
-                    accountId, productId, e);
+            logger.error("Failed to delete association for account {} and product {}", accountId, productId, e);
+            throw new DAOException("Error deleting account-product association", e);
         }
     }
 
-    private AccountProduct mapResultSetToAccountProduct(ResultSet rs) throws SQLException {
-        String accountId = rs.getString("account_id");
-        String productId = rs.getString("product_id");
-        Timestamp unlockedAtTimestamp = rs.getTimestamp("unlocked_at");
-        return new AccountProduct(accountId, productId, unlockedAtTimestamp != null ?
-                unlockedAtTimestamp.toLocalDateTime() : null);
+    public boolean delete(Connection conn, AccountProduct association) throws DAOException {
+        if (association == null || association.getAccountId() == null || association.getProductId() == null) {
+            throw new IllegalArgumentException("Attempted to delete a null association or an object with " +
+                    "missing composite keys");
+        }
+        return delete(conn, association.getAccountId(), association.getProductId());
+    }
+
+    private AccountProduct mapRow(ResultSet rs) throws SQLException {
+        AccountProduct ap = new AccountProduct();
+        ap.setAccountId(rs.getString("account_id"));
+        ap.setProductId(rs.getString("product_id"));
+
+        Timestamp unlockedAt = rs.getTimestamp("unlocked_at");
+        if (unlockedAt != null) {
+            ap.setUnlockedAt(unlockedAt.toLocalDateTime());
+        }
+        return ap;
     }
 }

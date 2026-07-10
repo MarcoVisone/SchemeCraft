@@ -6,112 +6,145 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import com.xyra.schemecraft.connection.ConnectionPool;
+import com.xyra.schemecraft.exception.DAOException;
+import com.xyra.schemecraft.exception.DuplicateEntityException;
 import com.xyra.schemecraft.model.ProductImage;
 
-public class ProductImageDAO {
-    private static final Logger logger = LoggerFactory.getLogger(ProductImageDAO.class);
+import static com.xyra.schemecraft.constant.DatabaseConstants.*;
 
-    public void save(ProductImage productImage) {
+public class ProductImageDAO extends BaseDAO {
+    private static final String SELECT_BASE = "SELECT image_id, product_id, image_path FROM product_image";
+
+    public void insert(Connection conn, ProductImage image) throws DAOException {
+        if (image == null) {
+            throw new IllegalArgumentException("Cannot insert a null ProductImage");
+        }
+
         String sql = "INSERT INTO product_image (image_id, product_id, image_path) VALUES (?, ?, ?)";
 
-        try (Connection conn = ConnectionPool.getConnection();
-             PreparedStatement ps = conn.prepareStatement(sql)) {
-            ps.setString(1, productImage.getImageId());
-            ps.setString(2, productImage.getProductId());
-            ps.setString(3, productImage.getImagePath());
+        try (PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setString(1, image.getImageId());
+            ps.setString(2, image.getProductId());
+            ps.setString(3, image.getImagePath());
+
             ps.executeUpdate();
+            logger.info("Product image successfully registered with ID: {} for Product: {}", image.getImageId(),
+                    image.getProductId());
         } catch (SQLException e) {
-            logger.error("Error occurred while saving product image with ID: {}", productImage.getImageId(), e);
+            logger.error("Failed to insert product image for product ID: {}", image.getProductId(), e);
+            if (MYSQL_DUPLICATE_KEY_STATE.equals(e.getSQLState()) || e.getErrorCode() == MYSQL_DUPLICATE_KEY_CODE) {
+                throw new DuplicateEntityException("Image ID already exists: " + image.getImageId(), e);
+            }
+            throw new DAOException("Error occurred while saving product image", e);
         }
     }
 
-    public ProductImage findById(String imageId) {
-        String sql = "SELECT * FROM product_image WHERE image_id = ?";
+    public Optional<ProductImage> findById(Connection conn, String imageId) throws DAOException {
+        String sql = SELECT_BASE + " WHERE image_id = ?";
 
-        try (Connection conn = ConnectionPool.getConnection();
-             PreparedStatement ps = conn.prepareStatement(sql)) {
+        try (PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setString(1, imageId);
             try (ResultSet rs = ps.executeQuery()) {
                 if (rs.next()) {
-                    return mapResultSetToProductImage(rs);
+                    return Optional.of(mapRow(rs));
                 }
             }
         } catch (SQLException e) {
-            logger.error("Error occurred while searching for product image with ID: {}", imageId, e);
+            logger.error("Database error while fetching image with ID: {}", imageId, e);
+            throw new DAOException("Error fetching image by ID", e);
         }
-        return null;
+        return Optional.empty();
     }
 
-    public List<ProductImage> findByProductId(String productId) {
-        String sql = "SELECT * FROM product_image WHERE product_id = ?";
-        List<ProductImage> productImages = new ArrayList<>();
+    public List<ProductImage> findAllByProductId(Connection conn, String productId) throws DAOException {
+        String sql = SELECT_BASE + " WHERE product_id = ?";
+        List<ProductImage> images = new ArrayList<>();
 
-        try (Connection conn = ConnectionPool.getConnection();
-             PreparedStatement ps = conn.prepareStatement(sql)) {
+        try (PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setString(1, productId);
             try (ResultSet rs = ps.executeQuery()) {
                 while (rs.next()) {
-                    productImages.add(mapResultSetToProductImage(rs));
+                    images.add(mapRow(rs));
                 }
             }
         } catch (SQLException e) {
-            logger.error("Error occurred while fetching product images for product ID: {}", productId, e);
+            logger.error("Database error while retrieving images for product ID: {}", productId, e);
+            throw new DAOException("Error retrieving images by product ID", e);
         }
-        return productImages;
+        return images;
     }
 
-    public List<ProductImage> findAll() {
-        String sql = "SELECT * FROM product_image";
-        List<ProductImage> productImages = new ArrayList<>();
-
-        try (Connection conn = ConnectionPool.getConnection();
-             PreparedStatement ps = conn.prepareStatement(sql);
-             ResultSet rs = ps.executeQuery()) {
-            while (rs.next()) {
-                productImages.add(mapResultSetToProductImage(rs));
-            }
-        } catch (SQLException e) {
-            logger.error("Error occurred while fetching all product images", e);
+    public boolean update(Connection conn, String imageId, ProductImage image) throws DAOException {
+        if (image == null) {
+            throw new IllegalArgumentException("Cannot update with a null ProductImage object");
         }
-        return productImages;
-    }
 
-    public void update(ProductImage productImage) {
         String sql = "UPDATE product_image SET product_id = ?, image_path = ? WHERE image_id = ?";
 
-        try (Connection conn = ConnectionPool.getConnection();
-             PreparedStatement ps = conn.prepareStatement(sql)) {
-            ps.setString(1, productImage.getProductId());
-            ps.setString(2, productImage.getImagePath());
-            ps.setString(3, productImage.getImageId());
-            ps.executeUpdate();
+        try (PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setString(1, image.getProductId());
+            ps.setString(2, image.getImagePath());
+            ps.setString(3, imageId);
+
+            int rowsAffected = ps.executeUpdate();
+            if (rowsAffected > 0) {
+                logger.info("Product image with ID: {} successfully updated", imageId);
+                return true;
+            }
         } catch (SQLException e) {
-            logger.error("Error occurred while updating product image with ID: {}", productImage.getImageId(), e);
+            logger.error("Failed to update product image with ID: {}", imageId, e);
+            throw new DAOException("Error updating product image", e);
         }
+        return false;
     }
 
-    public void deleteById(String imageId) {
+    public boolean update(Connection conn, ProductImage image) throws DAOException {
+        if (image == null || image.getImageId() == null) {
+            throw new IllegalArgumentException("Attempted to update a null image or an image without an ID");
+        }
+        return update(conn, image.getImageId(), image);
+    }
+
+    public boolean delete(Connection conn, String imageId) throws DAOException {
         String sql = "DELETE FROM product_image WHERE image_id = ?";
 
-        try (Connection conn = ConnectionPool.getConnection();
-             PreparedStatement ps = conn.prepareStatement(sql)) {
+        try (PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setString(1, imageId);
-            ps.executeUpdate();
+            int rowsAffected = ps.executeUpdate();
+            return rowsAffected > 0;
         } catch (SQLException e) {
-            logger.error("Error occurred while deleting product image with ID: {}", imageId, e);
+            logger.error("Failed to delete product image with ID: {}", imageId, e);
+            throw new DAOException("Error deleting product image", e);
         }
     }
 
-    private ProductImage mapResultSetToProductImage(ResultSet rs) throws SQLException {
-        ProductImage productImage = new ProductImage();
-        productImage.setImageId(rs.getString("image_id"));
-        productImage.setProductId(rs.getString("product_id"));
-        productImage.setImagePath(rs.getString("image_path"));
-        return productImage;
+    public boolean delete(Connection conn, ProductImage image) throws DAOException {
+        if (image == null || image.getImageId() == null) {
+            throw new IllegalArgumentException("Attempted to delete a null image or an image without an ID");
+        }
+        return delete(conn, image.getImageId());
+    }
+
+    public boolean deleteAllByProductId(Connection conn, String productId) throws DAOException {
+        String sql = "DELETE FROM product_image WHERE product_id = ?";
+
+        try (PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setString(1, productId);
+            int rowsAffected = ps.executeUpdate();
+            return rowsAffected > 0;
+        } catch (SQLException e) {
+            logger.error("Failed to clear images for product ID: {}", productId, e);
+            throw new DAOException("Error clearing images for product", e);
+        }
+    }
+
+    private ProductImage mapRow(ResultSet rs) throws SQLException {
+        ProductImage image = new ProductImage();
+        image.setImageId(rs.getString("image_id"));
+        image.setProductId(rs.getString("product_id"));
+        image.setImagePath(rs.getString("image_path"));
+        return image;
     }
 }
