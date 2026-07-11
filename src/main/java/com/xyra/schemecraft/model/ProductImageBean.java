@@ -2,17 +2,17 @@ package com.xyra.schemecraft.model;
 
 import java.io.Serializable;
 
-public class ProductImage implements Serializable {
+public class ProductImageBean implements Serializable {
     private static final long serialVersionUID = 1L;
 
     private String imageId;
     private String productId;
     private String imagePath;
 
-    public ProductImage() {
+    public ProductImageBean() {
     }
 
-    public ProductImage(String imageId, String productId, String imagePath) {
+    public ProductImageBean(String imageId, String productId, String imagePath) {
         this.imageId = imageId;
         this.productId = productId;
         this.imagePath = imagePath;

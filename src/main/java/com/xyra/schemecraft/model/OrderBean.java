@@ -4,7 +4,7 @@ import java.io.Serializable;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
-public class Order implements Serializable {
+public class OrderBean implements Serializable {
     private static final long serialVersionUID = 1L;
 
     private String orderId;
@@ -17,11 +17,11 @@ public class Order implements Serializable {
     private BigDecimal totalAmount;
     private String transactionId;
 
-    public Order() {
+    public OrderBean() {
     }
 
-    public Order(String orderId, String accountId, String addressId, String currencyId, int methodType, int status,
-                 LocalDateTime createdAt, BigDecimal totalAmount, String transactionId) {
+    public OrderBean(String orderId, String accountId, String addressId, String currencyId, int methodType, int status,
+                     LocalDateTime createdAt, BigDecimal totalAmount, String transactionId) {
         this.orderId = orderId;
         this.accountId = accountId;
         this.addressId = addressId;

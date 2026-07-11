@@ -3,7 +3,7 @@ package com.xyra.schemecraft.model;
 import java.io.Serializable;
 import java.time.LocalDateTime;
 
-public class ProductVersion implements Serializable {
+public class ProductVersionBean implements Serializable {
     private static final long serialVersionUID = 1L;
 
     /*
@@ -30,11 +30,11 @@ public class ProductVersion implements Serializable {
     private String minecraftVersion;
     private String version;
 
-    public ProductVersion() {
+    public ProductVersionBean() {
     }
 
-    public ProductVersion(String versionId, String productId, LocalDateTime createdAt, String changelog,
-                          int downloadCount, String filePath, String minecraftVersion, String version) {
+    public ProductVersionBean(String versionId, String productId, LocalDateTime createdAt, String changelog,
+                              int downloadCount, String filePath, String minecraftVersion, String version) {
         this.versionId = versionId;
         this.productId = productId;
         this.createdAt = createdAt;

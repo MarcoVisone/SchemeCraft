@@ -11,14 +11,14 @@ import java.util.Optional;
 
 import com.xyra.schemecraft.exception.DAOException;
 import com.xyra.schemecraft.exception.DuplicateEntityException;
-import com.xyra.schemecraft.model.Country;
+import com.xyra.schemecraft.model.CountryBean;
 
 import static com.xyra.schemecraft.constant.DatabaseConstants.*;
 
 public class CountryDAO extends BaseDAO {
     private static final String SELECT_BASE = "SELECT country_id, country_name, is_active, tax FROM country";
 
-    public void insert(Connection conn, Country country) throws DAOException {
+    public void insert(Connection conn, CountryBean country) throws DAOException {
         if (country == null) {
             throw new IllegalArgumentException("Cannot insert a null Country");
         }
@@ -43,7 +43,7 @@ public class CountryDAO extends BaseDAO {
         }
     }
 
-    public Optional<Country> findById(Connection conn, String countryId) throws DAOException {
+    public Optional<CountryBean> findById(Connection conn, String countryId) throws DAOException {
         String sql = SELECT_BASE + " WHERE country_id = ?";
 
         try (PreparedStatement ps = conn.prepareStatement(sql)) {
@@ -60,7 +60,7 @@ public class CountryDAO extends BaseDAO {
         return Optional.empty();
     }
 
-    public Optional<Country> findByName(Connection conn, String countryName) throws DAOException {
+    public Optional<CountryBean> findByName(Connection conn, String countryName) throws DAOException {
         String sql = SELECT_BASE + " WHERE country_name = ?";
 
         try (PreparedStatement ps = conn.prepareStatement(sql)) {
@@ -77,8 +77,8 @@ public class CountryDAO extends BaseDAO {
         return Optional.empty();
     }
 
-    public List<Country> findAll(Connection conn) throws DAOException {
-        List<Country> countries = new ArrayList<>();
+    public List<CountryBean> findAll(Connection conn) throws DAOException {
+        List<CountryBean> countries = new ArrayList<>();
 
         try (PreparedStatement ps = conn.prepareStatement(SELECT_BASE);
              ResultSet rs = ps.executeQuery()) {
@@ -92,9 +92,9 @@ public class CountryDAO extends BaseDAO {
         return countries;
     }
 
-    public List<Country> findAllActive(Connection conn) throws DAOException {
+    public List<CountryBean> findAllActive(Connection conn) throws DAOException {
         String sql = SELECT_BASE + " WHERE is_active = TRUE";
-        List<Country> countries = new ArrayList<>();
+        List<CountryBean> countries = new ArrayList<>();
 
         try (PreparedStatement ps = conn.prepareStatement(sql);
              ResultSet rs = ps.executeQuery()) {
@@ -108,7 +108,7 @@ public class CountryDAO extends BaseDAO {
         return countries;
     }
 
-    public boolean update(Connection conn, String countryId, Country country) throws DAOException {
+    public boolean update(Connection conn, String countryId, CountryBean country) throws DAOException {
         if (country == null) {
             throw new IllegalArgumentException("Cannot update with a null Country object");
         }
@@ -138,7 +138,7 @@ public class CountryDAO extends BaseDAO {
         return false;
     }
 
-    public boolean update(Connection conn, Country country) throws DAOException {
+    public boolean update(Connection conn, CountryBean country) throws DAOException {
         if (country == null || country.getCountryId() == null) {
             throw new IllegalArgumentException("Attempted to update a null country or a country without an ID");
         }
@@ -168,7 +168,7 @@ public class CountryDAO extends BaseDAO {
         return false;
     }
 
-    public boolean activate(Connection conn, Country country) throws DAOException {
+    public boolean activate(Connection conn, CountryBean country) throws DAOException {
         if (country == null || country.getCountryId() == null) {
             throw new IllegalArgumentException("Attempted to activate a null country or a country without an ID");
         }
@@ -194,7 +194,7 @@ public class CountryDAO extends BaseDAO {
         return false;
     }
 
-    public boolean deactivate(Connection conn, Country country) throws DAOException {
+    public boolean deactivate(Connection conn, CountryBean country) throws DAOException {
         if (country == null || country.getCountryId() == null) {
             throw new IllegalArgumentException("Attempted to deactivate a null country or a country without an ID");
         }
@@ -224,19 +224,19 @@ public class CountryDAO extends BaseDAO {
         return false;
     }
 
-    public boolean forceDelete(Connection conn, Country country) throws DAOException {
+    public boolean forceDelete(Connection conn, CountryBean country) throws DAOException {
         if (country == null || country.getCountryId() == null) {
             throw new IllegalArgumentException("Attempted to force delete a null country or a country without an ID");
         }
         return forceDelete(conn, country.getCountryId());
     }
 
-    private Country mapRow(ResultSet rs) throws SQLException {
+    private CountryBean mapRow(ResultSet rs) throws SQLException {
         String id = rs.getString("country_id");
         String name = rs.getString("country_name");
         BigDecimal tax = rs.getBigDecimal("tax");
         boolean isActive = rs.getBoolean("is_active");
 
-        return new Country(id, name, isActive, tax);
+        return new CountryBean(id, name, isActive, tax);
     }
 }

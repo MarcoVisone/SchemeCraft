@@ -1,6 +1,5 @@
 package com.xyra.schemecraft.dao;
 
-import java.math.BigDecimal;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -12,7 +11,7 @@ import java.util.Optional;
 
 import com.xyra.schemecraft.exception.DAOException;
 import com.xyra.schemecraft.exception.DuplicateEntityException;
-import com.xyra.schemecraft.model.Order;
+import com.xyra.schemecraft.model.OrderBean;
 
 import static com.xyra.schemecraft.constant.DatabaseConstants.*;
 
@@ -20,7 +19,7 @@ public class OrderDAO extends BaseDAO {
     private static final String SELECT_BASE = "SELECT order_id, account_id, address_id, currency_id, method_type, " +
             "status, created_at, total_amount, transaction_id FROM order_table";
 
-    public void insert(Connection conn, Order order) throws DAOException {
+    public void insert(Connection conn, OrderBean order) throws DAOException {
         if (order == null) {
             throw new IllegalArgumentException("Cannot insert a null Order");
         }
@@ -50,7 +49,7 @@ public class OrderDAO extends BaseDAO {
         }
     }
 
-    public Optional<Order> findById(Connection conn, String orderId) throws DAOException {
+    public Optional<OrderBean> findById(Connection conn, String orderId) throws DAOException {
         String sql = SELECT_BASE + " WHERE order_id = ?";
 
         try (PreparedStatement ps = conn.prepareStatement(sql)) {
@@ -67,10 +66,10 @@ public class OrderDAO extends BaseDAO {
         return Optional.empty();
     }
 
-    public List<Order> findAllByAccountId(Connection conn, String accountId, int pageNumber, int pageSize)
+    public List<OrderBean> findAllByAccountId(Connection conn, String accountId, int pageNumber, int pageSize)
             throws DAOException {
         String sql = SELECT_BASE + " WHERE account_id = ? ORDER BY created_at DESC LIMIT ? OFFSET ?";
-        List<Order> orders = new ArrayList<>();
+        List<OrderBean> orders = new ArrayList<>();
 
         int limit = pageSize < 1 ? 10 : pageSize;
         int offset = (pageNumber < 1 ? 0 : pageNumber - 1) * limit;
@@ -92,7 +91,7 @@ public class OrderDAO extends BaseDAO {
         return orders;
     }
 
-    public boolean update(Connection conn, String orderId, Order order) throws DAOException {
+    public boolean update(Connection conn, String orderId, OrderBean order) throws DAOException {
         if (order == null) {
             throw new IllegalArgumentException("Cannot update with a null Order object");
         }
@@ -122,7 +121,7 @@ public class OrderDAO extends BaseDAO {
         return false;
     }
 
-    public boolean update(Connection conn, Order order) throws DAOException {
+    public boolean update(Connection conn, OrderBean order) throws DAOException {
         if (order == null || order.getOrderId() == null) {
             throw new IllegalArgumentException("Attempted to update a null order or an order without an ID");
         }
@@ -148,7 +147,7 @@ public class OrderDAO extends BaseDAO {
         return false;
     }
 
-    public boolean updateStatus(Connection conn, Order order, int newStatus) throws DAOException {
+    public boolean updateStatus(Connection conn, OrderBean order, int newStatus) throws DAOException {
         if (order == null || order.getOrderId() == null) {
             throw new IllegalArgumentException("Attempted to update status on a null order or an order without an ID");
         }
@@ -169,15 +168,15 @@ public class OrderDAO extends BaseDAO {
         }
     }
 
-    public boolean delete(Connection conn, Order order) throws DAOException {
+    public boolean delete(Connection conn, OrderBean order) throws DAOException {
         if (order == null || order.getOrderId() == null) {
             throw new IllegalArgumentException("Attempted to delete a null order or an order without an ID");
         }
         return delete(conn, order.getOrderId());
     }
 
-    private Order mapRow(ResultSet rs) throws SQLException {
-        Order order = new Order();
+    private OrderBean mapRow(ResultSet rs) throws SQLException {
+        OrderBean order = new OrderBean();
         order.setOrderId(rs.getString("order_id"));
         order.setAccountId(rs.getString("account_id"));
         order.setAddressId(rs.getString("address_id"));

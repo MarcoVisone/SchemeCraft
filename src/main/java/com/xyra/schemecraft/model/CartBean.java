@@ -2,16 +2,16 @@ package com.xyra.schemecraft.model;
 
 import java.io.Serializable;
 
-public class Cart implements Serializable {
+public class CartBean implements Serializable {
     private static final long serialVersionUID = 1L;
 
     private String accountId;
     private String productId;
 
-    public Cart() {
+    public CartBean() {
     }
 
-    public Cart(String accountId, String productId) {
+    public CartBean(String accountId, String productId) {
         this.accountId = accountId;
         this.productId = productId;
     }

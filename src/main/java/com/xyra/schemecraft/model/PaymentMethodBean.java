@@ -2,7 +2,7 @@ package com.xyra.schemecraft.model;
 
 import java.io.Serializable;
 
-public class PaymentMethod implements Serializable {
+public class PaymentMethodBean implements Serializable {
     private static final long serialVersionUID = 1L;
 
     /**
@@ -34,12 +34,12 @@ public class PaymentMethod implements Serializable {
     private String paymentEmail;
     private String paymentToken;
 
-    public PaymentMethod() {
+    public PaymentMethodBean() {
     }
 
-    public PaymentMethod(String paymentMethodId, String accountId, int methodType, String cardBrand,
-                         String cardExpiration, String cardLastFour, boolean flagDefault, String paymentEmail,
-                         String paymentToken) {
+    public PaymentMethodBean(String paymentMethodId, String accountId, int methodType, String cardBrand,
+                             String cardExpiration, String cardLastFour, boolean flagDefault, String paymentEmail,
+                             String paymentToken) {
         this.paymentMethodId = paymentMethodId;
         this.accountId = accountId;
         this.methodType = methodType;

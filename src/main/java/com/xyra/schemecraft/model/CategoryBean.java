@@ -2,7 +2,7 @@ package com.xyra.schemecraft.model;
 
 import java.io.Serializable;
 
-public class Category implements Serializable {
+public class CategoryBean implements Serializable {
     private static final long serialVersionUID = 1L;
 
     private String categoryId;
@@ -10,10 +10,10 @@ public class Category implements Serializable {
     private String parentCategoryName;
     private String description;
 
-    public Category() {
+    public CategoryBean() {
     }
 
-    public  Category(String categoryId, String categoryName, String parentCategoryName, String description) {
+    public CategoryBean(String categoryId, String categoryName, String parentCategoryName, String description) {
         this.categoryId = categoryId;
         this.categoryName = categoryName;
         this.parentCategoryName = parentCategoryName;

@@ -2,7 +2,7 @@ package com.xyra.schemecraft.model;
 
 import java.io.Serializable;
 
-public class Currency implements Serializable {
+public class CurrencyBean implements Serializable {
     private static final long serialVersionUID = 1L;
 
     private String currencyId;
@@ -10,10 +10,10 @@ public class Currency implements Serializable {
     private boolean isActive;
     private String symbol;
 
-    public Currency() {
+    public CurrencyBean() {
     }
 
-    public Currency(String currencyId, String currencyName, boolean isActive, String symbol) {
+    public CurrencyBean(String currencyId, String currencyName, boolean isActive, String symbol) {
         this.currencyId = currencyId;
         this.currencyName = currencyName;
         this.isActive = isActive;

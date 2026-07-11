@@ -10,14 +10,14 @@ import java.util.Optional;
 
 import com.xyra.schemecraft.exception.DAOException;
 import com.xyra.schemecraft.exception.DuplicateEntityException;
-import com.xyra.schemecraft.model.ProductCategory;
+import com.xyra.schemecraft.model.ProductCategoryBean;
 
 import static com.xyra.schemecraft.constant.DatabaseConstants.*;
 
 public class ProductCategoryDAO extends BaseDAO {
     private static final String SELECT_BASE = "SELECT product_id, category_id FROM product_category";
 
-    public void insert(Connection conn, ProductCategory association) throws DAOException {
+    public void insert(Connection conn, ProductCategoryBean association) throws DAOException {
         if (association == null) {
             throw new IllegalArgumentException("Cannot insert a null ProductCategory association");
         }
@@ -41,7 +41,7 @@ public class ProductCategoryDAO extends BaseDAO {
         }
     }
 
-    public Optional<ProductCategory> findById(Connection conn, String productId, String categoryId)
+    public Optional<ProductCategoryBean> findById(Connection conn, String productId, String categoryId)
             throws DAOException {
         String sql = SELECT_BASE + " WHERE product_id = ? AND category_id = ?";
 
@@ -61,9 +61,9 @@ public class ProductCategoryDAO extends BaseDAO {
         return Optional.empty();
     }
 
-    public List<ProductCategory> findAllByProductId(Connection conn, String productId) throws DAOException {
+    public List<ProductCategoryBean> findAllByProductId(Connection conn, String productId) throws DAOException {
         String sql = SELECT_BASE + " WHERE product_id = ?";
-        List<ProductCategory> list = new ArrayList<>();
+        List<ProductCategoryBean> list = new ArrayList<>();
 
         try (PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setString(1, productId);
@@ -79,9 +79,9 @@ public class ProductCategoryDAO extends BaseDAO {
         return list;
     }
 
-    public List<ProductCategory> findAllByCategoryId(Connection conn, String categoryId) throws DAOException {
+    public List<ProductCategoryBean> findAllByCategoryId(Connection conn, String categoryId) throws DAOException {
         String sql = SELECT_BASE + " WHERE category_id = ?";
-        List<ProductCategory> list = new ArrayList<>();
+        List<ProductCategoryBean> list = new ArrayList<>();
 
         try (PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setString(1, categoryId);
@@ -111,7 +111,7 @@ public class ProductCategoryDAO extends BaseDAO {
         }
     }
 
-    public boolean delete(Connection conn, ProductCategory association) throws DAOException {
+    public boolean delete(Connection conn, ProductCategoryBean association) throws DAOException {
         if (association == null || association.getProductId() == null || association.getCategoryId() == null) {
             throw new IllegalArgumentException("Attempted to delete a null association " +
                     "or an object with missing composite keys");
@@ -132,8 +132,8 @@ public class ProductCategoryDAO extends BaseDAO {
         }
     }
 
-    private ProductCategory mapRow(ResultSet rs) throws SQLException {
-        ProductCategory pc = new ProductCategory();
+    private ProductCategoryBean mapRow(ResultSet rs) throws SQLException {
+        ProductCategoryBean pc = new ProductCategoryBean();
         pc.setProductId(rs.getString("product_id"));
         pc.setCategoryId(rs.getString("category_id"));
         return pc;

@@ -10,14 +10,14 @@ import java.util.Optional;
 
 import com.xyra.schemecraft.exception.DAOException;
 import com.xyra.schemecraft.exception.DuplicateEntityException;
-import com.xyra.schemecraft.model.ProductImage;
+import com.xyra.schemecraft.model.ProductImageBean;
 
 import static com.xyra.schemecraft.constant.DatabaseConstants.*;
 
 public class ProductImageDAO extends BaseDAO {
     private static final String SELECT_BASE = "SELECT image_id, product_id, image_path FROM product_image";
 
-    public void insert(Connection conn, ProductImage image) throws DAOException {
+    public void insert(Connection conn, ProductImageBean image) throws DAOException {
         if (image == null) {
             throw new IllegalArgumentException("Cannot insert a null ProductImage");
         }
@@ -41,7 +41,7 @@ public class ProductImageDAO extends BaseDAO {
         }
     }
 
-    public Optional<ProductImage> findById(Connection conn, String imageId) throws DAOException {
+    public Optional<ProductImageBean> findById(Connection conn, String imageId) throws DAOException {
         String sql = SELECT_BASE + " WHERE image_id = ?";
 
         try (PreparedStatement ps = conn.prepareStatement(sql)) {
@@ -58,9 +58,9 @@ public class ProductImageDAO extends BaseDAO {
         return Optional.empty();
     }
 
-    public List<ProductImage> findAllByProductId(Connection conn, String productId) throws DAOException {
+    public List<ProductImageBean> findAllByProductId(Connection conn, String productId) throws DAOException {
         String sql = SELECT_BASE + " WHERE product_id = ?";
-        List<ProductImage> images = new ArrayList<>();
+        List<ProductImageBean> images = new ArrayList<>();
 
         try (PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setString(1, productId);
@@ -76,7 +76,7 @@ public class ProductImageDAO extends BaseDAO {
         return images;
     }
 
-    public boolean update(Connection conn, String imageId, ProductImage image) throws DAOException {
+    public boolean update(Connection conn, String imageId, ProductImageBean image) throws DAOException {
         if (image == null) {
             throw new IllegalArgumentException("Cannot update with a null ProductImage object");
         }
@@ -100,7 +100,7 @@ public class ProductImageDAO extends BaseDAO {
         return false;
     }
 
-    public boolean update(Connection conn, ProductImage image) throws DAOException {
+    public boolean update(Connection conn, ProductImageBean image) throws DAOException {
         if (image == null || image.getImageId() == null) {
             throw new IllegalArgumentException("Attempted to update a null image or an image without an ID");
         }
@@ -120,7 +120,7 @@ public class ProductImageDAO extends BaseDAO {
         }
     }
 
-    public boolean delete(Connection conn, ProductImage image) throws DAOException {
+    public boolean delete(Connection conn, ProductImageBean image) throws DAOException {
         if (image == null || image.getImageId() == null) {
             throw new IllegalArgumentException("Attempted to delete a null image or an image without an ID");
         }
@@ -140,8 +140,8 @@ public class ProductImageDAO extends BaseDAO {
         }
     }
 
-    private ProductImage mapRow(ResultSet rs) throws SQLException {
-        ProductImage image = new ProductImage();
+    private ProductImageBean mapRow(ResultSet rs) throws SQLException {
+        ProductImageBean image = new ProductImageBean();
         image.setImageId(rs.getString("image_id"));
         image.setProductId(rs.getString("product_id"));
         image.setImagePath(rs.getString("image_path"));

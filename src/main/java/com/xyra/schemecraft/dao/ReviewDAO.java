@@ -11,7 +11,7 @@ import java.util.Optional;
 
 import com.xyra.schemecraft.exception.DAOException;
 import com.xyra.schemecraft.exception.DuplicateEntityException;
-import com.xyra.schemecraft.model.Review;
+import com.xyra.schemecraft.model.ReviewBean;
 
 import static com.xyra.schemecraft.constant.DatabaseConstants.*;
 
@@ -19,7 +19,7 @@ public class ReviewDAO extends BaseDAO {
     private static final String SELECT_BASE = "SELECT account_id, product_id, comment, created_at, " +
             "is_verified_purchase, rating FROM review";
 
-    public void insert(Connection conn, Review review) throws DAOException {
+    public void insert(Connection conn, ReviewBean review) throws DAOException {
         if (review == null) {
             throw new IllegalArgumentException("Cannot insert a null Review");
         }
@@ -47,7 +47,7 @@ public class ReviewDAO extends BaseDAO {
         }
     }
 
-    public Optional<Review> findById(Connection conn, String productId, String accountId) throws DAOException {
+    public Optional<ReviewBean> findById(Connection conn, String productId, String accountId) throws DAOException {
         String sql = SELECT_BASE + " WHERE product_id = ? AND account_id = ?";
 
         try (PreparedStatement ps = conn.prepareStatement(sql)) {
@@ -65,10 +65,10 @@ public class ReviewDAO extends BaseDAO {
         return Optional.empty();
     }
 
-    public List<Review> findByProductId(Connection conn, String productId, int pageNumber, int pageSize)
+    public List<ReviewBean> findByProductId(Connection conn, String productId, int pageNumber, int pageSize)
             throws DAOException {
         String sql = SELECT_BASE + " WHERE product_id = ? ORDER BY created_at DESC LIMIT ? OFFSET ?";
-        List<Review> reviews = new ArrayList<>();
+        List<ReviewBean> reviews = new ArrayList<>();
 
         int limit = pageSize < 1 ? 10 : pageSize;
         int offset = (pageNumber < 1 ? 0 : pageNumber - 1) * limit;
@@ -90,9 +90,9 @@ public class ReviewDAO extends BaseDAO {
         return reviews;
     }
 
-    public List<Review> findAllByAccountId(Connection conn, String accountId) throws DAOException {
+    public List<ReviewBean> findAllByAccountId(Connection conn, String accountId) throws DAOException {
         String sql = SELECT_BASE + " WHERE account_id = ? ORDER BY created_at DESC";
-        List<Review> reviews = new ArrayList<>();
+        List<ReviewBean> reviews = new ArrayList<>();
 
         try (PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setString(1, accountId);
@@ -108,8 +108,8 @@ public class ReviewDAO extends BaseDAO {
         return reviews;
     }
 
-    public List<Review> findByProductAndRatingRange(Connection conn, String productId, int minRating,
-                                                    int maxRating, int pageNumber, int pageSize) throws DAOException {
+    public List<ReviewBean> findByProductAndRatingRange(Connection conn, String productId, int minRating,
+                                                        int maxRating, int pageNumber, int pageSize) throws DAOException {
 
         if (minRating < 1 || maxRating > 5 || minRating > maxRating) {
             throw new IllegalArgumentException("Invalid rating range. Must be between 1 and 5, and min <= max.");
@@ -118,7 +118,7 @@ public class ReviewDAO extends BaseDAO {
         String sql = SELECT_BASE + " WHERE product_id = ? AND rating BETWEEN ? AND ? " +
                 "ORDER BY created_at DESC LIMIT ? OFFSET ?";
 
-        List<Review> reviews = new ArrayList<>();
+        List<ReviewBean> reviews = new ArrayList<>();
 
         int limit = pageSize < 1 ? 10 : pageSize;
         int offset = (pageNumber < 1 ? 0 : pageNumber - 1) * limit;
@@ -143,7 +143,7 @@ public class ReviewDAO extends BaseDAO {
         return reviews;
     }
 
-    public boolean update(Connection conn, String productId, String accountId, Review review) throws DAOException {
+    public boolean update(Connection conn, String productId, String accountId, ReviewBean review) throws DAOException {
         if (review == null) {
             throw new IllegalArgumentException("Cannot update with a null Review object");
         }
@@ -170,7 +170,7 @@ public class ReviewDAO extends BaseDAO {
         return false;
     }
 
-    public boolean update(Connection conn, Review review) throws DAOException {
+    public boolean update(Connection conn, ReviewBean review) throws DAOException {
         if (review == null || review.getProductId() == null || review.getAccountId() == null) {
             throw new IllegalArgumentException("Attempted to update a null review " +
                     "or a review with missing composite keys");
@@ -192,7 +192,7 @@ public class ReviewDAO extends BaseDAO {
         }
     }
 
-    public boolean delete(Connection conn, Review review) throws DAOException {
+    public boolean delete(Connection conn, ReviewBean review) throws DAOException {
         if (review == null || review.getProductId() == null || review.getAccountId() == null) {
             throw new IllegalArgumentException("Attempted to delete a null review " +
                     "or a review with missing composite keys");
@@ -200,8 +200,8 @@ public class ReviewDAO extends BaseDAO {
         return delete(conn, review.getProductId(), review.getAccountId());
     }
 
-    private Review mapRow(ResultSet rs) throws SQLException {
-        Review review = new Review();
+    private ReviewBean mapRow(ResultSet rs) throws SQLException {
+        ReviewBean review = new ReviewBean();
         review.setAccountId(rs.getString("account_id"));
         review.setProductId(rs.getString("product_id"));
         review.setComment(rs.getString("comment"));

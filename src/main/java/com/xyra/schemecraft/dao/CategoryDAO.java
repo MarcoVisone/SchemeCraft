@@ -10,7 +10,7 @@ import java.util.Optional;
 
 import com.xyra.schemecraft.exception.DAOException;
 import com.xyra.schemecraft.exception.DuplicateEntityException;
-import com.xyra.schemecraft.model.Category;
+import com.xyra.schemecraft.model.CategoryBean;
 
 import static com.xyra.schemecraft.constant.DatabaseConstants.*;
 
@@ -18,7 +18,7 @@ public class CategoryDAO extends BaseDAO {
     private static final String SELECT_BASE = "SELECT category_id, category_name, parent_category_name, " +
             "description FROM category";
 
-    public void insert(Connection conn, Category category) throws DAOException {
+    public void insert(Connection conn, CategoryBean category) throws DAOException {
         if (category == null) {
             throw new IllegalArgumentException("Cannot insert a null Category");
         }
@@ -44,7 +44,7 @@ public class CategoryDAO extends BaseDAO {
         }
     }
 
-    public Optional<Category> findById(Connection conn, String categoryId) throws DAOException {
+    public Optional<CategoryBean> findById(Connection conn, String categoryId) throws DAOException {
         String sql = SELECT_BASE + " WHERE category_id = ?";
 
         try (PreparedStatement ps = conn.prepareStatement(sql)) {
@@ -61,7 +61,7 @@ public class CategoryDAO extends BaseDAO {
         return Optional.empty();
     }
 
-    public Optional<Category> findByName(Connection conn, String categoryName) throws DAOException {
+    public Optional<CategoryBean> findByName(Connection conn, String categoryName) throws DAOException {
         String sql = SELECT_BASE + " WHERE category_name = ?";
 
         try (PreparedStatement ps = conn.prepareStatement(sql)) {
@@ -78,9 +78,9 @@ public class CategoryDAO extends BaseDAO {
         return Optional.empty();
     }
 
-    public List<Category> findRootCategories(Connection conn) throws DAOException {
+    public List<CategoryBean> findRootCategories(Connection conn) throws DAOException {
         String sql = SELECT_BASE + " WHERE parent_category_name IS NULL ORDER BY category_name";
-        List<Category> categories = new ArrayList<>();
+        List<CategoryBean> categories = new ArrayList<>();
 
         try (PreparedStatement ps = conn.prepareStatement(sql);
              ResultSet rs = ps.executeQuery()) {
@@ -94,9 +94,9 @@ public class CategoryDAO extends BaseDAO {
         return categories;
     }
 
-    public List<Category> findSubCategories(Connection conn, String parentCategoryName) throws DAOException {
+    public List<CategoryBean> findSubCategories(Connection conn, String parentCategoryName) throws DAOException {
         String sql = SELECT_BASE + " WHERE parent_category_name = ? ORDER BY category_name";
-        List<Category> categories = new ArrayList<>();
+        List<CategoryBean> categories = new ArrayList<>();
 
         try (PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setString(1, parentCategoryName);
@@ -112,9 +112,9 @@ public class CategoryDAO extends BaseDAO {
         return categories;
     }
 
-    public List<Category> findAll(Connection conn) throws DAOException {
+    public List<CategoryBean> findAll(Connection conn) throws DAOException {
         String sql = SELECT_BASE + " ORDER BY category_name";
-        List<Category> categories = new ArrayList<>();
+        List<CategoryBean> categories = new ArrayList<>();
 
         try (PreparedStatement ps = conn.prepareStatement(sql);
              ResultSet rs = ps.executeQuery()) {
@@ -128,7 +128,7 @@ public class CategoryDAO extends BaseDAO {
         return categories;
     }
 
-    public boolean update(Connection conn, String categoryId, Category category) throws DAOException {
+    public boolean update(Connection conn, String categoryId, CategoryBean category) throws DAOException {
         if (category == null) {
             throw new IllegalArgumentException("Cannot update with a null Category object");
         }
@@ -154,7 +154,7 @@ public class CategoryDAO extends BaseDAO {
         return false;
     }
 
-    public boolean update(Connection conn, Category category) throws DAOException {
+    public boolean update(Connection conn, CategoryBean category) throws DAOException {
         if (category == null || category.getCategoryId() == null) {
             throw new IllegalArgumentException("Attempted to update a null category or a category without an ID");
         }
@@ -174,15 +174,15 @@ public class CategoryDAO extends BaseDAO {
         }
     }
 
-    public boolean delete(Connection conn, Category category) throws DAOException {
+    public boolean delete(Connection conn, CategoryBean category) throws DAOException {
         if (category == null || category.getCategoryId() == null) {
             throw new IllegalArgumentException("Attempted to delete a null category or a category without an ID");
         }
         return delete(conn, category.getCategoryId());
     }
 
-    private Category mapRow(ResultSet rs) throws SQLException {
-        Category category = new Category();
+    private CategoryBean mapRow(ResultSet rs) throws SQLException {
+        CategoryBean category = new CategoryBean();
         category.setCategoryId(rs.getString("category_id"));
         category.setCategoryName(rs.getString("category_name"));
         category.setParentCategoryName(rs.getString("parent_category_name"));

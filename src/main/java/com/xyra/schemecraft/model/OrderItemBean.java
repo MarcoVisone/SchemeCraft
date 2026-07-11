@@ -3,7 +3,7 @@ package com.xyra.schemecraft.model;
 import java.io.Serializable;
 import java.math.BigDecimal;
 
-public class OrderItem implements Serializable {
+public class OrderItemBean implements Serializable {
     private static final long serialVersionUID = 1L;
 
     private String orderId;
@@ -12,10 +12,10 @@ public class OrderItem implements Serializable {
     private BigDecimal price;
     private BigDecimal tax;
 
-    public OrderItem() {
+    public OrderItemBean() {
     }
 
-    public OrderItem(String orderId, String productId, BigDecimal discount, BigDecimal price, BigDecimal tax) {
+    public OrderItemBean(String orderId, String productId, BigDecimal discount, BigDecimal price, BigDecimal tax) {
         this.orderId = orderId;
         this.productId = productId;
         this.discount = discount;

@@ -11,14 +11,14 @@ import java.util.Optional;
 
 import com.xyra.schemecraft.exception.DAOException;
 import com.xyra.schemecraft.exception.DuplicateEntityException;
-import com.xyra.schemecraft.model.AccountProduct;
+import com.xyra.schemecraft.model.AccountProductBean;
 
 import static com.xyra.schemecraft.constant.DatabaseConstants.*;
 
 public class AccountProductDAO extends BaseDAO {
     private static final String SELECT_BASE = "SELECT account_id, product_id, unlocked_at FROM account_product";
 
-    public void insert(Connection conn, AccountProduct association) throws DAOException {
+    public void insert(Connection conn, AccountProductBean association) throws DAOException {
         if (association == null) {
             throw new IllegalArgumentException("Cannot insert a null AccountProduct association");
         }
@@ -42,7 +42,7 @@ public class AccountProductDAO extends BaseDAO {
         }
     }
 
-    public Optional<AccountProduct> findById(Connection conn, String accountId, String productId) throws DAOException {
+    public Optional<AccountProductBean> findById(Connection conn, String accountId, String productId) throws DAOException {
         String sql = SELECT_BASE + " WHERE account_id = ? AND product_id = ?";
 
         try (PreparedStatement ps = conn.prepareStatement(sql)) {
@@ -61,9 +61,9 @@ public class AccountProductDAO extends BaseDAO {
         return Optional.empty();
     }
 
-    public List<AccountProduct> findAllByAccountId(Connection conn, String accountId) throws DAOException {
+    public List<AccountProductBean> findAllByAccountId(Connection conn, String accountId) throws DAOException {
         String sql = SELECT_BASE + " WHERE account_id = ? ORDER BY unlocked_at DESC";
-        List<AccountProduct> list = new ArrayList<>();
+        List<AccountProductBean> list = new ArrayList<>();
 
         try (PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setString(1, accountId);
@@ -79,9 +79,9 @@ public class AccountProductDAO extends BaseDAO {
         return list;
     }
 
-    public List<AccountProduct> findAllByProductId(Connection conn, String productId) throws DAOException {
+    public List<AccountProductBean> findAllByProductId(Connection conn, String productId) throws DAOException {
         String sql = SELECT_BASE + " WHERE product_id = ? ORDER BY unlocked_at DESC";
-        List<AccountProduct> list = new ArrayList<>();
+        List<AccountProductBean> list = new ArrayList<>();
 
         try (PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setString(1, productId);
@@ -111,7 +111,7 @@ public class AccountProductDAO extends BaseDAO {
         }
     }
 
-    public boolean delete(Connection conn, AccountProduct association) throws DAOException {
+    public boolean delete(Connection conn, AccountProductBean association) throws DAOException {
         if (association == null || association.getAccountId() == null || association.getProductId() == null) {
             throw new IllegalArgumentException("Attempted to delete a null association or an object with " +
                     "missing composite keys");
@@ -119,8 +119,8 @@ public class AccountProductDAO extends BaseDAO {
         return delete(conn, association.getAccountId(), association.getProductId());
     }
 
-    private AccountProduct mapRow(ResultSet rs) throws SQLException {
-        AccountProduct ap = new AccountProduct();
+    private AccountProductBean mapRow(ResultSet rs) throws SQLException {
+        AccountProductBean ap = new AccountProductBean();
         ap.setAccountId(rs.getString("account_id"));
         ap.setProductId(rs.getString("product_id"));
 

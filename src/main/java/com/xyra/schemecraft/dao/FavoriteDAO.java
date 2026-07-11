@@ -10,14 +10,14 @@ import java.util.Optional;
 
 import com.xyra.schemecraft.exception.DAOException;
 import com.xyra.schemecraft.exception.DuplicateEntityException;
-import com.xyra.schemecraft.model.Favorite;
+import com.xyra.schemecraft.model.FavoriteBean;
 
 import static com.xyra.schemecraft.constant.DatabaseConstants.*;
 
 public class FavoriteDAO extends BaseDAO {
     private static final String SELECT_BASE = "SELECT account_id, product_id FROM favorite";
 
-    public void insert(Connection conn, Favorite favorite) throws DAOException {
+    public void insert(Connection conn, FavoriteBean favorite) throws DAOException {
         if (favorite == null) {
             throw new IllegalArgumentException("Cannot insert a null Favorite association");
         }
@@ -41,7 +41,7 @@ public class FavoriteDAO extends BaseDAO {
         }
     }
 
-    public Optional<Favorite> findById(Connection conn, String accountId, String productId) throws DAOException {
+    public Optional<FavoriteBean> findById(Connection conn, String accountId, String productId) throws DAOException {
         String sql = SELECT_BASE + " WHERE account_id = ? AND product_id = ?";
 
         try (PreparedStatement ps = conn.prepareStatement(sql)) {
@@ -60,9 +60,9 @@ public class FavoriteDAO extends BaseDAO {
         return Optional.empty();
     }
 
-    public List<Favorite> findAllByAccountId(Connection conn, String accountId) throws DAOException {
+    public List<FavoriteBean> findAllByAccountId(Connection conn, String accountId) throws DAOException {
         String sql = SELECT_BASE + " WHERE account_id = ?";
-        List<Favorite> list = new ArrayList<>();
+        List<FavoriteBean> list = new ArrayList<>();
 
         try (PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setString(1, accountId);
@@ -92,7 +92,7 @@ public class FavoriteDAO extends BaseDAO {
         }
     }
 
-    public boolean delete(Connection conn, Favorite favorite) throws DAOException {
+    public boolean delete(Connection conn, FavoriteBean favorite) throws DAOException {
         if (favorite == null || favorite.getAccountId() == null || favorite.getProductId() == null) {
             throw new IllegalArgumentException("Attempted to delete a null favorite " +
                     "or an object with missing composite keys");
@@ -100,8 +100,8 @@ public class FavoriteDAO extends BaseDAO {
         return delete(conn, favorite.getAccountId(), favorite.getProductId());
     }
 
-    private Favorite mapRow(ResultSet rs) throws SQLException {
-        Favorite favorite = new Favorite();
+    private FavoriteBean mapRow(ResultSet rs) throws SQLException {
+        FavoriteBean favorite = new FavoriteBean();
         favorite.setAccountId(rs.getString("account_id"));
         favorite.setProductId(rs.getString("product_id"));
         return favorite;

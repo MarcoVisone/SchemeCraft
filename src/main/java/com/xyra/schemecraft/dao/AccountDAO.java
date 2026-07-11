@@ -11,7 +11,7 @@ import java.util.Optional;
 
 import com.xyra.schemecraft.exception.DAOException;
 import com.xyra.schemecraft.exception.DuplicateEntityException;
-import com.xyra.schemecraft.model.Account;
+import com.xyra.schemecraft.model.AccountBean;
 
 import static com.xyra.schemecraft.constant.DatabaseConstants.*;
 
@@ -20,7 +20,7 @@ public class AccountDAO extends BaseDAO {
             "language_id, banner_path, bio, created_at,is_active, is_admin, password_hash, " +
             "profile_image_path FROM account";
 
-    public void insert(Connection conn, Account account) throws DAOException {
+    public void insert(Connection conn, AccountBean account) throws DAOException {
         if (account == null) {
             throw new IllegalArgumentException("Cannot insert a null Account");
         }
@@ -55,7 +55,7 @@ public class AccountDAO extends BaseDAO {
         }
     }
 
-    public Optional<Account> findById(Connection conn, String accountId) throws DAOException {
+    public Optional<AccountBean> findById(Connection conn, String accountId) throws DAOException {
         String sql = SELECT_BASE + " WHERE account_id = ?";
 
         try (PreparedStatement ps = conn.prepareStatement(sql)) {
@@ -72,7 +72,7 @@ public class AccountDAO extends BaseDAO {
         return Optional.empty();
     }
 
-    public Optional<Account> findByUsername(Connection conn, String username) throws DAOException {
+    public Optional<AccountBean> findByUsername(Connection conn, String username) throws DAOException {
         String sql = SELECT_BASE + " WHERE username = ?";
 
         try (PreparedStatement ps = conn.prepareStatement(sql)) {
@@ -89,7 +89,7 @@ public class AccountDAO extends BaseDAO {
         return Optional.empty();
     }
 
-    public Optional<Account> findByEmail(Connection conn, String email) throws DAOException {
+    public Optional<AccountBean> findByEmail(Connection conn, String email) throws DAOException {
         String sql = SELECT_BASE + " WHERE email = ?";
 
         try (PreparedStatement ps = conn.prepareStatement(sql)) {
@@ -106,8 +106,8 @@ public class AccountDAO extends BaseDAO {
         return Optional.empty();
     }
 
-    public List<Account> findAll(Connection conn) throws DAOException {
-        List<Account> accounts = new ArrayList<>();
+    public List<AccountBean> findAll(Connection conn) throws DAOException {
+        List<AccountBean> accounts = new ArrayList<>();
 
         try (PreparedStatement ps = conn.prepareStatement(SELECT_BASE);
              ResultSet rs = ps.executeQuery()) {
@@ -121,9 +121,9 @@ public class AccountDAO extends BaseDAO {
         return accounts;
     }
 
-    public List<Account> findAllActive(Connection conn) throws DAOException {
+    public List<AccountBean> findAllActive(Connection conn) throws DAOException {
         String sql = SELECT_BASE + " WHERE is_active = TRUE";
-        List<Account> accounts = new ArrayList<>();
+        List<AccountBean> accounts = new ArrayList<>();
 
         try (PreparedStatement ps = conn.prepareStatement(sql);
              ResultSet rs = ps.executeQuery()) {
@@ -137,9 +137,9 @@ public class AccountDAO extends BaseDAO {
         return accounts;
     }
 
-    public List<Account> findAllAdmin(Connection conn) throws DAOException {
+    public List<AccountBean> findAllAdmin(Connection conn) throws DAOException {
         String sql = SELECT_BASE + " WHERE is_admin = TRUE";
-        List<Account> accounts = new ArrayList<>();
+        List<AccountBean> accounts = new ArrayList<>();
 
         try (PreparedStatement ps = conn.prepareStatement(sql);
              ResultSet rs = ps.executeQuery()) {
@@ -153,7 +153,7 @@ public class AccountDAO extends BaseDAO {
         return accounts;
     }
 
-    public boolean update(Connection conn, String accountId, Account account) throws DAOException {
+    public boolean update(Connection conn, String accountId, AccountBean account) throws DAOException {
         if (account == null) {
             throw new IllegalArgumentException("Cannot update with a null Account object");
         }
@@ -195,7 +195,7 @@ public class AccountDAO extends BaseDAO {
         return false;
     }
 
-    public boolean update(Connection conn, Account account) throws DAOException {
+    public boolean update(Connection conn, AccountBean account) throws DAOException {
         if (account == null || account.getAccountId() == null) {
             throw new IllegalArgumentException("Attempted to update a null account or an account without an ID");
         }
@@ -243,7 +243,7 @@ public class AccountDAO extends BaseDAO {
         return false;
     }
 
-    public boolean activate(Connection conn, Account account) throws DAOException, IllegalArgumentException {
+    public boolean activate(Connection conn, AccountBean account) throws DAOException, IllegalArgumentException {
         if (account == null || account.getAccountId() == null) {
             throw new IllegalArgumentException("Attempted to activate a null account or an account without an ID");
         }
@@ -269,7 +269,7 @@ public class AccountDAO extends BaseDAO {
         return false;
     }
 
-    public boolean deactivate(Connection conn, Account account) throws DAOException {
+    public boolean deactivate(Connection conn, AccountBean account) throws DAOException {
         if (account == null || account.getAccountId() == null) {
             throw new IllegalArgumentException("Attempted to deactivate a null account or an account without an ID");
         }
@@ -295,15 +295,15 @@ public class AccountDAO extends BaseDAO {
         return false;
     }
 
-    public boolean forceDelete(Connection conn, Account account) throws DAOException {
+    public boolean forceDelete(Connection conn, AccountBean account) throws DAOException {
         if (account == null || account.getAccountId() == null) {
             throw new IllegalArgumentException("Attempted to force delete a null account or an account without an ID");
         }
         return forceDelete(conn, account.getAccountId());
     }
 
-    private Account mapRow(ResultSet rs) throws SQLException {
-        Account account = new Account();
+    private AccountBean mapRow(ResultSet rs) throws SQLException {
+        AccountBean account = new AccountBean();
         account.setAccountId(rs.getString("account_id"));
         account.setUsername(rs.getString("username"));
         account.setEmail(rs.getString("email"));

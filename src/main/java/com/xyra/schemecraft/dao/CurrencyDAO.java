@@ -10,14 +10,14 @@ import java.util.Optional;
 
 import com.xyra.schemecraft.exception.DAOException;
 import com.xyra.schemecraft.exception.DuplicateEntityException;
-import com.xyra.schemecraft.model.Currency;
+import com.xyra.schemecraft.model.CurrencyBean;
 
 import static com.xyra.schemecraft.constant.DatabaseConstants.*;
 
 public class CurrencyDAO extends BaseDAO {
     private static final String SELECT_BASE = "SELECT currency_id, currency_name, is_active, symbol FROM currency";
 
-    public void insert(Connection conn, Currency currency) throws DAOException {
+    public void insert(Connection conn, CurrencyBean currency) throws DAOException {
         if (currency == null) {
             throw new IllegalArgumentException("Cannot insert a null Currency");
         }
@@ -43,7 +43,7 @@ public class CurrencyDAO extends BaseDAO {
         }
     }
 
-    public Optional<Currency> findById(Connection conn, String currencyId) throws DAOException {
+    public Optional<CurrencyBean> findById(Connection conn, String currencyId) throws DAOException {
         String sql = SELECT_BASE + " WHERE currency_id = ?";
 
         try (PreparedStatement ps = conn.prepareStatement(sql)) {
@@ -60,7 +60,7 @@ public class CurrencyDAO extends BaseDAO {
         return Optional.empty();
     }
 
-    public Optional<Currency> findByName(Connection conn, String currencyName) throws DAOException {
+    public Optional<CurrencyBean> findByName(Connection conn, String currencyName) throws DAOException {
         String sql = SELECT_BASE + " WHERE currency_name = ?";
 
         try (PreparedStatement ps = conn.prepareStatement(sql)) {
@@ -77,8 +77,8 @@ public class CurrencyDAO extends BaseDAO {
         return Optional.empty();
     }
 
-    public List<Currency> findAll(Connection conn) throws DAOException {
-        List<Currency> currencies = new ArrayList<>();
+    public List<CurrencyBean> findAll(Connection conn) throws DAOException {
+        List<CurrencyBean> currencies = new ArrayList<>();
 
         try (PreparedStatement ps = conn.prepareStatement(SELECT_BASE);
              ResultSet rs = ps.executeQuery()) {
@@ -92,9 +92,9 @@ public class CurrencyDAO extends BaseDAO {
         return currencies;
     }
 
-    public List<Currency> findAllActive(Connection conn) throws DAOException {
+    public List<CurrencyBean> findAllActive(Connection conn) throws DAOException {
         String sql = SELECT_BASE + " WHERE is_active = TRUE";
-        List<Currency> currencies = new ArrayList<>();
+        List<CurrencyBean> currencies = new ArrayList<>();
 
         try (PreparedStatement ps = conn.prepareStatement(sql);
              ResultSet rs = ps.executeQuery()) {
@@ -108,7 +108,7 @@ public class CurrencyDAO extends BaseDAO {
         return currencies;
     }
 
-    public boolean update(Connection conn, String currencyId, Currency currency) throws DAOException {
+    public boolean update(Connection conn, String currencyId, CurrencyBean currency) throws DAOException {
         if (currency == null) {
             throw new IllegalArgumentException("Cannot update with a null Currency object");
         }
@@ -138,7 +138,7 @@ public class CurrencyDAO extends BaseDAO {
         return false;
     }
 
-    public boolean update(Connection conn, Currency currency) throws DAOException {
+    public boolean update(Connection conn, CurrencyBean currency) throws DAOException {
         if (currency == null || currency.getCurrencyId() == null) {
             throw new IllegalArgumentException("Attempted to update a null currency or a currency without an ID");
         }
@@ -168,7 +168,7 @@ public class CurrencyDAO extends BaseDAO {
         return false;
     }
 
-    public boolean activate(Connection conn, Currency currency) throws DAOException {
+    public boolean activate(Connection conn, CurrencyBean currency) throws DAOException {
         if (currency == null || currency.getCurrencyId() == null) {
             throw new IllegalArgumentException("Attempted to activate a null currency or a currency without an ID");
         }
@@ -194,7 +194,7 @@ public class CurrencyDAO extends BaseDAO {
         return false;
     }
 
-    public boolean deactivate(Connection conn, Currency currency) throws DAOException {
+    public boolean deactivate(Connection conn, CurrencyBean currency) throws DAOException {
         if (currency == null || currency.getCurrencyId() == null) {
             throw new IllegalArgumentException("Attempted to deactivate a null currency or a currency without an ID");
         }
@@ -225,7 +225,7 @@ public class CurrencyDAO extends BaseDAO {
         return false;
     }
 
-    public boolean forceDelete(Connection conn, Currency currency) throws DAOException {
+    public boolean forceDelete(Connection conn, CurrencyBean currency) throws DAOException {
         if (currency == null || currency.getCurrencyId() == null) {
             throw new IllegalArgumentException("Attempted to force delete a null currency " +
                     "or a currency without an ID");
@@ -233,12 +233,12 @@ public class CurrencyDAO extends BaseDAO {
         return forceDelete(conn, currency.getCurrencyId());
     }
 
-    private Currency mapRow(ResultSet rs) throws SQLException {
+    private CurrencyBean mapRow(ResultSet rs) throws SQLException {
         String id = rs.getString("currency_id");
         String name = rs.getString("currency_name");
         String symbol = rs.getString("symbol");
         boolean isActive = rs.getBoolean("is_active");
 
-        return new Currency(id, name, isActive,symbol);
+        return new CurrencyBean(id, name, isActive,symbol);
     }
 }

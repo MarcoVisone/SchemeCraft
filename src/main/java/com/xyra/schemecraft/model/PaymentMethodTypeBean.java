@@ -2,23 +2,23 @@ package com.xyra.schemecraft.model;
 
 import java.io.Serializable;
 
-public class PaymentMethodType implements Serializable {
+public class PaymentMethodTypeBean implements Serializable {
     private static final long serialVersionUID = 1L;
 
     private int typeId;
     private boolean isActive;
     private String typeName;
 
-    public PaymentMethodType() {
+    public PaymentMethodTypeBean() {
     }
 
-    public PaymentMethodType(int typeId, boolean isActive, String typeName) {
+    public PaymentMethodTypeBean(int typeId, boolean isActive, String typeName) {
         this.typeId = typeId;
         this.isActive = isActive;
         this.typeName = typeName;
     }
 
-    public PaymentMethodType(String typeName) {
+    public PaymentMethodTypeBean(String typeName) {
         this.typeName = typeName;
     }
 

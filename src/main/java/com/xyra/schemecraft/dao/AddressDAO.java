@@ -11,7 +11,7 @@ import java.util.Optional;
 
 import com.xyra.schemecraft.exception.DAOException;
 import com.xyra.schemecraft.exception.DuplicateEntityException;
-import com.xyra.schemecraft.model.Address;
+import com.xyra.schemecraft.model.AddressBean;
 
 import static com.xyra.schemecraft.constant.DatabaseConstants.*;
 
@@ -19,7 +19,7 @@ public class AddressDAO extends BaseDAO {
     private static final String SELECT_BASE = "SELECT address_id, account_id, country_id, city, flag_default, " +
             "is_active, postal_code, state_province, street_address FROM address";
 
-    public void insert(Connection conn, Address address) throws DAOException {
+    public void insert(Connection conn, AddressBean address) throws DAOException {
         if (address == null) {
             throw new IllegalArgumentException("Cannot insert a null Address");
         }
@@ -56,7 +56,7 @@ public class AddressDAO extends BaseDAO {
         }
     }
 
-    public Optional<Address> findById(Connection conn, String addressId) throws DAOException {
+    public Optional<AddressBean> findById(Connection conn, String addressId) throws DAOException {
         String sql = SELECT_BASE + " WHERE address_id = ?";
 
         try (PreparedStatement ps = conn.prepareStatement(sql)) {
@@ -73,9 +73,9 @@ public class AddressDAO extends BaseDAO {
         return Optional.empty();
     }
 
-    public List<Address> findAllByAccountId(Connection conn, String accountId) throws DAOException {
+    public List<AddressBean> findAllByAccountId(Connection conn, String accountId) throws DAOException {
         String sql = SELECT_BASE + " WHERE account_id = ?";
-        List<Address> addresses = new ArrayList<>();
+        List<AddressBean> addresses = new ArrayList<>();
 
         try (PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setString(1, accountId);
@@ -91,7 +91,7 @@ public class AddressDAO extends BaseDAO {
         return addresses;
     }
 
-    public Optional<Address> findDefaultByAccountId(Connection conn, String accountId) throws DAOException {
+    public Optional<AddressBean> findDefaultByAccountId(Connection conn, String accountId) throws DAOException {
         String sql = SELECT_BASE + " WHERE account_id = ? AND flag_default = TRUE";
 
         try (PreparedStatement ps = conn.prepareStatement(sql)) {
@@ -108,8 +108,8 @@ public class AddressDAO extends BaseDAO {
         return Optional.empty();
     }
 
-    public List<Address> findAll(Connection conn) throws DAOException {
-        List<Address> addresses = new ArrayList<>();
+    public List<AddressBean> findAll(Connection conn) throws DAOException {
+        List<AddressBean> addresses = new ArrayList<>();
 
         try (PreparedStatement ps = conn.prepareStatement(SELECT_BASE);
              ResultSet rs = ps.executeQuery()) {
@@ -123,7 +123,7 @@ public class AddressDAO extends BaseDAO {
         return addresses;
     }
 
-    public boolean update(Connection conn, String addressId, Address address) throws DAOException {
+    public boolean update(Connection conn, String addressId, AddressBean address) throws DAOException {
         if (address == null) {
             throw new IllegalArgumentException("Cannot update with a null Address object");
         }
@@ -164,7 +164,7 @@ public class AddressDAO extends BaseDAO {
         return false;
     }
 
-    public boolean update(Connection conn, Address address) throws DAOException, IllegalArgumentException {
+    public boolean update(Connection conn, AddressBean address) throws DAOException, IllegalArgumentException {
         if (address == null || address.getAddressId() == null) {
             throw new IllegalArgumentException("Attempted to update a null address or an address without an ID");
         }
@@ -190,7 +190,7 @@ public class AddressDAO extends BaseDAO {
         return false;
     }
 
-    public boolean activate(Connection conn, Address address) throws DAOException, IllegalArgumentException {
+    public boolean activate(Connection conn, AddressBean address) throws DAOException, IllegalArgumentException {
         if (address == null || address.getAddressId() == null) {
             throw new IllegalArgumentException("Attempted to activate a null address or an address without an ID");
         }
@@ -216,7 +216,7 @@ public class AddressDAO extends BaseDAO {
         return false;
     }
 
-    public boolean deactivate(Connection conn, Address address) throws DAOException, IllegalArgumentException {
+    public boolean deactivate(Connection conn, AddressBean address) throws DAOException, IllegalArgumentException {
         if (address == null || address.getAddressId() == null) {
             throw new IllegalArgumentException("Attempted to deactivate a null address or an address without an ID");
         }
@@ -242,15 +242,15 @@ public class AddressDAO extends BaseDAO {
         return false;
     }
 
-    public boolean forceDelete(Connection conn, Address address) throws DAOException, IllegalArgumentException {
+    public boolean forceDelete(Connection conn, AddressBean address) throws DAOException, IllegalArgumentException {
         if (address == null || address.getAddressId() == null) {
             throw new IllegalArgumentException("Attempted to force delete a null address or an address without an ID");
         }
         return forceDelete(conn, address.getAddressId());
     }
 
-    private Address mapRow(ResultSet rs) throws SQLException {
-        Address address = new Address();
+    private AddressBean mapRow(ResultSet rs) throws SQLException {
+        AddressBean address = new AddressBean();
         address.setAddressId(rs.getString("address_id"));
         address.setAccountId(rs.getString("account_id"));
         address.setCountryId(rs.getString("country_id"));

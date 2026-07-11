@@ -11,7 +11,7 @@ import java.util.Optional;
 
 import com.xyra.schemecraft.exception.DAOException;
 import com.xyra.schemecraft.exception.DuplicateEntityException;
-import com.xyra.schemecraft.model.ProductVersion;
+import com.xyra.schemecraft.model.ProductVersionBean;
 
 import static com.xyra.schemecraft.constant.DatabaseConstants.*;
 
@@ -19,7 +19,7 @@ public class ProductVersionDAO extends BaseDAO {
     private static final String SELECT_BASE = "SELECT version_id, product_id, changelog, created_at, " +
             "download_count, file_path, minecraft_version, version FROM product_version";
 
-    public void insert(Connection conn, ProductVersion pv) throws DAOException {
+    public void insert(Connection conn, ProductVersionBean pv) throws DAOException {
         if (pv == null) {
             throw new IllegalArgumentException("Cannot insert a null ProductVersion");
         }
@@ -49,7 +49,7 @@ public class ProductVersionDAO extends BaseDAO {
         }
     }
 
-    public Optional<ProductVersion> findById(Connection conn, String versionId) throws DAOException {
+    public Optional<ProductVersionBean> findById(Connection conn, String versionId) throws DAOException {
         String sql = SELECT_BASE + " WHERE version_id = ?";
 
         try (PreparedStatement ps = conn.prepareStatement(sql)) {
@@ -66,9 +66,9 @@ public class ProductVersionDAO extends BaseDAO {
         return Optional.empty();
     }
 
-    public List<ProductVersion> findAllByProductId(Connection conn, String productId) throws DAOException {
+    public List<ProductVersionBean> findAllByProductId(Connection conn, String productId) throws DAOException {
         String sql = SELECT_BASE + " WHERE product_id = ? ORDER BY created_at DESC";
-        List<ProductVersion> list = new ArrayList<>();
+        List<ProductVersionBean> list = new ArrayList<>();
 
         try (PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setString(1, productId);
@@ -84,7 +84,7 @@ public class ProductVersionDAO extends BaseDAO {
         return list;
     }
 
-    public boolean update(Connection conn, String versionId, ProductVersion pv) throws DAOException {
+    public boolean update(Connection conn, String versionId, ProductVersionBean pv) throws DAOException {
         if (pv == null) {
             throw new IllegalArgumentException("Cannot update with a null ProductVersion object");
         }
@@ -112,7 +112,7 @@ public class ProductVersionDAO extends BaseDAO {
         return false;
     }
 
-    public boolean update(Connection conn, ProductVersion pv) throws DAOException {
+    public boolean update(Connection conn, ProductVersionBean pv) throws DAOException {
         if (pv == null || pv.getVersionId() == null) {
             throw new IllegalArgumentException("Attempted to update a null version or a version without an ID");
         }
@@ -145,15 +145,15 @@ public class ProductVersionDAO extends BaseDAO {
         }
     }
 
-    public boolean delete(Connection conn, ProductVersion pv) throws DAOException {
+    public boolean delete(Connection conn, ProductVersionBean pv) throws DAOException {
         if (pv == null || pv.getVersionId() == null) {
             throw new IllegalArgumentException("Attempted to delete a null version or a version without an ID");
         }
         return delete(conn, pv.getVersionId());
     }
 
-    private ProductVersion mapRow(ResultSet rs) throws SQLException {
-        ProductVersion pv = new ProductVersion();
+    private ProductVersionBean mapRow(ResultSet rs) throws SQLException {
+        ProductVersionBean pv = new ProductVersionBean();
         pv.setVersionId(rs.getString("version_id"));
         pv.setProductId(rs.getString("product_id"));
         pv.setChangelog(rs.getString("changelog"));

@@ -1,19 +1,27 @@
 package com.xyra.schemecraft.model;
 
 import java.io.Serializable;
+import java.time.LocalDateTime;
 
-public class Favorite implements Serializable {
+public class AccountProductBean implements Serializable {
     private static final long serialVersionUID = 1L;
 
     private String accountId;
     private String productId;
+    private LocalDateTime unlockedAt;
 
-    public Favorite() {
+    public AccountProductBean() {
     }
 
-    public Favorite(String accountId, String productId) {
+    public AccountProductBean(String accountId, String productId) {
         this.accountId = accountId;
         this.productId = productId;
+    }
+
+    public AccountProductBean(String accountId, String productId, LocalDateTime unlockedAt) {
+        this.accountId = accountId;
+        this.productId = productId;
+        this.unlockedAt = unlockedAt;
     }
 
     public String getAccountId() {
@@ -32,11 +40,20 @@ public class Favorite implements Serializable {
         this.productId = productId;
     }
 
+    public LocalDateTime getUnlockedAt() {
+        return unlockedAt;
+    }
+
+    public void setUnlockedAt(LocalDateTime unlockedAt) {
+        this.unlockedAt = unlockedAt;
+    }
+
     @Override
     public String toString() {
-        return "Favorite{" +
+        return "AccountProduct{" +
                 "accountId='" + accountId + '\'' +
                 ", productId='" + productId + '\'' +
+                ", unlockedAt=" + unlockedAt +
                 '}';
     }
 }

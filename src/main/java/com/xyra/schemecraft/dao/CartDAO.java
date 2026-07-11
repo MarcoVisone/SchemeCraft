@@ -10,14 +10,14 @@ import java.util.Optional;
 
 import com.xyra.schemecraft.exception.DAOException;
 import com.xyra.schemecraft.exception.DuplicateEntityException;
-import com.xyra.schemecraft.model.Cart;
+import com.xyra.schemecraft.model.CartBean;
 
 import static com.xyra.schemecraft.constant.DatabaseConstants.*;
 
 public class CartDAO extends BaseDAO {
     private static final String SELECT_BASE = "SELECT account_id, product_id FROM cart";
 
-    public void insert(Connection conn, Cart cart) throws DAOException {
+    public void insert(Connection conn, CartBean cart) throws DAOException {
         if (cart == null) {
             throw new IllegalArgumentException("Cannot insert a null Cart association");
         }
@@ -41,7 +41,7 @@ public class CartDAO extends BaseDAO {
         }
     }
 
-    public Optional<Cart> findById(Connection conn, String accountId, String productId) throws DAOException {
+    public Optional<CartBean> findById(Connection conn, String accountId, String productId) throws DAOException {
         String sql = SELECT_BASE + " WHERE account_id = ? AND product_id = ?";
 
         try (PreparedStatement ps = conn.prepareStatement(sql)) {
@@ -60,9 +60,9 @@ public class CartDAO extends BaseDAO {
         return Optional.empty();
     }
 
-    public List<Cart> findAllByAccountId(Connection conn, String accountId) throws DAOException {
+    public List<CartBean> findAllByAccountId(Connection conn, String accountId) throws DAOException {
         String sql = SELECT_BASE + " WHERE account_id = ?";
-        List<Cart> list = new ArrayList<>();
+        List<CartBean> list = new ArrayList<>();
 
         try (PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setString(1, accountId);
@@ -92,7 +92,7 @@ public class CartDAO extends BaseDAO {
         }
     }
 
-    public boolean delete(Connection conn, Cart cart) throws DAOException {
+    public boolean delete(Connection conn, CartBean cart) throws DAOException {
         if (cart == null || cart.getAccountId() == null || cart.getProductId() == null) {
             throw new IllegalArgumentException("Attempted to delete a null cart item or " +
                     "an object with missing composite keys");
@@ -115,8 +115,8 @@ public class CartDAO extends BaseDAO {
         }
     }
 
-    private Cart mapRow(ResultSet rs) throws SQLException {
-        Cart cart = new Cart();
+    private CartBean mapRow(ResultSet rs) throws SQLException {
+        CartBean cart = new CartBean();
         cart.setAccountId(rs.getString("account_id"));
         cart.setProductId(rs.getString("product_id"));
         return cart;

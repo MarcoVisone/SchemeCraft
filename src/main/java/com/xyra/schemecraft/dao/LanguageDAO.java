@@ -10,14 +10,14 @@ import java.util.Optional;
 
 import com.xyra.schemecraft.exception.DAOException;
 import com.xyra.schemecraft.exception.DuplicateEntityException;
-import com.xyra.schemecraft.model.Language;
+import com.xyra.schemecraft.model.LanguageBean;
 
 import static com.xyra.schemecraft.constant.DatabaseConstants.*;
 
 public class LanguageDAO extends BaseDAO {
     private static final String SELECT_BASE = "SELECT language_id, language_name FROM language";
 
-    public void insert(Connection conn, Language language) throws DAOException {
+    public void insert(Connection conn, LanguageBean language) throws DAOException {
         if (language == null) {
             throw new IllegalArgumentException("Cannot insert a null Language");
         }
@@ -41,7 +41,7 @@ public class LanguageDAO extends BaseDAO {
         }
     }
 
-    public Optional<Language> findById(Connection conn, String languageId) throws DAOException {
+    public Optional<LanguageBean> findById(Connection conn, String languageId) throws DAOException {
         String sql = SELECT_BASE + " WHERE language_id = ?";
 
         try (PreparedStatement ps = conn.prepareStatement(sql)) {
@@ -58,7 +58,7 @@ public class LanguageDAO extends BaseDAO {
         return Optional.empty();
     }
 
-    public Optional<Language> findByName(Connection conn, String languageName) throws DAOException {
+    public Optional<LanguageBean> findByName(Connection conn, String languageName) throws DAOException {
         String sql = SELECT_BASE + " WHERE language_name = ?";
 
         try (PreparedStatement ps = conn.prepareStatement(sql)) {
@@ -75,8 +75,8 @@ public class LanguageDAO extends BaseDAO {
         return Optional.empty();
     }
 
-    public List<Language> findAll(Connection conn) throws DAOException {
-        List<Language> languages = new ArrayList<>();
+    public List<LanguageBean> findAll(Connection conn) throws DAOException {
+        List<LanguageBean> languages = new ArrayList<>();
 
         try (PreparedStatement ps = conn.prepareStatement(SELECT_BASE);
              ResultSet rs = ps.executeQuery()) {
@@ -90,7 +90,7 @@ public class LanguageDAO extends BaseDAO {
         return languages;
     }
 
-    public boolean update(Connection conn, String languageId, Language language)
+    public boolean update(Connection conn, String languageId, LanguageBean language)
             throws DAOException, IllegalArgumentException {
         if (language == null) {
             throw new IllegalArgumentException("Cannot update with a null Language object");
@@ -119,7 +119,7 @@ public class LanguageDAO extends BaseDAO {
         return false;
     }
 
-    public boolean update(Connection conn, Language language) throws DAOException {
+    public boolean update(Connection conn, LanguageBean language) throws DAOException {
         if (language == null || language.getLanguageId() == null) {
             throw new IllegalArgumentException("Attempted to update a null language or a language without an ID");
         }
@@ -145,16 +145,16 @@ public class LanguageDAO extends BaseDAO {
         return false;
     }
 
-    public boolean delete(Connection conn, Language language) throws DAOException {
+    public boolean delete(Connection conn, LanguageBean language) throws DAOException {
         if (language == null || language.getLanguageId() == null) {
             throw new IllegalArgumentException("Attempted to delete a null language or a language without an ID");
         }
         return delete(conn, language.getLanguageId());
     }
 
-    private Language mapRow(ResultSet rs) throws SQLException {
+    private LanguageBean mapRow(ResultSet rs) throws SQLException {
         String id = rs.getString("language_id");
         String name = rs.getString("language_name");
-        return new Language(id, name);
+        return new LanguageBean(id, name);
     }
 }

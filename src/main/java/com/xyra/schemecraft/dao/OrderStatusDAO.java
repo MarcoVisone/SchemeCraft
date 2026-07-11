@@ -11,14 +11,14 @@ import java.util.Optional;
 
 import com.xyra.schemecraft.exception.DAOException;
 import com.xyra.schemecraft.exception.DuplicateEntityException;
-import com.xyra.schemecraft.model.OrderStatus;
+import com.xyra.schemecraft.model.OrderStatusBean;
 
 import static com.xyra.schemecraft.constant.DatabaseConstants.*;
 
 public class OrderStatusDAO extends BaseDAO {
     private static final String SELECT_BASE = "SELECT status_id, status_name FROM order_status";
 
-    public void insert(Connection conn, OrderStatus status) throws DAOException {
+    public void insert(Connection conn, OrderStatusBean status) throws DAOException {
         if (status == null) {
             throw new IllegalArgumentException("Cannot insert a null OrderStatus");
         }
@@ -49,7 +49,7 @@ public class OrderStatusDAO extends BaseDAO {
         }
     }
 
-    public Optional<OrderStatus> findById(Connection conn, int statusId) throws DAOException {
+    public Optional<OrderStatusBean> findById(Connection conn, int statusId) throws DAOException {
         String sql = SELECT_BASE + " WHERE status_id = ?";
 
         try (PreparedStatement ps = conn.prepareStatement(sql)) {
@@ -66,7 +66,7 @@ public class OrderStatusDAO extends BaseDAO {
         return Optional.empty();
     }
 
-    public Optional<OrderStatus> findByName(Connection conn, String statusName) throws DAOException {
+    public Optional<OrderStatusBean> findByName(Connection conn, String statusName) throws DAOException {
         if (statusName == null || statusName.trim().isEmpty()) {
             return Optional.empty();
         }
@@ -87,9 +87,9 @@ public class OrderStatusDAO extends BaseDAO {
         return Optional.empty();
     }
 
-    public List<OrderStatus> findAll(Connection conn) throws DAOException {
+    public List<OrderStatusBean> findAll(Connection conn) throws DAOException {
         String sql = SELECT_BASE + " ORDER BY status_id";
-        List<OrderStatus> statuses = new ArrayList<>();
+        List<OrderStatusBean> statuses = new ArrayList<>();
 
         try (PreparedStatement ps = conn.prepareStatement(sql);
              ResultSet rs = ps.executeQuery()) {
@@ -103,7 +103,7 @@ public class OrderStatusDAO extends BaseDAO {
         return statuses;
     }
 
-    public boolean update(Connection conn, int statusId, OrderStatus status) throws DAOException {
+    public boolean update(Connection conn, int statusId, OrderStatusBean status) throws DAOException {
         if (status == null) {
             throw new IllegalArgumentException("Cannot update with a null OrderStatus object");
         }
@@ -126,7 +126,7 @@ public class OrderStatusDAO extends BaseDAO {
         return false;
     }
 
-    public boolean update(Connection conn, OrderStatus status) throws DAOException {
+    public boolean update(Connection conn, OrderStatusBean status) throws DAOException {
         if (status == null) {
             throw new IllegalArgumentException("Attempted to update a null order status");
         }
@@ -146,15 +146,15 @@ public class OrderStatusDAO extends BaseDAO {
         }
     }
 
-    public boolean delete(Connection conn, OrderStatus status) throws DAOException {
+    public boolean delete(Connection conn, OrderStatusBean status) throws DAOException {
         if (status == null) {
             throw new IllegalArgumentException("Attempted to delete a null order status");
         }
         return delete(conn, status.getStatusId());
     }
 
-    private OrderStatus mapRow(ResultSet rs) throws SQLException {
-        OrderStatus status = new OrderStatus();
+    private OrderStatusBean mapRow(ResultSet rs) throws SQLException {
+        OrderStatusBean status = new OrderStatusBean();
         status.setStatusId(rs.getInt("status_id"));
         status.setStatusName(rs.getString("status_name"));
         return status;

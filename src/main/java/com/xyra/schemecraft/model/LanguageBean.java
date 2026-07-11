@@ -2,16 +2,16 @@ package com.xyra.schemecraft.model;
 
 import java.io.Serializable;
 
-public class Language implements Serializable {
+public class LanguageBean implements Serializable {
     private static final long serialVersionUID = 1L;
 
     private String languageId;
     private String languageName;
 
-    public Language() {
+    public LanguageBean() {
     }
 
-    public Language(String languageId, String languageName) {
+    public LanguageBean(String languageId, String languageName) {
         this.languageId = languageId;
         this.languageName = languageName;
     }

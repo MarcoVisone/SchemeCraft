@@ -10,14 +10,14 @@ import java.util.Optional;
 
 import com.xyra.schemecraft.exception.DAOException;
 import com.xyra.schemecraft.exception.DuplicateEntityException;
-import com.xyra.schemecraft.model.OrderItem;
+import com.xyra.schemecraft.model.OrderItemBean;
 
 import static com.xyra.schemecraft.constant.DatabaseConstants.*;
 
 public class OrderItemDAO extends BaseDAO {
     private static final String SELECT_BASE = "SELECT order_id, product_id, discount, price, tax FROM order_item";
 
-    public void insert(Connection conn, OrderItem item) throws DAOException {
+    public void insert(Connection conn, OrderItemBean item) throws DAOException {
         if (item == null) {
             throw new IllegalArgumentException("Cannot insert a null OrderItem");
         }
@@ -43,7 +43,7 @@ public class OrderItemDAO extends BaseDAO {
         }
     }
 
-    public Optional<OrderItem> findById(Connection conn, String orderId, String productId) throws DAOException {
+    public Optional<OrderItemBean> findById(Connection conn, String orderId, String productId) throws DAOException {
         String sql = SELECT_BASE + " WHERE order_id = ? AND product_id = ?";
 
         try (PreparedStatement ps = conn.prepareStatement(sql)) {
@@ -62,13 +62,13 @@ public class OrderItemDAO extends BaseDAO {
         return Optional.empty();
     }
 
-    public List<OrderItem> findAllByOrderId(Connection conn, String orderId) throws DAOException {
+    public List<OrderItemBean> findAllByOrderId(Connection conn, String orderId) throws DAOException {
         if (orderId == null || orderId.trim().isEmpty()) {
             throw new IllegalArgumentException("Order ID cannot be null or empty");
         }
 
         String sql = SELECT_BASE + " WHERE order_id = ?";
-        List<OrderItem> items = new ArrayList<>();
+        List<OrderItemBean> items = new ArrayList<>();
 
         try (PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setString(1, orderId);
@@ -84,7 +84,7 @@ public class OrderItemDAO extends BaseDAO {
         return items;
     }
 
-    public boolean update(Connection conn, String orderId, String productId, OrderItem item) throws DAOException {
+    public boolean update(Connection conn, String orderId, String productId, OrderItemBean item) throws DAOException {
         if (item == null) {
             throw new IllegalArgumentException("Cannot update with a null OrderItem object");
         }
@@ -110,7 +110,7 @@ public class OrderItemDAO extends BaseDAO {
         return false;
     }
 
-    public boolean update(Connection conn, OrderItem item) throws DAOException {
+    public boolean update(Connection conn, OrderItemBean item) throws DAOException {
         if (item == null || item.getOrderId() == null || item.getProductId() == null) {
             throw new IllegalArgumentException("Attempted to update a null order item " +
                     "or an object with missing composite keys");
@@ -134,7 +134,7 @@ public class OrderItemDAO extends BaseDAO {
         }
     }
 
-    public boolean delete(Connection conn, OrderItem item) throws DAOException {
+    public boolean delete(Connection conn, OrderItemBean item) throws DAOException {
         if (item == null || item.getOrderId() == null || item.getProductId() == null) {
             throw new IllegalArgumentException("Attempted to delete a null order item " +
                     "or an object with missing composite keys");
@@ -142,8 +142,8 @@ public class OrderItemDAO extends BaseDAO {
         return delete(conn, item.getOrderId(), item.getProductId());
     }
 
-    private OrderItem mapRow(ResultSet rs) throws SQLException {
-        OrderItem item = new OrderItem();
+    private OrderItemBean mapRow(ResultSet rs) throws SQLException {
+        OrderItemBean item = new OrderItemBean();
         item.setOrderId(rs.getString("order_id"));
         item.setProductId(rs.getString("product_id"));
         item.setDiscount(rs.getBigDecimal("discount"));

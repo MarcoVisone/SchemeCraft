@@ -3,7 +3,7 @@ package com.xyra.schemecraft.model;
 import java.io.Serializable;
 import java.math.BigDecimal;
 
-public class Country implements Serializable {
+public class CountryBean implements Serializable {
     private static final long serialVersionUID = 1L;
 
     private String countryId;
@@ -11,10 +11,10 @@ public class Country implements Serializable {
     private boolean isActive;
     private BigDecimal tax;
 
-    public Country() {
+    public CountryBean() {
     }
 
-    public Country(String countryId, String countryName, boolean isActive, BigDecimal tax) {
+    public CountryBean(String countryId, String countryName, boolean isActive, BigDecimal tax) {
         this.countryId = countryId;
         this.countryName = countryName;
         this.isActive = isActive;

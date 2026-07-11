@@ -3,7 +3,7 @@ package com.xyra.schemecraft.model;
 import java.io.Serializable;
 import java.time.LocalDateTime;
 
-public class Review implements Serializable {
+public class ReviewBean implements Serializable {
     private static final long serialVersionUID = 1L;
 
     private String accountId;
@@ -13,11 +13,11 @@ public class Review implements Serializable {
     private boolean isVerifiedPurchase;
     private int rating;
 
-    public Review() {
+    public ReviewBean() {
     }
 
-    public Review(String accountId, String productId, String comment, LocalDateTime createdAt,
-                  boolean isVerifiedPurchase, int rating) {
+    public ReviewBean(String accountId, String productId, String comment, LocalDateTime createdAt,
+                      boolean isVerifiedPurchase, int rating) {
         this.accountId = accountId;
         this.productId = productId;
         this.comment = comment;

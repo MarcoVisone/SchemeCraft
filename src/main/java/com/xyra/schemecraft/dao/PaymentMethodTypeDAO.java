@@ -11,14 +11,14 @@ import java.util.Optional;
 
 import com.xyra.schemecraft.exception.DAOException;
 import com.xyra.schemecraft.exception.DuplicateEntityException;
-import com.xyra.schemecraft.model.PaymentMethodType;
+import com.xyra.schemecraft.model.PaymentMethodTypeBean;
 
 import static com.xyra.schemecraft.constant.DatabaseConstants.*;
 
 public class PaymentMethodTypeDAO extends BaseDAO {
     private static final String SELECT_BASE = "SELECT type_id, type_name, is_active FROM payment_method_type";
 
-    public void insert(Connection conn, PaymentMethodType type) throws DAOException {
+    public void insert(Connection conn, PaymentMethodTypeBean type) throws DAOException {
         if (type == null) {
             throw new IllegalArgumentException("Cannot insert a null PaymentMethodType");
         }
@@ -48,7 +48,7 @@ public class PaymentMethodTypeDAO extends BaseDAO {
         }
     }
 
-    public Optional<PaymentMethodType> findById(Connection conn, int typeId) throws DAOException {
+    public Optional<PaymentMethodTypeBean> findById(Connection conn, int typeId) throws DAOException {
         String sql = SELECT_BASE + " WHERE type_id = ?";
 
         try (PreparedStatement ps = conn.prepareStatement(sql)) {
@@ -65,7 +65,7 @@ public class PaymentMethodTypeDAO extends BaseDAO {
         return Optional.empty();
     }
 
-    public Optional<PaymentMethodType> findByName(Connection conn, String typeName) throws DAOException {
+    public Optional<PaymentMethodTypeBean> findByName(Connection conn, String typeName) throws DAOException {
         String sql = SELECT_BASE + " WHERE type_name = ?";
 
         try (PreparedStatement ps = conn.prepareStatement(sql)) {
@@ -82,8 +82,8 @@ public class PaymentMethodTypeDAO extends BaseDAO {
         return Optional.empty();
     }
 
-    public List<PaymentMethodType> findAll(Connection conn) throws DAOException {
-        List<PaymentMethodType> types = new ArrayList<>();
+    public List<PaymentMethodTypeBean> findAll(Connection conn) throws DAOException {
+        List<PaymentMethodTypeBean> types = new ArrayList<>();
 
         try (PreparedStatement ps = conn.prepareStatement(SELECT_BASE);
              ResultSet rs = ps.executeQuery()) {
@@ -97,9 +97,9 @@ public class PaymentMethodTypeDAO extends BaseDAO {
         return types;
     }
 
-    public List<PaymentMethodType> findAllActive(Connection conn) throws DAOException {
+    public List<PaymentMethodTypeBean> findAllActive(Connection conn) throws DAOException {
         String sql = SELECT_BASE + " WHERE is_active = TRUE";
-        List<PaymentMethodType> types = new ArrayList<>();
+        List<PaymentMethodTypeBean> types = new ArrayList<>();
 
         try (PreparedStatement ps = conn.prepareStatement(sql);
              ResultSet rs = ps.executeQuery()) {
@@ -113,7 +113,7 @@ public class PaymentMethodTypeDAO extends BaseDAO {
         return types;
     }
 
-    public boolean update(Connection conn, int typeId, PaymentMethodType type) throws DAOException {
+    public boolean update(Connection conn, int typeId, PaymentMethodTypeBean type) throws DAOException {
         if (type == null) {
             throw new IllegalArgumentException("Cannot update with a null PaymentMethodType object");
         }
@@ -143,7 +143,7 @@ public class PaymentMethodTypeDAO extends BaseDAO {
         return false;
     }
 
-    public boolean update(Connection conn, PaymentMethodType type) throws DAOException {
+    public boolean update(Connection conn, PaymentMethodTypeBean type) throws DAOException {
         if (type == null) {
             throw new IllegalArgumentException("Attempted to update a null payment method type");
         }
@@ -169,7 +169,7 @@ public class PaymentMethodTypeDAO extends BaseDAO {
         return false;
     }
 
-    public boolean activate(Connection conn, PaymentMethodType type) throws DAOException {
+    public boolean activate(Connection conn, PaymentMethodTypeBean type) throws DAOException {
         if (type == null) {
             throw new IllegalArgumentException("Attempted to activate a null payment method type");
         }
@@ -195,7 +195,7 @@ public class PaymentMethodTypeDAO extends BaseDAO {
         return false;
     }
 
-    public boolean deactivate(Connection conn, PaymentMethodType type) throws DAOException {
+    public boolean deactivate(Connection conn, PaymentMethodTypeBean type) throws DAOException {
         if (type == null) {
             throw new IllegalArgumentException("Attempted to deactivate a null payment method type");
         }
@@ -221,15 +221,15 @@ public class PaymentMethodTypeDAO extends BaseDAO {
         return false;
     }
 
-    public boolean forceDelete(Connection conn, PaymentMethodType type) throws DAOException {
+    public boolean forceDelete(Connection conn, PaymentMethodTypeBean type) throws DAOException {
         if (type == null) {
             throw new IllegalArgumentException("Attempted to force delete a null payment method type");
         }
         return forceDelete(conn, type.getTypeId());
     }
 
-    private PaymentMethodType mapRow(ResultSet rs) throws SQLException {
-        PaymentMethodType type = new PaymentMethodType();
+    private PaymentMethodTypeBean mapRow(ResultSet rs) throws SQLException {
+        PaymentMethodTypeBean type = new PaymentMethodTypeBean();
         type.setTypeId(rs.getInt("type_id"));
         type.setTypeName(rs.getString("type_name"));
         type.setActive(rs.getBoolean("is_active"));

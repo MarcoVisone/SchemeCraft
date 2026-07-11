@@ -11,7 +11,7 @@ import java.util.Optional;
 
 import com.xyra.schemecraft.exception.DAOException;
 import com.xyra.schemecraft.exception.DuplicateEntityException;
-import com.xyra.schemecraft.model.Product;
+import com.xyra.schemecraft.model.ProductBean;
 
 import static com.xyra.schemecraft.constant.DatabaseConstants.*;
 
@@ -20,7 +20,7 @@ public class ProductDAO extends BaseDAO {
             "created_at, discount, description, is_active, latest_update, price, product_name, stock_quantity, " +
             "total_downloads, total_reviews FROM product";
 
-    public void insert(Connection conn, Product product) throws DAOException {
+    public void insert(Connection conn, ProductBean product) throws DAOException {
         if (product == null) {
             throw new IllegalArgumentException("Cannot insert a null Product");
         }
@@ -61,7 +61,7 @@ public class ProductDAO extends BaseDAO {
         }
     }
 
-    public Optional<Product> findById(Connection conn, String productId) throws DAOException {
+    public Optional<ProductBean> findById(Connection conn, String productId) throws DAOException {
         String sql = SELECT_BASE + " WHERE product_id = ?";
 
         try (PreparedStatement ps = conn.prepareStatement(sql)) {
@@ -78,9 +78,9 @@ public class ProductDAO extends BaseDAO {
         return Optional.empty();
     }
 
-    public List<Product> findAllByAccountId(Connection conn, String accountId) throws DAOException {
+    public List<ProductBean> findAllByAccountId(Connection conn, String accountId) throws DAOException {
         String sql = SELECT_BASE + " WHERE account_id = ?";
-        List<Product> products = new ArrayList<>();
+        List<ProductBean> products = new ArrayList<>();
 
         try (PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setString(1, accountId);
@@ -96,7 +96,7 @@ public class ProductDAO extends BaseDAO {
         return products;
     }
 
-    public List<Product> searchProducts(Connection conn, ProductSearchCriteria criteria) throws DAOException {
+    public List<ProductBean> searchProducts(Connection conn, ProductSearchCriteria criteria) throws DAOException {
         if (criteria == null) {
             throw new IllegalArgumentException("Search criteria cannot be null");
         }
@@ -164,7 +164,7 @@ public class ProductDAO extends BaseDAO {
         int limit = criteria.getPageSize();
         int offset = (criteria.getPageNumber() - 1) * limit;
 
-        List<Product> products = new ArrayList<>();
+        List<ProductBean> products = new ArrayList<>();
 
         try (PreparedStatement ps = conn.prepareStatement(sql.toString())) {
             int paramIndex = 1;
@@ -189,8 +189,8 @@ public class ProductDAO extends BaseDAO {
         return products;
     }
 
-    public List<Product> findAll(Connection conn) throws DAOException {
-        List<Product> products = new ArrayList<>();
+    public List<ProductBean> findAll(Connection conn) throws DAOException {
+        List<ProductBean> products = new ArrayList<>();
 
         try (PreparedStatement ps = conn.prepareStatement(SELECT_BASE);
              ResultSet rs = ps.executeQuery()) {
@@ -204,7 +204,7 @@ public class ProductDAO extends BaseDAO {
         return products;
     }
 
-    public boolean update(Connection conn, String productId, Product product) throws DAOException {
+    public boolean update(Connection conn, String productId, ProductBean product) throws DAOException {
         if (product == null) {
             throw new IllegalArgumentException("Cannot update with a null Product object");
         }
@@ -246,7 +246,7 @@ public class ProductDAO extends BaseDAO {
         return false;
     }
 
-    public boolean update(Connection conn, Product product) throws DAOException {
+    public boolean update(Connection conn, ProductBean product) throws DAOException {
         if (product == null || product.getProductId() == null) {
             throw new IllegalArgumentException("Attempted to update a null product or a product without an ID");
         }
@@ -266,7 +266,7 @@ public class ProductDAO extends BaseDAO {
         }
     }
 
-    public boolean activate(Connection conn, Product product) throws DAOException {
+    public boolean activate(Connection conn, ProductBean product) throws DAOException {
         if (product == null || product.getProductId() == null) {
             throw new IllegalArgumentException("Attempted to activate a null product or a product without an ID");
         }
@@ -286,7 +286,7 @@ public class ProductDAO extends BaseDAO {
         }
     }
 
-    public boolean deactivate(Connection conn, Product product) throws DAOException {
+    public boolean deactivate(Connection conn, ProductBean product) throws DAOException {
         if (product == null || product.getProductId() == null) {
             throw new IllegalArgumentException("Attempted to deactivate a null product or a product without an ID");
         }
@@ -306,15 +306,15 @@ public class ProductDAO extends BaseDAO {
         }
     }
 
-    public boolean forceDelete(Connection conn, Product product) throws DAOException {
+    public boolean forceDelete(Connection conn, ProductBean product) throws DAOException {
         if (product == null || product.getProductId() == null) {
             throw new IllegalArgumentException("Attempted to force delete a null product or a product without an ID");
         }
         return forceDelete(conn, product.getProductId());
     }
 
-    private Product mapRow(ResultSet rs) throws SQLException {
-        Product product = new Product();
+    private ProductBean mapRow(ResultSet rs) throws SQLException {
+        ProductBean product = new ProductBean();
         product.setProductId(rs.getString("product_id"));
         product.setAccountId(rs.getString("account_id"));
         product.setCurrencyId(rs.getString("currency_id"));

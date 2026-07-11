@@ -11,7 +11,7 @@ import java.util.Optional;
 
 import com.xyra.schemecraft.exception.DAOException;
 import com.xyra.schemecraft.exception.DuplicateEntityException;
-import com.xyra.schemecraft.model.PaymentMethod;
+import com.xyra.schemecraft.model.PaymentMethodBean;
 
 import static com.xyra.schemecraft.constant.DatabaseConstants.*;
 
@@ -19,7 +19,7 @@ public class PaymentMethodDAO extends BaseDAO {
     private static final String SELECT_BASE = "SELECT payment_method_id, account_id, method_type, card_brand, " +
             "card_expiration, card_last_four, flag_default, payment_email, payment_token FROM payment_method";
 
-    public void insert(Connection conn, PaymentMethod method) throws DAOException, IllegalArgumentException {
+    public void insert(Connection conn, PaymentMethodBean method) throws DAOException, IllegalArgumentException {
         if (method == null) {
             throw new IllegalArgumentException("Cannot insert a null PaymentMethod");
         }
@@ -57,7 +57,7 @@ public class PaymentMethodDAO extends BaseDAO {
         }
     }
 
-    public Optional<PaymentMethod> findById(Connection conn, String paymentMethodId) throws DAOException {
+    public Optional<PaymentMethodBean> findById(Connection conn, String paymentMethodId) throws DAOException {
         String sql = SELECT_BASE + " WHERE payment_method_id = ?";
 
         try (PreparedStatement ps = conn.prepareStatement(sql)) {
@@ -74,9 +74,9 @@ public class PaymentMethodDAO extends BaseDAO {
         return Optional.empty();
     }
 
-    public List<PaymentMethod> findAllByAccountId(Connection conn, String accountId) throws DAOException {
+    public List<PaymentMethodBean> findAllByAccountId(Connection conn, String accountId) throws DAOException {
         String sql = SELECT_BASE + " WHERE account_id = ?";
-        List<PaymentMethod> methods = new ArrayList<>();
+        List<PaymentMethodBean> methods = new ArrayList<>();
 
         try (PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setString(1, accountId);
@@ -92,7 +92,7 @@ public class PaymentMethodDAO extends BaseDAO {
         return methods;
     }
 
-    public Optional<PaymentMethod> findDefaultByAccountId(Connection conn, String accountId) throws DAOException {
+    public Optional<PaymentMethodBean> findDefaultByAccountId(Connection conn, String accountId) throws DAOException {
         String sql = SELECT_BASE + " WHERE account_id = ? AND flag_default = TRUE";
 
         try (PreparedStatement ps = conn.prepareStatement(sql)) {
@@ -109,8 +109,8 @@ public class PaymentMethodDAO extends BaseDAO {
         return Optional.empty();
     }
 
-    public List<PaymentMethod> findAll(Connection conn) throws DAOException {
-        List<PaymentMethod> methods = new ArrayList<>();
+    public List<PaymentMethodBean> findAll(Connection conn) throws DAOException {
+        List<PaymentMethodBean> methods = new ArrayList<>();
 
         try (PreparedStatement ps = conn.prepareStatement(SELECT_BASE);
              ResultSet rs = ps.executeQuery()) {
@@ -124,7 +124,7 @@ public class PaymentMethodDAO extends BaseDAO {
         return methods;
     }
 
-    public boolean update(Connection conn, String paymentMethodId, PaymentMethod method) throws DAOException {
+    public boolean update(Connection conn, String paymentMethodId, PaymentMethodBean method) throws DAOException {
         if (method == null) {
             throw new IllegalArgumentException("Cannot update with a null PaymentMethod object");
         }
@@ -166,7 +166,7 @@ public class PaymentMethodDAO extends BaseDAO {
         return false;
     }
 
-    public boolean update(Connection conn, PaymentMethod method) throws DAOException {
+    public boolean update(Connection conn, PaymentMethodBean method) throws DAOException {
         if (method == null || method.getPaymentMethodId() == null) {
             throw new IllegalArgumentException("Attempted to update a null payment method " +
                     "or a payment method without an ID");
@@ -193,7 +193,7 @@ public class PaymentMethodDAO extends BaseDAO {
         return false;
     }
 
-    public boolean forceDelete(Connection conn, PaymentMethod method) throws DAOException {
+    public boolean forceDelete(Connection conn, PaymentMethodBean method) throws DAOException {
         if (method == null || method.getPaymentMethodId() == null) {
             throw new IllegalArgumentException("Attempted to delete a null payment method " +
                     "or a payment method without an ID");
@@ -201,8 +201,8 @@ public class PaymentMethodDAO extends BaseDAO {
         return forceDelete(conn, method.getPaymentMethodId());
     }
 
-    private PaymentMethod mapRow(ResultSet rs) throws SQLException {
-        PaymentMethod method = new PaymentMethod();
+    private PaymentMethodBean mapRow(ResultSet rs) throws SQLException {
+        PaymentMethodBean method = new PaymentMethodBean();
         method.setPaymentMethodId(rs.getString("payment_method_id"));
         method.setAccountId(rs.getString("account_id"));
         method.setMethodType(rs.getInt("method_type"));

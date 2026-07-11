@@ -2,7 +2,7 @@ package com.xyra.schemecraft.model;
 
 import java.io.Serializable;
 
-public class Address implements Serializable {
+public class AddressBean implements Serializable {
     private static final long serialVersionUID = 1L;
 
     private String addressId;
@@ -15,11 +15,11 @@ public class Address implements Serializable {
     private String stateProvince;
     private String streetAddress;
 
-    public Address() {
+    public AddressBean() {
     }
 
-    public Address(String addressId, String accountId, String countryId, String city, boolean flagDefault,
-                   boolean isActive, String postalCode, String stateProvince, String streetAddress) {
+    public AddressBean(String addressId, String accountId, String countryId, String city, boolean flagDefault,
+                       boolean isActive, String postalCode, String stateProvince, String streetAddress) {
         this.addressId = addressId;
         this.accountId = accountId;
         this.countryId = countryId;

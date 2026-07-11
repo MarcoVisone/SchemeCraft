@@ -3,7 +3,7 @@ package com.xyra.schemecraft.model;
 import java.io.Serializable;
 import java.time.LocalDateTime;
 
-public class Account implements Serializable {
+public class AccountBean implements Serializable {
     private static final long serialVersionUID = 1L;
 
     private String accountId;
@@ -20,12 +20,12 @@ public class Account implements Serializable {
     private String passwordHash;
     private String profileImagePath;
 
-    public Account() {
+    public AccountBean() {
     }
 
-    public Account(String accountId, String username, String email, String countryId, String currencyId,
-                   String languageId, String bannerPath, String bio, LocalDateTime createdAt, boolean isActive,
-                   boolean isAdmin, String passwordHash, String profileImagePath) {
+    public AccountBean(String accountId, String username, String email, String countryId, String currencyId,
+                       String languageId, String bannerPath, String bio, LocalDateTime createdAt, boolean isActive,
+                       boolean isAdmin, String passwordHash, String profileImagePath) {
         this.accountId = accountId;
         this.username = username;
         this.email = email;

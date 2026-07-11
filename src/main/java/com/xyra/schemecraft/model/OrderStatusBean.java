@@ -2,7 +2,7 @@ package com.xyra.schemecraft.model;
 
 import java.io.Serializable;
 
-public class OrderStatus implements Serializable {
+public class OrderStatusBean implements Serializable {
     private static final long serialVersionUID = 1L;
 
     /**
@@ -16,10 +16,10 @@ public class OrderStatus implements Serializable {
     private int statusId;
     private String statusName;
 
-    public OrderStatus() {
+    public OrderStatusBean() {
     }
 
-    public OrderStatus(int statusId, String statusName) {
+    public OrderStatusBean(int statusId, String statusName) {
         this.statusId = statusId;
         this.statusName = statusName;
     }
