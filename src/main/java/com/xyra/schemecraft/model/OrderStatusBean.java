@@ -5,14 +5,6 @@ import java.io.Serializable;
 public class OrderStatusBean implements Serializable {
     private static final long serialVersionUID = 1L;
 
-    /**
-     *
-     * CREATE TABLE IF NOT EXISTS order_status (
-     *     status_id INT AUTO_INCREMENT PRIMARY KEY,
-     *     status_name VARCHAR(50) NOT NULL UNIQUE
-     * );
-     */
-
     private int statusId;
     private String statusName;
 

@@ -24,6 +24,23 @@ public class AccountBean implements Serializable {
     }
 
     public AccountBean(String accountId, String username, String email, String countryId, String currencyId,
+                       String languageId, String bannerPath, String bio, boolean isActive, boolean isAdmin,
+                       String passwordHash, String profileImagePath) {
+        this.accountId = accountId;
+        this.username = username;
+        this.email = email;
+        this.countryId = countryId;
+        this.currencyId = currencyId;
+        this.bannerPath = bannerPath;
+        this.bio = bio;
+        this.languageId = languageId;
+        this.isActive = isActive;
+        this.isAdmin = isAdmin;
+        this.passwordHash = passwordHash;
+        this.profileImagePath = profileImagePath;
+    }
+
+    public AccountBean(String accountId, String username, String email, String countryId, String currencyId,
                        String languageId, String bannerPath, String bio, LocalDateTime createdAt, boolean isActive,
                        boolean isAdmin, String passwordHash, String profileImagePath) {
         this.accountId = accountId;

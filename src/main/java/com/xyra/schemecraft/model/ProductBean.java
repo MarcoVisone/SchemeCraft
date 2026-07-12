@@ -25,6 +25,19 @@ public class ProductBean implements Serializable {
     public ProductBean() {
     }
 
+    public ProductBean(String productId, String accountId, String currencyId, BigDecimal discount, String description,
+                       boolean isActive, BigDecimal price, String productName, Integer stockQuantity) {
+        this.productId = productId;
+        this.accountId = accountId;
+        this.currencyId = currencyId;
+        this.discount = discount;
+        this.description = description;
+        this.isActive = isActive;
+        this.price = price;
+        this.productName = productName;
+        this.stockQuantity = stockQuantity;
+    }
+
     public ProductBean(String productId, String accountId, String currencyId, BigDecimal averageRating,
                        LocalDateTime createdAt, BigDecimal discount, String description, boolean isActive,
                        LocalDateTime latestUpdate, BigDecimal price, String productName, Integer stockQuantity,
