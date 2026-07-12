@@ -20,6 +20,17 @@ public class OrderBean implements Serializable {
     public OrderBean() {
     }
 
+    public OrderBean(String orderId, String accountId, String addressId, String currencyId, int methodType,
+                     int status, String transactionId) {
+        this.orderId = orderId;
+        this.accountId = accountId;
+        this.addressId = addressId;
+        this.currencyId = currencyId;
+        this.methodType = methodType;
+        this.status = status;
+        this.transactionId = transactionId;
+    }
+
     public OrderBean(String orderId, String accountId, String addressId, String currencyId, int methodType, int status,
                      LocalDateTime createdAt, BigDecimal totalAmount, String transactionId) {
         this.orderId = orderId;

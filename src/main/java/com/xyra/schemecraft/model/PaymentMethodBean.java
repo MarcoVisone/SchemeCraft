@@ -5,25 +5,6 @@ import java.io.Serializable;
 public class PaymentMethodBean implements Serializable {
     private static final long serialVersionUID = 1L;
 
-    /**
-     * CREATE TABLE IF NOT EXISTS payment_method (
-     *     payment_method_id VARCHAR(36) PRIMARY KEY,
-     *     account_id VARCHAR(36) NOT NULL,
-     *     method_type INT NOT NULL,
-     *     card_brand VARCHAR(30) NULL,
-     *     card_expiration VARCHAR(7) NULL,
-     *     card_last_four VARCHAR(4) NULL,
-     *     flag_default BOOLEAN NULL DEFAULT NULL CHECK (flag_default = TRUE),
-     *     payment_email VARCHAR(100) NULL,
-     *     payment_token VARCHAR(255) NOT NULL,
-     *     CONSTRAINT fk_payment_account FOREIGN KEY (account_id) REFERENCES account(account_id)
-     *         ON DELETE CASCADE ON UPDATE CASCADE,
-     *     CONSTRAINT fk_payment_method_type FOREIGN KEY (method_type) REFERENCES payment_method_type(type_id)
-     *         ON DELETE RESTRICT ON UPDATE CASCADE,
-     *     CONSTRAINT uq_default_payment_account UNIQUE (flag_default, account_id)
-     * );
-     */
-
     private String paymentMethodId;
     private String accountId;
     private int methodType;

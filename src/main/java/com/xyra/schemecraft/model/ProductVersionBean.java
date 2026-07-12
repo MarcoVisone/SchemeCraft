@@ -6,21 +6,6 @@ import java.time.LocalDateTime;
 public class ProductVersionBean implements Serializable {
     private static final long serialVersionUID = 1L;
 
-    /*
-    CREATE TABLE IF NOT EXISTS product_version (
-    version_id VARCHAR(36) PRIMARY KEY,
-    product_id VARCHAR(36) NOT NULL,
-    changelog TEXT,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    download_count INT DEFAULT 0,
-    file_path VARCHAR(255) NOT NULL,
-    minecraft_version VARCHAR(20) NOT NULL,
-    version VARCHAR(20) NOT NULL,
-    CONSTRAINT fk_product_version_product FOREIGN KEY (product_id) REFERENCES product(product_id)
-        ON DELETE CASCADE ON UPDATE CASCADE
-);
-     */
-
     private String versionId;
     private String productId;
     private String changelog;
@@ -31,6 +16,16 @@ public class ProductVersionBean implements Serializable {
     private String version;
 
     public ProductVersionBean() {
+    }
+
+    public ProductVersionBean(String versionId, String productId, String changelog, String filePath,
+                              String minecraftVersion, String version) {
+        this.versionId = versionId;
+        this.productId = productId;
+        this.changelog = changelog;
+        this.filePath = filePath;
+        this.minecraftVersion = minecraftVersion;
+        this.version = version;
     }
 
     public ProductVersionBean(String versionId, String productId, LocalDateTime createdAt, String changelog,

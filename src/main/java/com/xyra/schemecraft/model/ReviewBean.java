@@ -16,6 +16,14 @@ public class ReviewBean implements Serializable {
     public ReviewBean() {
     }
 
+    public ReviewBean(String accountId, String productId, String comment, boolean isVerifiedPurchase, int rating) {
+        this.accountId = accountId;
+        this.productId = productId;
+        this.comment = comment;
+        this.isVerifiedPurchase = isVerifiedPurchase;
+        this.rating = rating;
+    }
+
     public ReviewBean(String accountId, String productId, String comment, LocalDateTime createdAt,
                       boolean isVerifiedPurchase, int rating) {
         this.accountId = accountId;
