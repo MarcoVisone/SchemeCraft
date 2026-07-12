@@ -5,6 +5,7 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Timestamp;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
@@ -143,6 +144,64 @@ public class OrderDAO extends BaseDAO {
         } catch (SQLException e) {
             logger.error("Failed to update status for order ID: {}", orderId, e);
             throw new DAOException("Error updating order status", e);
+        }
+        return false;
+    }
+
+    public boolean existsActiveOrPending(Connection conn, String accountId, String productId,
+                                        int pendingExpirationMinutes) throws DAOException {
+        final int PENDING_STATUS_ID = 1;
+        final int CANCELLED_STATUS_ID = 4;
+
+        String sql = "SELECT 1 FROM order_table o " +
+                "JOIN order_item oi ON oi.order_id = o.order_id " +
+                "WHERE o.account_id = ? AND oi.product_id = ? " +
+                "AND o.status <> ? " +
+                "AND NOT (o.status = ? AND o.created_at < ?) " +
+                "LIMIT 1";
+
+        Timestamp expirationThreshold = Timestamp.valueOf(
+                LocalDateTime.now().minusMinutes(pendingExpirationMinutes));
+
+        try (PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setString(1, accountId);
+            ps.setString(2, productId);
+            ps.setInt(3, CANCELLED_STATUS_ID);
+            ps.setInt(4, PENDING_STATUS_ID);
+            ps.setTimestamp(5, expirationThreshold);
+
+            try (ResultSet rs = ps.executeQuery()) {
+                return rs.next();
+            }
+        } catch (SQLException e) {
+            logger.error("Database error while checking active/pending order for Account: {} Product: {}",
+                    accountId, productId, e);
+            throw new DAOException("Error checking for active or pending order", e);
+        }
+    }
+
+
+    public boolean updateStatus(Connection conn, String orderId, int newStatus, String transactionId) throws DAOException {
+        if (orderId == null || transactionId == null) {
+            throw new IllegalArgumentException("Order ID and Transaction ID cannot be null");
+        }
+
+        String sql = "UPDATE order_table SET status = ?, transaction_id = ? WHERE order_id = ?";
+
+        try (PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setInt(1, newStatus);
+            ps.setString(2, transactionId);
+            ps.setString(3, orderId);
+
+            int rowsAffected = ps.executeUpdate();
+            if (rowsAffected > 0) {
+                logger.info("Successfully updated status to: {} and transaction ID to: {} for order: {}",
+                        newStatus, transactionId, orderId);
+                return true;
+            }
+        } catch (SQLException e) {
+            logger.error("Failed to update status and transaction ID for order: {}", orderId, e);
+            throw new DAOException("Error updating order completion details", e);
         }
         return false;
     }

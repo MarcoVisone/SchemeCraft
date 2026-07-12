@@ -253,6 +253,48 @@ public class ProductDAO extends BaseDAO {
         return update(conn, product.getProductId(), product);
     }
 
+    public boolean decrementStock(Connection conn, String productId) throws DAOException {
+        String sql = "UPDATE product SET stock_quantity = stock_quantity - 1 " +
+                "WHERE product_id = ? AND (stock_quantity IS NULL OR stock_quantity > 0)";
+
+        try (PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setString(1, productId);
+
+            int rowsAffected = ps.executeUpdate();
+            if (rowsAffected > 0) {
+                logger.info("Stock successfully decremented for Product ID: {}", productId);
+                return true;
+            } else {
+                logger.warn("Stock decrement failed for Product ID: {} (out of stock or not found)", productId);
+            }
+        } catch (SQLException e) {
+            logger.error("Failed to decrement stock for Product ID: {}", productId, e);
+            throw new DAOException("Error decrementing product stock", e);
+        }
+        return false;
+    }
+
+    public void incrementStock(Connection conn, String productId) throws DAOException {
+        if (productId == null) {
+            throw new IllegalArgumentException("Product ID cannot be null");
+        }
+
+        String sql = "UPDATE product SET stock_quantity = stock_quantity + 1 WHERE product_id = ? " +
+                "AND stock_quantity IS NOT NULL";
+
+        try (PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setString(1, productId);
+
+            int rowsAffected = ps.executeUpdate();
+            if (rowsAffected > 0) {
+                logger.info("Successfully incremented stock for product ID: {}", productId);
+            }
+        } catch (SQLException e) {
+            logger.error("Failed to increment stock for product ID: {}", productId, e);
+            throw new DAOException("Error updating product stock quantity", e);
+        }
+    }
+
     public boolean activate(Connection conn, String productId) throws DAOException {
         String sql = "UPDATE product SET is_active = TRUE WHERE product_id = ?";
 
