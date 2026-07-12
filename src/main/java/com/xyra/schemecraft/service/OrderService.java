@@ -21,7 +21,6 @@ import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 
 public class OrderService {
-
     private static final Logger logger = LoggerFactory.getLogger(OrderService.class);
     private static final BigDecimal HUNDRED = new BigDecimal("100");
 
@@ -100,7 +99,8 @@ public class OrderService {
         return executeOrderProcessing(context);
     }
 
-    private OrderCreationContext validateAndCreatePendingOrder(String accountId, String directProductId, boolean isFromCart) {
+    private OrderCreationContext validateAndCreatePendingOrder(String accountId, String directProductId,
+                                                               boolean isFromCart) {
         Connection connection = null;
         try {
             connection = ConnectionPool.getConnection();
@@ -246,8 +246,8 @@ public class OrderService {
             finalizeSuccessfulOrder(context, orderId, transactionId);
             logger.info("Order {} successfully processed and PAID for Account: {}", orderId, accountId);
         } catch (Exception e) {
-            logger.error("CRITICAL ERROR: Charge completed (Tx: {}) but failed to persist PAID status in DB for Order: {}",
-                    transactionId, orderId, e);
+            logger.error("CRITICAL ERROR: Charge completed (Tx: {}) " +
+                    "but failed to persist PAID status in DB for Order: {}", transactionId, orderId, e);
             throw new ServiceException("Payment processed successfully but an error occurred during fulfillment. " +
                     "Please contact support with Transaction ID: " + transactionId, e);
         }
@@ -318,8 +318,8 @@ public class OrderService {
             connection.commit();
         } catch (Exception e) {
             rollback(connection);
-            logger.error("FATAL ERROR: Failed to mark order {} as PENDING_VERIFICATION after gateway timeout!"
-                    , orderId, e);
+            logger.error("FATAL ERROR: Failed to mark order {} as PENDING_VERIFICATION after gateway timeout!",
+                    orderId, e);
         } finally {
             closeConnection(connection);
         }
@@ -330,12 +330,14 @@ public class OrderService {
 
         for (OrderItemSnapshot item : items) {
             // price * (1 - (discount / 100))
-            BigDecimal discountFactor = BigDecimal.ONE.subtract(item.discount().divide(HUNDRED, 4, RoundingMode.HALF_UP));
+            BigDecimal discountFactor = BigDecimal.ONE.subtract(item.discount().divide(HUNDRED, 4,
+                    RoundingMode.HALF_UP));
             BigDecimal priceAfterDiscount = item.price().multiply(discountFactor);
 
             // priceAfterDiscount * (1 + (tax / 100))
             BigDecimal taxFactor = BigDecimal.ONE.add(item.tax().divide(HUNDRED, 4, RoundingMode.HALF_UP));
-            BigDecimal finalItemPrice = priceAfterDiscount.multiply(taxFactor).setScale(2, RoundingMode.HALF_UP);
+            BigDecimal finalItemPrice = priceAfterDiscount.multiply(taxFactor).setScale(2,
+                    RoundingMode.HALF_UP);
 
             total = total.add(finalItemPrice);
         }
@@ -350,7 +352,8 @@ public class OrderService {
         });
     }
 
-    private CountryBean validateAccountCountry(Connection connection, AccountBean account, String accountId) throws SQLException {
+    private CountryBean validateAccountCountry(Connection connection, AccountBean account, String accountId)
+            throws SQLException {
         String countryId = account.getCountryId();
 
         if (countryId == null) {
@@ -370,18 +373,22 @@ public class OrderService {
         return country;
     }
 
-    private PaymentMethodBean validateDefaultPaymentMethod(Connection connection, String accountId) throws SQLException {
-        PaymentMethodBean paymentMethod = paymentMethodDAO.findDefaultByAccountId(connection, accountId).orElseThrow(() -> {
-            logger.error("No default payment method found for Account: {}", accountId);
-            return new EntityNotFoundException("No default payment method found for account " + accountId);
-        });
+    private PaymentMethodBean validateDefaultPaymentMethod(Connection connection, String accountId)
+            throws SQLException {
+        PaymentMethodBean paymentMethod =
+                paymentMethodDAO.findDefaultByAccountId(connection, accountId).orElseThrow(
+                        () -> {
+                            logger.error("No default payment method found for Account: {}", accountId);
+                            return new EntityNotFoundException("No default payment method found for account " + accountId);
+                        });
 
         int paymentMethodTypeId = paymentMethod.getMethodType();
 
-        PaymentMethodTypeBean paymentMethodType = paymentMethodTypeDAO.findById(connection, paymentMethodTypeId).orElseThrow(() -> {
-            logger.error("Payment method type not found for ID: {}", paymentMethodTypeId);
-            return new EntityNotFoundException("Invalid payment method type");
-        });
+        PaymentMethodTypeBean paymentMethodType =
+                paymentMethodTypeDAO.findById(connection, paymentMethodTypeId).orElseThrow(() -> {
+                    logger.error("Payment method type not found for ID: {}", paymentMethodTypeId);
+                    return new EntityNotFoundException("Invalid payment method type");
+                });
 
         if (!paymentMethodType.isActive()) {
             logger.error("Payment method type is not active for ID: {}", paymentMethodTypeId);
@@ -419,7 +426,8 @@ public class OrderService {
         return address;
     }
 
-    private void validateProductNotAlreadyOwned(Connection connection, String accountId, String productId) throws SQLException {
+    private void validateProductNotAlreadyOwned(Connection connection, String accountId, String productId)
+            throws SQLException {
         boolean isOwned = accountProductDAO.findById(connection, accountId, productId).isPresent();
         if (isOwned) {
             logger.error("Account: {} already owns Product: {}", accountId, productId);

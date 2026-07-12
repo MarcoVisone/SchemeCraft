@@ -148,20 +148,23 @@ public class OrderDAO extends BaseDAO {
         return false;
     }
 
+    public boolean updateStatus(Connection conn, OrderBean order, int newStatus) throws DAOException {
+        if (order == null || order.getOrderId() == null) {
+            throw new IllegalArgumentException("Attempted to update status on a null order or an order without an ID");
+        }
+        return updateStatus(conn, order.getOrderId(), newStatus);
+    }
+
     public boolean existsActiveOrPending(Connection conn, String accountId, String productId,
-                                        int pendingExpirationMinutes) throws DAOException {
+                                         int pendingExpirationMinutes) throws DAOException {
         final int PENDING_STATUS_ID = 1;
         final int CANCELLED_STATUS_ID = 4;
 
-        String sql = "SELECT 1 FROM order_table o " +
-                "JOIN order_item oi ON oi.order_id = o.order_id " +
-                "WHERE o.account_id = ? AND oi.product_id = ? " +
-                "AND o.status <> ? " +
-                "AND NOT (o.status = ? AND o.created_at < ?) " +
-                "LIMIT 1";
+        String sql = "SELECT 1 FROM order_table o JOIN order_item oi ON oi.order_id = o.order_id " +
+                "WHERE o.account_id = ? AND oi.product_id = ? AND o.status <> ? " +
+                "AND NOT (o.status = ? AND o.created_at < ?) LIMIT 1";
 
-        Timestamp expirationThreshold = Timestamp.valueOf(
-                LocalDateTime.now().minusMinutes(pendingExpirationMinutes));
+        Timestamp expirationThreshold = Timestamp.valueOf(LocalDateTime.now().minusMinutes(pendingExpirationMinutes));
 
         try (PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setString(1, accountId);
@@ -181,7 +184,8 @@ public class OrderDAO extends BaseDAO {
     }
 
 
-    public boolean updateStatus(Connection conn, String orderId, int newStatus, String transactionId) throws DAOException {
+    public boolean updateStatus(Connection conn, String orderId, int newStatus, String transactionId)
+            throws DAOException {
         if (orderId == null || transactionId == null) {
             throw new IllegalArgumentException("Order ID and Transaction ID cannot be null");
         }
@@ -206,11 +210,12 @@ public class OrderDAO extends BaseDAO {
         return false;
     }
 
-    public boolean updateStatus(Connection conn, OrderBean order, int newStatus) throws DAOException {
+    public boolean updateStatus(Connection conn, OrderBean order, int newStatus, String transactionId)
+            throws DAOException {
         if (order == null || order.getOrderId() == null) {
-            throw new IllegalArgumentException("Attempted to update status on a null order or an order without an ID");
+            throw new IllegalArgumentException("Order ID and Transaction ID cannot be null");
         }
-        return updateStatus(conn, order.getOrderId(), newStatus);
+        return updateStatus(conn, order.getOrderId(), newStatus, transactionId);
     }
 
     public boolean delete(Connection conn, String orderId) throws DAOException {
