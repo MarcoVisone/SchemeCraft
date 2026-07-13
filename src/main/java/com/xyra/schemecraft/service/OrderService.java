@@ -99,6 +99,18 @@ public class OrderService {
         return executeOrderProcessing(context);
     }
 
+    public OrderBean getOrderById(String orderId) throws EntityNotFoundException {
+        throw new UnsupportedOperationException("TODO: getOrderById");
+    }
+
+    public List<OrderBean> listAccountOrders(String accountId) {
+        throw new UnsupportedOperationException("TODO: listAccountOrders");
+    }
+
+    public void updateOrderStatus(String orderId, int statusId) throws EntityNotFoundException {
+        throw new UnsupportedOperationException("TODO: updateOrderStatus");
+    }
+
     private OrderCreationContext validateAndCreatePendingOrder(String accountId, String directProductId,
                                                                boolean isFromCart) {
         Connection connection = null;
