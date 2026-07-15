@@ -6,6 +6,8 @@ import com.xyra.schemecraft.exception.*;
 import com.xyra.schemecraft.model.*;
 import com.xyra.schemecraft.service.gateway.ChargeResult;
 import com.xyra.schemecraft.service.gateway.FakePaymentGateway;
+import com.xyra.schemecraft.constant.ServiceConstants;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -99,21 +101,79 @@ public class OrderService {
         return executeOrderProcessing(context);
     }
 
-    public OrderBean getOrderById(String orderId) throws EntityNotFoundException {
-        throw new UnsupportedOperationException("TODO: getOrderById");
+    public OrderBean getOrderById(String orderId) throws EntityNotFoundException, ServiceException {
+        try (Connection connection = ConnectionPool.getConnection()) {
+            return orderDAO.findById(connection, orderId)
+                    .orElseThrow(() -> {
+                        logger.warn("Order not found for ID: {}", orderId);
+                        return new EntityNotFoundException("Order not found for ID: " + orderId);
+                    });
+        } catch (SQLException e) {
+            logger.error("Database connection error while fetching order ID: {}", orderId, e);
+            throw new ServiceException("Internal database error occurred", e);
+        }
     }
 
-    public List<OrderBean> listAccountOrders(String accountId) {
-        throw new UnsupportedOperationException("TODO: listAccountOrders");
+    public List<OrderBean> listAccountOrders(String accountId, int pageNumber) throws ServiceException {
+        try (Connection connection = ConnectionPool.getConnection()) {
+            return orderDAO.findAllByAccountId(connection, accountId, pageNumber, ServiceConstants.ORDERS_PAGE_SIZE);
+        } catch (DAOException | SQLException e) {
+            logger.error("Database error while listing orders for Account: {}", accountId, e);
+            throw new ServiceException("Unable to list orders due to an internal error", e);
+        }
     }
 
-    public void updateOrderStatus(String orderId, int statusId) throws EntityNotFoundException {
-        throw new UnsupportedOperationException("TODO: updateOrderStatus");
+    public void updateOrderStatus(String orderId, int statusId) throws EntityNotFoundException, ServiceException {
+        Connection connection = null;
+        boolean success = false;
+
+        try {
+            connection = ConnectionPool.getConnection();
+            connection.setAutoCommit(false);
+
+            OrderBean order = orderDAO.findById(connection, orderId)
+                    .orElseThrow(() -> new EntityNotFoundException("Order not found for ID: " + orderId));
+
+            int oldStatusId = order.getStatus();
+
+            if (oldStatusId == statusId) {
+                connection.commit();
+                return;
+            }
+
+            orderDAO.updateStatus(connection, orderId, statusId);
+
+            if (statusId == OrderStatus.CANCELLED.getId()) {
+                List<OrderItemBean> items = orderItemDAO.findAllByOrderId(connection, orderId);
+                for (OrderItemBean item : items) {
+                    productDAO.incrementStock(connection, item.getProductId());
+                }
+                logger.info("Order {} cancelled. Stock units restored for associated products.", orderId);
+            }
+
+            connection.commit();
+            success = true;
+            logger.info("Order {} status updated from {} to {}", orderId, oldStatusId, statusId);
+
+        } catch (EntityNotFoundException e) {
+            throw e;
+        } catch (SQLException | DAOException e) {
+            logger.error("Database error while updating status for Order: {}", orderId, e);
+            throw new ServiceException("Unable to update order status due to an internal error", e);
+        } finally {
+            if (connection != null) {
+                if (!success) {
+                    rollback(connection);
+                }
+                closeConnection(connection);
+            }
+        }
     }
 
     private OrderCreationContext validateAndCreatePendingOrder(String accountId, String directProductId,
                                                                boolean isFromCart) {
         Connection connection = null;
+        boolean success = false;
         try {
             connection = ConnectionPool.getConnection();
             connection.setAutoCommit(false);
@@ -125,11 +185,9 @@ public class OrderService {
             AddressBean address = validateAddress(connection, accountId);
 
             List<String> productIdsToValidate = new ArrayList<>();
-
             if (isFromCart) {
                 List<CartBean> cartItems = cartDAO.findAllByAccountId(connection, accountId);
                 if (cartItems.isEmpty()) {
-                    logger.error("Cart is empty for Account: {}", accountId);
                     throw new ServiceException("Cannot place an order with an empty cart");
                 }
                 for (CartBean item : cartItems) {
@@ -143,8 +201,8 @@ public class OrderService {
             }
 
             Collections.sort(productIdsToValidate);
-
             List<String> acquiredLocks = new ArrayList<>();
+
             try {
                 for (String productId : productIdsToValidate) {
                     String lockKey = accountId + "|" + productId;
@@ -161,8 +219,7 @@ public class OrderService {
                     boolean alreadyProcessing = orderDAO.existsActiveOrPending(connection, accountId, productId,
                             15);
                     if (alreadyProcessing) {
-                        throw new DuplicateEntityException("An order for this product is already being " +
-                                "processed or completed.");
+                        throw new DuplicateEntityException("An order for this product is already being processed.");
                     }
 
                     ProductBean product = validateProduct(connection, productId);
@@ -205,9 +262,10 @@ public class OrderService {
                 }
 
                 connection.commit();
+                success = true;
 
-                return new OrderCreationContext(orderId, account, paymentMethod, currency, items,
-                        totalAmount, isFromCart);
+                return new OrderCreationContext(orderId, account, paymentMethod, currency, items, totalAmount,
+                        isFromCart);
 
             } finally {
                 for (String lockKey : acquiredLocks) {
@@ -215,15 +273,17 @@ public class OrderService {
                 }
             }
 
-        } catch (ServiceException e) {
-            rollback(connection);
-            throw e;
         } catch (SQLException e) {
-            rollback(connection);
             logger.error("Database error during order validation/creation for Account: {}", accountId, e);
             throw new ServiceException("Unable to process the order due to an internal error", e);
         } finally {
-            closeConnection(connection);
+            // Se non è stato completato con successo (es. è stata lanciata una RuntimeException o ServiceException)
+            if (connection != null) {
+                if (!success) {
+                    rollback(connection); // Rollback sicuro garantito!
+                }
+                closeConnection(connection);
+            }
         }
     }
 
@@ -358,10 +418,8 @@ public class OrderService {
     }
 
     private AccountBean validateAccount(Connection connection, String accountId) throws SQLException {
-        return accountDAO.findById(connection, accountId).orElseThrow(() -> {
-            logger.error("Account not found for ID: {}", accountId);
-            return new EntityNotFoundException("Account not found for ID: " + accountId);
-        });
+        return accountDAO.findById(connection, accountId).orElseThrow(() ->
+                new EntityNotFoundException("Account not found for ID: " + accountId));
     }
 
     private CountryBean validateAccountCountry(Connection connection, AccountBean account, String accountId)
@@ -391,7 +449,8 @@ public class OrderService {
                 paymentMethodDAO.findDefaultByAccountId(connection, accountId).orElseThrow(
                         () -> {
                             logger.error("No default payment method found for Account: {}", accountId);
-                            return new EntityNotFoundException("No default payment method found for account " + accountId);
+                            return new EntityNotFoundException("No default payment method found for account " +
+                                    accountId);
                         });
 
         int paymentMethodTypeId = paymentMethod.getMethodType();
@@ -476,16 +535,18 @@ public class OrderService {
     }
 
     private void closeConnection(Connection connection) {
-        if (connection != null) {
-            try (connection) {
-                try {
+        if (connection == null) return;
+
+        try (connection) {
+            try {
+                if (!connection.isClosed()) {
                     connection.setAutoCommit(true);
-                } catch (SQLException e) {
-                    logger.error("Error while resetting autoCommit on connection", e);
                 }
             } catch (SQLException e) {
-                logger.error("Error while releasing connection back to the pool", e);
+                logger.warn("Failed to reset autoCommit to true before releasing connection", e);
             }
+        } catch (SQLException e) {
+            logger.error("Failed to close database connection", e);
         }
     }
 }
