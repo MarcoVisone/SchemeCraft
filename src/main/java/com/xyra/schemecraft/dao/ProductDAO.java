@@ -15,14 +15,33 @@ import com.xyra.schemecraft.model.ProductBean;
 
 import static com.xyra.schemecraft.constant.DatabaseConstants.*;
 
+/**
+ * Data Access Object (DAO) for managing persistent {@link ProductBean} entities.
+ */
 public class ProductDAO extends BaseDAO {
+
     private static final String SELECT_BASE = "SELECT product_id, account_id, currency_id, average_rating, " +
             "created_at, discount, description, is_active, latest_update, price, product_name, stock_quantity, " +
-            "total_downloads, total_reviews FROM product";
+            "total_downloads, total_reviews FROM product ";
 
+    /**
+     * Persists a new Product entity into the database.
+     *
+     * @param conn    Active database connection
+     * @param product The Product bean to insert
+     * @throws DuplicateEntityException if the Product ID already exists
+     * @throws DAOException             if a generic database error occurs
+     * @throws IllegalArgumentException if the product is null, or if Product ID, Account ID,
+     * or Product Name are null or empty
+     */
     public void insert(Connection conn, ProductBean product) throws DAOException {
         if (product == null) {
             throw new IllegalArgumentException("Cannot insert a null Product");
+        }
+        if (product.getProductId() == null || product.getProductId().trim().isEmpty() ||
+                product.getAccountId() == null || product.getAccountId().trim().isEmpty() ||
+                product.getProductName() == null || product.getProductName().trim().isEmpty()) {
+            throw new IllegalArgumentException("Product ID, Account ID, and Product Name must be valid and populated");
         }
 
         String sql = "INSERT INTO product (product_id, account_id, currency_id, average_rating, discount, " +
@@ -30,15 +49,15 @@ public class ProductDAO extends BaseDAO {
                 "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
 
         try (PreparedStatement ps = conn.prepareStatement(sql)) {
-            ps.setString(1, product.getProductId());
-            ps.setString(2, product.getAccountId());
-            ps.setString(3, product.getCurrencyId());
+            ps.setString(1, product.getProductId().trim());
+            ps.setString(2, product.getAccountId().trim());
+            ps.setString(3, product.getCurrencyId() != null ? product.getCurrencyId().trim() : null);
             ps.setBigDecimal(4, product.getAverageRating());
             ps.setBigDecimal(5, product.getDiscount());
             ps.setString(6, product.getDescription());
             ps.setBoolean(7, product.isActive());
             ps.setBigDecimal(8, product.getPrice());
-            ps.setString(9, product.getProductName());
+            ps.setString(9, product.getProductName().trim());
 
             if (product.getStockQuantity() != null) {
                 ps.setInt(10, product.getStockQuantity());
@@ -50,52 +69,89 @@ public class ProductDAO extends BaseDAO {
             ps.setInt(12, product.getTotalReviews());
 
             ps.executeUpdate();
-            logger.info("Product successfully inserted with ID: {} by Account: {}", product.getProductId(),
+            logger.info("Product successfully inserted with Product ID: {} by Account ID: {}", product.getProductId(),
                     product.getAccountId());
         } catch (SQLException e) {
-            logger.error("Failed to insert product with Name: {}", product.getProductName(), e);
-            if (MYSQL_DUPLICATE_KEY_STATE.equals(e.getSQLState()) || e.getErrorCode() == MYSQL_DUPLICATE_KEY_CODE) {
+            logger.error("Failed to insert Product with Product Name: {}", product.getProductName(), e);
+            if (SQLSTATE_INTEGRITY_CONSTRAINT_VIOLATION.equals(e.getSQLState()) ||
+                    e.getErrorCode() == MYSQL_ERR_DUPLICATE_KEY) {
                 throw new DuplicateEntityException("Product ID already exists: " + product.getProductId(), e);
             }
             throw new DAOException("Error occurred while inserting product", e);
         }
     }
 
+    /**
+     * Retrieves a single product by its unique identifier.
+     *
+     * @param conn      Active database connection
+     * @param productId Unique identifier of the product
+     * @return An Optional containing the populated product, or empty if not found
+     * @throws DAOException             if a database error occurs
+     * @throws IllegalArgumentException if Product ID is null or empty
+     */
     public Optional<ProductBean> findById(Connection conn, String productId) throws DAOException {
-        String sql = SELECT_BASE + " WHERE product_id = ?";
+        if (productId == null || productId.trim().isEmpty()) {
+            throw new IllegalArgumentException("Product ID cannot be null or empty for lookup");
+        }
+
+        String sql = SELECT_BASE + "WHERE product_id = ?";
 
         try (PreparedStatement ps = conn.prepareStatement(sql)) {
-            ps.setString(1, productId);
+            ps.setString(1, productId.trim());
             try (ResultSet rs = ps.executeQuery()) {
                 if (rs.next()) {
                     return Optional.of(mapRow(rs));
                 }
             }
         } catch (SQLException e) {
-            logger.error("Database error while fetching product with ID: {}", productId, e);
-            throw new DAOException("Error fetching product by ID", e);
+            logger.error("Database error while fetching Product with Product ID: {}", productId, e);
+            throw new DAOException("Error fetching product by Product ID", e);
         }
         return Optional.empty();
     }
 
+    /**
+     * Retrieves all products published by a specific vendor account.
+     *
+     * @param conn      Active database connection
+     * @param accountId Unique identifier of the vendor account
+     * @return List of products associated with the vendor
+     * @throws DAOException             if a database error occurs
+     * @throws IllegalArgumentException if Account ID is null or empty
+     */
     public List<ProductBean> findAllByAccountId(Connection conn, String accountId) throws DAOException {
-        String sql = SELECT_BASE + " WHERE account_id = ?";
+        if (accountId == null || accountId.trim().isEmpty()) {
+            throw new IllegalArgumentException("Account ID cannot be null or empty for lookup");
+        }
+
+        String sql = SELECT_BASE + "WHERE account_id = ?";
         List<ProductBean> products = new ArrayList<>();
 
         try (PreparedStatement ps = conn.prepareStatement(sql)) {
-            ps.setString(1, accountId);
+            ps.setString(1, accountId.trim());
             try (ResultSet rs = ps.executeQuery()) {
                 while (rs.next()) {
                     products.add(mapRow(rs));
                 }
             }
         } catch (SQLException e) {
-            logger.error("Database error while retrieving products for account ID: {}", accountId, e);
-            throw new DAOException("Error retrieving products by account ID", e);
+            logger.error("Database error while retrieving products for Account ID: {}", accountId, e);
+            throw new DAOException("Error retrieving products by Account ID", e);
         }
         return products;
     }
 
+    /**
+     * Performs a dynamic criteria search against the active product catalog.
+     * Supporting pagination, sorting constraints, rating, and Full-Text Search.
+     *
+     * @param conn     Active database connection
+     * @param criteria The SearchCriteria details model
+     * @return List of matching active products
+     * @throws DAOException             if a database error occurs
+     * @throws IllegalArgumentException if the search criteria is null, or contains an invalid sort column
+     */
     public List<ProductBean> searchProducts(Connection conn, ProductSearchCriteria criteria) throws DAOException {
         if (criteria == null) {
             throw new IllegalArgumentException("Search criteria cannot be null");
@@ -104,11 +160,13 @@ public class ProductDAO extends BaseDAO {
         StringBuilder sql = new StringBuilder();
 
         if (criteria.getMinecraftVersion() != null && !criteria.getMinecraftVersion().trim().isEmpty()) {
-            sql.append("SELECT DISTINCT p.* FROM product p ");
+            sql.append("SELECT DISTINCT p.product_id, p.account_id, p.currency_id, p.average_rating, ");
+            sql.append("p.created_at, p.discount, p.description, p.is_active, p.latest_update, p.price, ");
+            sql.append("p.product_name, p.stock_quantity, p.total_downloads, p.total_reviews FROM product p ");
             sql.append("JOIN product_version pv ON p.product_id = pv.product_id ");
             sql.append("WHERE p.is_active = TRUE");
         } else {
-            sql.append(SELECT_BASE).append(" WHERE is_active = TRUE");
+            sql.append(SELECT_BASE).append("WHERE is_active = TRUE");
         }
 
         List<Object> queryParams = new ArrayList<>();
@@ -146,15 +204,13 @@ public class ProductDAO extends BaseDAO {
         }
 
         if (criteria.getOrderByColumn() != null) {
-            String safeOrderBy;
-            switch (criteria.getOrderByColumn().toLowerCase().trim()) {
-                case "price":           safeOrderBy = "price"; break;
-                case "average_rating":  safeOrderBy = "average_rating"; break;
-                case "total_reviews":   safeOrderBy = "total_reviews"; break;
-                case "total_downloads": safeOrderBy = "total_downloads"; break;
-                default:
-                    throw new IllegalArgumentException("Invalid sort column: " + criteria.getOrderByColumn());
-            }
+            String safeOrderBy = switch (criteria.getOrderByColumn().toLowerCase().trim()) {
+                case "price" -> "price";
+                case "average_rating" -> "average_rating";
+                case "total_reviews" -> "total_reviews";
+                case "total_downloads" -> "total_downloads";
+                default -> throw new IllegalArgumentException("Invalid sort column: " + criteria.getOrderByColumn());
+            };
             String direction = (criteria.getAscending() != null && !criteria.getAscending()) ? "DESC" : "ASC";
             sql.append(" ORDER BY p.").append(safeOrderBy).append(" ").append(direction);
         }
@@ -189,6 +245,13 @@ public class ProductDAO extends BaseDAO {
         return products;
     }
 
+    /**
+     * Retrieves all products configured in the system.
+     *
+     * @param conn Active database connection
+     * @return List of all products
+     * @throws DAOException if a database error occurs
+     */
     public List<ProductBean> findAll(Connection conn) throws DAOException {
         List<ProductBean> products = new ArrayList<>();
 
@@ -204,7 +267,20 @@ public class ProductDAO extends BaseDAO {
         return products;
     }
 
+    /**
+     * Updates details of an existing Product configuration.
+     *
+     * @param conn      Active database connection
+     * @param productId Unique identifier of the target product
+     * @param product   Product model containing new parameters
+     * @return true if the row was successfully updated; false if not found
+     * @throws DAOException             if a database error occurs
+     * @throws IllegalArgumentException if Product ID is null or empty, or if the product object is null
+     */
     public boolean update(Connection conn, String productId, ProductBean product) throws DAOException {
+        if (productId == null || productId.trim().isEmpty()) {
+            throw new IllegalArgumentException("Product ID cannot be null or empty for updates");
+        }
         if (product == null) {
             throw new IllegalArgumentException("Cannot update with a null Product object");
         }
@@ -214,13 +290,13 @@ public class ProductDAO extends BaseDAO {
                 "total_reviews = ? WHERE product_id = ?";
 
         try (PreparedStatement ps = conn.prepareStatement(sql)) {
-            ps.setString(1, product.getCurrencyId());
+            ps.setString(1, product.getCurrencyId() != null ? product.getCurrencyId().trim() : null);
             ps.setBigDecimal(2, product.getAverageRating());
             ps.setBigDecimal(3, product.getDiscount());
             ps.setString(4, product.getDescription());
             ps.setBoolean(5, product.isActive());
             ps.setBigDecimal(6, product.getPrice());
-            ps.setString(7, product.getProductName());
+            ps.setString(7, product.getProductName().trim());
 
             if (product.getStockQuantity() != null) {
                 ps.setInt(8, product.getStockQuantity());
@@ -230,35 +306,58 @@ public class ProductDAO extends BaseDAO {
 
             ps.setInt(9, product.getTotalDownloads());
             ps.setInt(10, product.getTotalReviews());
-            ps.setString(11, productId);
+            ps.setString(11, productId.trim());
 
             int rowsAffected = ps.executeUpdate();
             if (rowsAffected > 0) {
-                logger.info("Product with ID: {} successfully updated", productId);
+                logger.info("Product with Product ID: {} successfully updated", productId);
                 return true;
             } else {
-                logger.warn("Update issued for non-existent product ID: {}", productId);
+                logger.warn("Update issued for non-existent Product ID: {}", productId);
             }
         } catch (SQLException e) {
-            logger.error("Failed to update product with ID: {}", productId, e);
+            logger.error("Failed to update Product with Product ID: {}", productId, e);
             throw new DAOException("Error updating product", e);
         }
         return false;
     }
 
+    /**
+     * Updates details of an existing Product configuration using its domain model representation.
+     *
+     * @param conn    Active database connection
+     * @param product Product model containing updated parameters, including its unique Product ID
+     * @return true if the row was successfully updated; false if not found
+     * @throws DAOException             if a database error occurs
+     * @throws IllegalArgumentException if the product is null, or if its Product ID is missing
+     */
     public boolean update(Connection conn, ProductBean product) throws DAOException {
         if (product == null || product.getProductId() == null) {
-            throw new IllegalArgumentException("Attempted to update a null product or a product without an ID");
+            throw new IllegalArgumentException("Attempted to update a null Product or a Product without a Product ID");
         }
         return update(conn, product.getProductId(), product);
     }
 
+    /**
+     * Safely decrements the stock quantity of a physical product by 1,
+     * ensuring that decrement operations respect zero stock boundaries.
+     *
+     * @param conn      Active database connection
+     * @param productId Unique identifier of the product
+     * @return true if stock was successfully decremented; false if item is out of stock or not found
+     * @throws DAOException             if a database error occurs
+     * @throws IllegalArgumentException if Product ID is null or empty
+     */
     public boolean decrementStock(Connection conn, String productId) throws DAOException {
+        if (productId == null || productId.trim().isEmpty()) {
+            throw new IllegalArgumentException("Product ID cannot be null or empty for stock updates");
+        }
+
         String sql = "UPDATE product SET stock_quantity = stock_quantity - 1 " +
                 "WHERE product_id = ? AND (stock_quantity IS NULL OR stock_quantity > 0)";
 
         try (PreparedStatement ps = conn.prepareStatement(sql)) {
-            ps.setString(1, productId);
+            ps.setString(1, productId.trim());
 
             int rowsAffected = ps.executeUpdate();
             if (rowsAffected > 0) {
@@ -274,87 +373,189 @@ public class ProductDAO extends BaseDAO {
         return false;
     }
 
+    /**
+     * Increments the stock quantity of a physical product by 1,
+     * only if stock quantity is currently configured (not null/digital).
+     *
+     * @param conn      Active database connection
+     * @param productId Unique identifier of the product
+     * @throws DAOException             if a database error occurs
+     * @throws IllegalArgumentException if Product ID is null or empty
+     */
     public void incrementStock(Connection conn, String productId) throws DAOException {
-        if (productId == null) {
-            throw new IllegalArgumentException("Product ID cannot be null");
+        if (productId == null || productId.trim().isEmpty()) {
+            throw new IllegalArgumentException("Product ID cannot be null or empty for stock updates");
         }
 
         String sql = "UPDATE product SET stock_quantity = stock_quantity + 1 WHERE product_id = ? " +
                 "AND stock_quantity IS NOT NULL";
 
         try (PreparedStatement ps = conn.prepareStatement(sql)) {
-            ps.setString(1, productId);
+            ps.setString(1, productId.trim());
 
             int rowsAffected = ps.executeUpdate();
             if (rowsAffected > 0) {
-                logger.info("Successfully incremented stock for product ID: {}", productId);
+                logger.info("Successfully incremented stock for Product ID: {}", productId);
+            } else {
+                logger.warn("Stock increment issued for Product ID: {} but product not found or is a digital resource",
+                        productId);
             }
         } catch (SQLException e) {
-            logger.error("Failed to increment stock for product ID: {}", productId, e);
+            logger.error("Failed to increment stock for Product ID: {}", productId, e);
             throw new DAOException("Error updating product stock quantity", e);
         }
     }
 
+    /**
+     * Soft-enables a product, allowing it to be visible and searchable in catalog queries.
+     *
+     * @param conn      Active database connection
+     * @param productId Unique identifier of the product to activate
+     * @return true if activated; false if not found
+     * @throws DAOException             if a database error occurs
+     * @throws IllegalArgumentException if Product ID is null or empty
+     */
     public boolean activate(Connection conn, String productId) throws DAOException {
+        if (productId == null || productId.trim().isEmpty()) {
+            throw new IllegalArgumentException("Product ID cannot be null or empty for activation");
+        }
+
         String sql = "UPDATE product SET is_active = TRUE WHERE product_id = ?";
 
         try (PreparedStatement ps = conn.prepareStatement(sql)) {
-            ps.setString(1, productId);
+            ps.setString(1, productId.trim());
             int rowsAffected = ps.executeUpdate();
-            return rowsAffected > 0;
+            if (rowsAffected > 0) {
+                logger.info("Product with Product ID: {} successfully activated", productId);
+                return true;
+            } else {
+                logger.warn("Activation issued for non-existent Product ID: {}", productId);
+            }
         } catch (SQLException e) {
-            logger.error("Failed to activate product with ID: {}", productId, e);
+            logger.error("Failed to activate Product with Product ID: {}", productId, e);
             throw new DAOException("Error activating product", e);
         }
+        return false;
     }
 
+    /**
+     * Soft-enables a product using its domain model representation.
+     *
+     * @param conn    Active database connection
+     * @param product Product model containing the unique Product ID to activate
+     * @return true if activated; false if not found
+     * @throws DAOException             if a database error occurs
+     * @throws IllegalArgumentException if the product is null, or if its Product ID is missing
+     */
     public boolean activate(Connection conn, ProductBean product) throws DAOException {
         if (product == null || product.getProductId() == null) {
-            throw new IllegalArgumentException("Attempted to activate a null product or a product without an ID");
+            throw new IllegalArgumentException("Attempted to activate a null Product or " +
+                    "a Product without a Product ID");
         }
         return activate(conn, product.getProductId());
     }
 
+    /**
+     * Soft-disables a product, removing it from catalog queries without destroying related order data.
+     *
+     * @param conn      Active database connection
+     * @param productId Unique identifier of the product to deactivate
+     * @return true if deactivated; false if not found
+     * @throws DAOException             if a database error occurs
+     * @throws IllegalArgumentException if Product ID is null or empty
+     */
     public boolean deactivate(Connection conn, String productId) throws DAOException {
+        if (productId == null || productId.trim().isEmpty()) {
+            throw new IllegalArgumentException("Product ID cannot be null or empty for deactivation");
+        }
+
         String sql = "UPDATE product SET is_active = FALSE WHERE product_id = ?";
 
         try (PreparedStatement ps = conn.prepareStatement(sql)) {
-            ps.setString(1, productId);
+            ps.setString(1, productId.trim());
             int rowsAffected = ps.executeUpdate();
-            return rowsAffected > 0;
+            if (rowsAffected > 0) {
+                logger.info("Product with Product ID: {} successfully deactivated", productId);
+                return true;
+            } else {
+                logger.warn("Deactivation issued for non-existent Product ID: {}", productId);
+            }
         } catch (SQLException e) {
-            logger.error("Failed to deactivate product with ID: {}", productId, e);
+            logger.error("Failed to deactivate Product with Product ID: {}", productId, e);
             throw new DAOException("Error deactivating product", e);
         }
+        return false;
     }
 
+    /**
+     * Soft-disables a product using its domain model representation.
+     *
+     * @param conn    Active database connection
+     * @param product Product model containing the unique Product ID to deactivate
+     * @return true if deactivated; false if not found
+     * @throws DAOException             if a database error occurs
+     * @throws IllegalArgumentException if the product is null, or if its Product ID is missing
+     */
     public boolean deactivate(Connection conn, ProductBean product) throws DAOException {
         if (product == null || product.getProductId() == null) {
-            throw new IllegalArgumentException("Attempted to deactivate a null product or a product without an ID");
+            throw new IllegalArgumentException("Attempted to deactivate a null Product or " +
+                    "a Product without a Product ID");
         }
         return deactivate(conn, product.getProductId());
     }
 
+    /**
+     * Hard-deletes a product entity from the schema.
+     *
+     * @param conn      Active database connection
+     * @param productId Unique identifier of the target product
+     * @return true if deleted; false if not found
+     * @throws DAOException             if a database error occurs
+     * @throws IllegalArgumentException if Product ID is null or empty
+     */
     public boolean forceDelete(Connection conn, String productId) throws DAOException {
+        if (productId == null || productId.trim().isEmpty()) {
+            throw new IllegalArgumentException("Product ID cannot be null or empty for physical deletion");
+        }
+
         String sql = "DELETE FROM product WHERE product_id = ?";
 
         try (PreparedStatement ps = conn.prepareStatement(sql)) {
-            ps.setString(1, productId);
+            ps.setString(1, productId.trim());
             int rowsAffected = ps.executeUpdate();
-            return rowsAffected > 0;
+            if (rowsAffected > 0) {
+                logger.info("Product with Product ID: {} successfully hard-deleted", productId);
+                return true;
+            } else {
+                logger.warn("Force delete issued for non-existent Product ID: {}", productId);
+            }
         } catch (SQLException e) {
-            logger.error("Failed to force delete product with ID: {}", productId, e);
+            logger.error("Failed to force delete Product with Product ID: {}", productId, e);
             throw new DAOException("Error force deleting product", e);
         }
+        return false;
     }
 
+    /**
+     * Hard-deletes a product entity from the schema using its domain model representation.
+     *
+     * @param conn    Active database connection
+     * @param product Product model containing the unique Product ID to physically delete
+     * @return true if deleted; false if not found
+     * @throws DAOException             if a database error occurs
+     * @throws IllegalArgumentException if the product is null, or if its Product ID is missing
+     */
     public boolean forceDelete(Connection conn, ProductBean product) throws DAOException {
         if (product == null || product.getProductId() == null) {
-            throw new IllegalArgumentException("Attempted to force delete a null product or a product without an ID");
+            throw new IllegalArgumentException("Attempted to force delete a null Product or " +
+                    "a Product without a Product ID");
         }
         return forceDelete(conn, product.getProductId());
     }
 
+    /**
+     * Maps a database row from a {@link ResultSet} into a {@link ProductBean}.
+     */
     private ProductBean mapRow(ResultSet rs) throws SQLException {
         ProductBean product = new ProductBean();
         product.setProductId(rs.getString("product_id"));

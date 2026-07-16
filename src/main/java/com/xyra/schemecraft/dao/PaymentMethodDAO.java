@@ -15,13 +15,30 @@ import com.xyra.schemecraft.model.PaymentMethodBean;
 
 import static com.xyra.schemecraft.constant.DatabaseConstants.*;
 
+/**
+ * Data Access Object (DAO) for managing persistent {@link PaymentMethodBean} entities.
+ */
 public class PaymentMethodDAO extends BaseDAO {
-    private static final String SELECT_BASE = "SELECT payment_method_id, account_id, method_type, card_brand, " +
-            "card_expiration, card_last_four, flag_default, payment_email, payment_token FROM payment_method";
 
-    public void insert(Connection conn, PaymentMethodBean method) throws DAOException, IllegalArgumentException {
+    private static final String SELECT_BASE = "SELECT payment_method_id, account_id, method_type, card_brand, " +
+            "card_expiration, card_last_four, flag_default, payment_email, payment_token FROM payment_method ";
+
+    /**
+     * Inserts a new PaymentMethod record into the database.
+     *
+     * @param conn   Active database connection
+     * @param method The PaymentMethod bean to persist
+     * @throws DuplicateEntityException if a default payment method already exists for this account
+     * @throws DAOException             if a generic database error occurs
+     * @throws IllegalArgumentException if the method is null, or if Payment Method ID or Account ID are null or empty
+     */
+    public void insert(Connection conn, PaymentMethodBean method) throws DAOException {
         if (method == null) {
             throw new IllegalArgumentException("Cannot insert a null PaymentMethod");
+        }
+        if (method.getPaymentMethodId() == null || method.getPaymentMethodId().trim().isEmpty() ||
+                method.getAccountId() == null || method.getAccountId().trim().isEmpty()) {
+            throw new IllegalArgumentException("Payment Method ID and Account ID must be valid and populated");
         }
 
         String sql = "INSERT INTO payment_method (payment_method_id, account_id, method_type, card_brand, " +
@@ -46,19 +63,34 @@ public class PaymentMethodDAO extends BaseDAO {
             ps.setString(9, method.getPaymentToken());
 
             ps.executeUpdate();
-            logger.info("PaymentMethod successfully inserted with ID: {} for Account: {}", method.getPaymentMethodId(),
-                    method.getAccountId());
+            logger.info("Payment method successfully created with Payment Method ID: {} for Account ID: {}",
+                    method.getPaymentMethodId(), method.getAccountId());
         } catch (SQLException e) {
-            logger.error("Failed to insert payment method for Account: {}", method.getAccountId(), e);
-            if (MYSQL_DUPLICATE_KEY_STATE.equals(e.getSQLState()) || e.getErrorCode() == MYSQL_DUPLICATE_KEY_CODE) {
-                throw new DuplicateEntityException("A default payment method already exists for this account", e);
+            logger.error("Failed to insert payment method for Account ID: {}", method.getAccountId(), e);
+            if (SQLSTATE_INTEGRITY_CONSTRAINT_VIOLATION.equals(e.getSQLState()) ||
+                    e.getErrorCode() == MYSQL_ERR_DUPLICATE_KEY) {
+                throw new DuplicateEntityException("A default payment method already exists for Account ID: " +
+                        method.getAccountId(), e);
             }
             throw new DAOException("Error occurred while inserting payment method", e);
         }
     }
 
+    /**
+     * Retrieves a payment method configuration by its Payment Method ID.
+     *
+     * @param conn            Active database connection
+     * @param paymentMethodId Unique identifier of the payment method
+     * @return An Optional containing the populated bean, or empty if not found
+     * @throws DAOException             if a database error occurs
+     * @throws IllegalArgumentException if the paymentMethodId is null or empty
+     */
     public Optional<PaymentMethodBean> findById(Connection conn, String paymentMethodId) throws DAOException {
-        String sql = SELECT_BASE + " WHERE payment_method_id = ?";
+        if (paymentMethodId == null || paymentMethodId.trim().isEmpty()) {
+            throw new IllegalArgumentException("Payment Method ID cannot be null or empty for lookup");
+        }
+
+        String sql = SELECT_BASE + "WHERE payment_method_id = ?";
 
         try (PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setString(1, paymentMethodId);
@@ -68,14 +100,27 @@ public class PaymentMethodDAO extends BaseDAO {
                 }
             }
         } catch (SQLException e) {
-            logger.error("Database error while fetching payment method with ID: {}", paymentMethodId, e);
-            throw new DAOException("Error fetching payment method by ID", e);
+            logger.error("Database error while fetching payment method with Payment Method ID: {}", paymentMethodId, e);
+            throw new DAOException("Error fetching payment method by Payment Method ID", e);
         }
         return Optional.empty();
     }
 
+    /**
+     * Retrieves all payment methods associated with a specific customer Account ID.
+     *
+     * @param conn      Active database connection
+     * @param accountId Unique identifier of the account
+     * @return List of all registered payment methods for the account
+     * @throws DAOException             if a database error occurs
+     * @throws IllegalArgumentException if the accountId is null or empty
+     */
     public List<PaymentMethodBean> findAllByAccountId(Connection conn, String accountId) throws DAOException {
-        String sql = SELECT_BASE + " WHERE account_id = ?";
+        if (accountId == null || accountId.trim().isEmpty()) {
+            throw new IllegalArgumentException("Account ID cannot be null or empty for lookup");
+        }
+
+        String sql = SELECT_BASE + "WHERE account_id = ?";
         List<PaymentMethodBean> methods = new ArrayList<>();
 
         try (PreparedStatement ps = conn.prepareStatement(sql)) {
@@ -86,14 +131,27 @@ public class PaymentMethodDAO extends BaseDAO {
                 }
             }
         } catch (SQLException e) {
-            logger.error("Database error while retrieving payment methods for account ID: {}", accountId, e);
-            throw new DAOException("Error retrieving payment methods by account ID", e);
+            logger.error("Database error while retrieving payment methods for Account ID: {}", accountId, e);
+            throw new DAOException("Error retrieving payment methods by Account ID", e);
         }
         return methods;
     }
 
+    /**
+     * Retrieves the single default payment method associated with a specific customer Account ID.
+     *
+     * @param conn      Active database connection
+     * @param accountId Unique identifier of the account
+     * @return An Optional containing the default payment method, or empty if none is set
+     * @throws DAOException             if a database error occurs
+     * @throws IllegalArgumentException if the accountId is null or empty
+     */
     public Optional<PaymentMethodBean> findDefaultByAccountId(Connection conn, String accountId) throws DAOException {
-        String sql = SELECT_BASE + " WHERE account_id = ? AND flag_default = TRUE";
+        if (accountId == null || accountId.trim().isEmpty()) {
+            throw new IllegalArgumentException("Account ID cannot be null or empty for default lookup");
+        }
+
+        String sql = SELECT_BASE + "WHERE account_id = ? AND flag_default = TRUE";
 
         try (PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setString(1, accountId);
@@ -103,12 +161,19 @@ public class PaymentMethodDAO extends BaseDAO {
                 }
             }
         } catch (SQLException e) {
-            logger.error("Database error while fetching default payment method for account ID: {}", accountId, e);
+            logger.error("Database error while fetching default payment method for Account ID: {}", accountId, e);
             throw new DAOException("Error fetching default payment method", e);
         }
         return Optional.empty();
     }
 
+    /**
+     * Retrieves all registered payment methods in the system.
+     *
+     * @param conn Active database connection
+     * @return List of all payment methods
+     * @throws DAOException if a database error occurs
+     */
     public List<PaymentMethodBean> findAll(Connection conn) throws DAOException {
         List<PaymentMethodBean> methods = new ArrayList<>();
 
@@ -124,7 +189,21 @@ public class PaymentMethodDAO extends BaseDAO {
         return methods;
     }
 
+    /**
+     * Updates details of an existing payment method configuration.
+     *
+     * @param conn            Active database connection
+     * @param paymentMethodId Unique identifier of the payment method to update
+     * @param method          PaymentMethod model containing updated values
+     * @return true if the row was updated; false if not found
+     * @throws DuplicateEntityException if a default payment method already exists for this account
+     * @throws DAOException             if a database error occurs
+     * @throws IllegalArgumentException if the paymentMethodId is null or empty, or if the method is null
+     */
     public boolean update(Connection conn, String paymentMethodId, PaymentMethodBean method) throws DAOException {
+        if (paymentMethodId == null || paymentMethodId.trim().isEmpty()) {
+            throw new IllegalArgumentException("Payment Method ID cannot be null or empty for updates");
+        }
         if (method == null) {
             throw new IllegalArgumentException("Cannot update with a null PaymentMethod object");
         }
@@ -151,14 +230,15 @@ public class PaymentMethodDAO extends BaseDAO {
 
             int rowsAffected = ps.executeUpdate();
             if (rowsAffected > 0) {
-                logger.info("PaymentMethod with ID: {} successfully updated", paymentMethodId);
+                logger.info("Payment method with Payment Method ID: {} successfully updated", paymentMethodId);
                 return true;
             } else {
-                logger.warn("Update issued for non-existent payment method ID: {}", paymentMethodId);
+                logger.warn("Update issued for non-existent Payment Method ID: {}", paymentMethodId);
             }
         } catch (SQLException e) {
-            logger.error("Failed to update payment method with ID: {}", paymentMethodId, e);
-            if (MYSQL_DUPLICATE_KEY_STATE.equals(e.getSQLState()) || e.getErrorCode() == MYSQL_DUPLICATE_KEY_CODE) {
+            logger.error("Failed to update payment method with Payment Method ID: {}", paymentMethodId, e);
+            if (SQLSTATE_INTEGRITY_CONSTRAINT_VIOLATION.equals(e.getSQLState()) ||
+                    e.getErrorCode() == MYSQL_ERR_DUPLICATE_KEY) {
                 throw new DuplicateEntityException("A default payment method already exists for this account", e);
             }
             throw new DAOException("Error updating payment method", e);
@@ -166,6 +246,16 @@ public class PaymentMethodDAO extends BaseDAO {
         return false;
     }
 
+    /**
+     * Updates details of an existing payment method configuration using its domain model representation.
+     *
+     * @param conn   Active database connection
+     * @param method PaymentMethod model containing updated details and unique identifier
+     * @return true if the row was updated; false if not found
+     * @throws DuplicateEntityException if a default payment method already exists for this account
+     * @throws DAOException             if a database error occurs
+     * @throws IllegalArgumentException if the method is null, or if Payment Method ID is invalid
+     */
     public boolean update(Connection conn, PaymentMethodBean method) throws DAOException {
         if (method == null || method.getPaymentMethodId() == null) {
             throw new IllegalArgumentException("Attempted to update a null payment method " +
@@ -174,25 +264,52 @@ public class PaymentMethodDAO extends BaseDAO {
         return update(conn, method.getPaymentMethodId(), method);
     }
 
+    /**
+     * Hard-deletes a payment method configuration.
+     * Note: This operation can fail if transactions or active subscription plans
+     * are referencing this Payment Method ID.
+     *
+     * @param conn            Active database connection
+     * @param paymentMethodId Unique identifier of the payment method to delete
+     * @return true if the record was successfully deleted; false if not found
+     * @throws DAOException             if a database error occurs
+     * @throws IllegalArgumentException if the paymentMethodId is null or empty
+     */
     public boolean forceDelete(Connection conn, String paymentMethodId) throws DAOException {
+        if (paymentMethodId == null || paymentMethodId.trim().isEmpty()) {
+            throw new IllegalArgumentException("Payment Method ID cannot be null or empty for deletion");
+        }
+
         String sql = "DELETE FROM payment_method WHERE payment_method_id = ?";
 
         try (PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setString(1, paymentMethodId);
             int rowsAffected = ps.executeUpdate();
             if (rowsAffected > 0) {
-                logger.info("PaymentMethod with ID: {} successfully deleted from database", paymentMethodId);
+                logger.info("Payment method with Payment Method ID: {} successfully deleted from database",
+                        paymentMethodId);
                 return true;
             } else {
-                logger.warn("Delete issued for non-existent payment method ID: {}", paymentMethodId);
+                logger.warn("Delete issued for non-existent Payment Method ID: {}", paymentMethodId);
             }
         } catch (SQLException e) {
-            logger.error("Failed to delete payment method with ID: {}", paymentMethodId, e);
+            logger.error("Failed to delete payment method with Payment Method ID: {}", paymentMethodId, e);
             throw new DAOException("Error deleting payment method", e);
         }
         return false;
     }
 
+    /**
+     * Hard-deletes a payment method configuration using its domain model representation.
+     * Note: This operation can fail if transactions or active subscription plans
+     * are referencing this Payment Method ID.
+     *
+     * @param conn   Active database connection
+     * @param method PaymentMethod model containing the identifier of the record to remove
+     * @return true if the record was successfully deleted; false if not found
+     * @throws DAOException             if a database error occurs
+     * @throws IllegalArgumentException if the method is null, or if Payment Method ID is invalid
+     */
     public boolean forceDelete(Connection conn, PaymentMethodBean method) throws DAOException {
         if (method == null || method.getPaymentMethodId() == null) {
             throw new IllegalArgumentException("Attempted to delete a null payment method " +
@@ -201,6 +318,9 @@ public class PaymentMethodDAO extends BaseDAO {
         return forceDelete(conn, method.getPaymentMethodId());
     }
 
+    /**
+     * Maps a database row from a {@link ResultSet} into a {@link PaymentMethodBean}.
+     */
     private PaymentMethodBean mapRow(ResultSet rs) throws SQLException {
         PaymentMethodBean method = new PaymentMethodBean();
         method.setPaymentMethodId(rs.getString("payment_method_id"));

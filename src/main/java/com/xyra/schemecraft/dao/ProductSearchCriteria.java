@@ -2,7 +2,18 @@ package com.xyra.schemecraft.dao;
 
 import java.math.BigDecimal;
 
+/**
+ * Data Transfer Object (DTO) encapsulating dynamic query search parameters, pagination,
+ * and sorting criteria for the SchemeCraft product catalog.
+ * Includes defensive validations to prevent invalid values and potential performance issues.
+ */
 public class ProductSearchCriteria {
+
+    private static final int DEFAULT_PAGE_SIZE = 20;
+    private static final int MIN_PAGE_NUMBER = 1;
+    private static final int MAX_PAGE_SIZE = 100;
+    private static final BigDecimal RATING_MAX_LIMIT = new BigDecimal("5.0");
+
     private String keywords;
     private BigDecimal minPrice;
     private BigDecimal maxPrice;
@@ -13,14 +24,22 @@ public class ProductSearchCriteria {
     private Boolean ascending = true;
     private String minecraftVersion;
 
-    private int pageNumber = 1;
-    private int pageSize = 20;
+    private int pageNumber = MIN_PAGE_NUMBER;
+    private int pageSize = DEFAULT_PAGE_SIZE;
 
+    /**
+     * Default constructor initializing search criteria with default pagination settings.
+     */
     public ProductSearchCriteria() {
     }
 
+    /**
+     * Overloaded constructor initializing search criteria with basic keywords.
+     *
+     * @param keywords Search keywords query
+     */
     public ProductSearchCriteria(String keywords) {
-        this.keywords = keywords;
+        setKeywords(keywords);
     }
 
     public String getKeywords() {
@@ -28,7 +47,7 @@ public class ProductSearchCriteria {
     }
 
     public void setKeywords(String keywords) {
-        this.keywords = keywords;
+        this.keywords = (keywords != null) ? keywords.trim() : null;
     }
 
     public BigDecimal getMinPrice() {
@@ -36,6 +55,9 @@ public class ProductSearchCriteria {
     }
 
     public void setMinPrice(BigDecimal minPrice) {
+        if (minPrice != null && minPrice.compareTo(BigDecimal.ZERO) < 0) {
+            throw new IllegalArgumentException("Minimum price cannot be negative");
+        }
         this.minPrice = minPrice;
     }
 
@@ -44,6 +66,9 @@ public class ProductSearchCriteria {
     }
 
     public void setMaxPrice(BigDecimal maxPrice) {
+        if (maxPrice != null && maxPrice.compareTo(BigDecimal.ZERO) < 0) {
+            throw new IllegalArgumentException("Maximum price cannot be negative");
+        }
         this.maxPrice = maxPrice;
     }
 
@@ -52,6 +77,11 @@ public class ProductSearchCriteria {
     }
 
     public void setMinRating(BigDecimal minRating) {
+        if (minRating != null) {
+            if (minRating.compareTo(BigDecimal.ZERO) < 0 || minRating.compareTo(RATING_MAX_LIMIT) > 0) {
+                throw new IllegalArgumentException("Minimum rating must be between 0.0 and 5.0");
+            }
+        }
         this.minRating = minRating;
     }
 
@@ -60,6 +90,11 @@ public class ProductSearchCriteria {
     }
 
     public void setMaxRating(BigDecimal maxRating) {
+        if (maxRating != null) {
+            if (maxRating.compareTo(BigDecimal.ZERO) < 0 || maxRating.compareTo(RATING_MAX_LIMIT) > 0) {
+                throw new IllegalArgumentException("Maximum rating must be between 0.0 and 5.0");
+            }
+        }
         this.maxRating = maxRating;
     }
 
@@ -76,7 +111,7 @@ public class ProductSearchCriteria {
     }
 
     public void setOrderByColumn(String orderByColumn) {
-        this.orderByColumn = orderByColumn;
+        this.orderByColumn = (orderByColumn != null) ? orderByColumn.trim() : null;
     }
 
     public Boolean getAscending() {
@@ -84,7 +119,7 @@ public class ProductSearchCriteria {
     }
 
     public void setAscending(Boolean ascending) {
-        this.ascending = ascending;
+        this.ascending = ascending == null || ascending;
     }
 
     public String getMinecraftVersion() {
@@ -92,7 +127,7 @@ public class ProductSearchCriteria {
     }
 
     public void setMinecraftVersion(String minecraftVersion) {
-        this.minecraftVersion = minecraftVersion;
+        this.minecraftVersion = (minecraftVersion != null) ? minecraftVersion.trim() : null;
     }
 
     public int getPageNumber() {
@@ -100,7 +135,7 @@ public class ProductSearchCriteria {
     }
 
     public void setPageNumber(int pageNumber) {
-        this.pageNumber = pageNumber;
+        this.pageNumber = Math.max(pageNumber, MIN_PAGE_NUMBER);
     }
 
     public int getPageSize() {
@@ -108,7 +143,9 @@ public class ProductSearchCriteria {
     }
 
     public void setPageSize(int pageSize) {
-        this.pageSize = pageSize;
+        if (pageSize <= 0) {
+            this.pageSize = DEFAULT_PAGE_SIZE;
+        } else this.pageSize = Math.min(pageSize, MAX_PAGE_SIZE);
     }
 
     @Override

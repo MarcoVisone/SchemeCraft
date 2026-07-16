@@ -15,11 +15,24 @@ import com.xyra.schemecraft.model.AccountBean;
 
 import static com.xyra.schemecraft.constant.DatabaseConstants.*;
 
+/**
+ * Data Access Object (DAO) for managing persistent {@link AccountBean} entities.
+ */
 public class AccountDAO extends BaseDAO {
-    private static final String SELECT_BASE = "SELECT account_id, username, email, country_id, currency_id, " +
-            "language_id, banner_path, bio, created_at,is_active, is_admin, password_hash, " +
-            "profile_image_path FROM account";
 
+    private static final String SELECT_BASE = "SELECT account_id, username, email, country_id, currency_id, " +
+            "language_id, banner_path, bio, created_at, is_active, is_admin, password_hash, " +
+            "profile_image_path FROM account ";
+
+    /**
+     * Inserts a new Account record into the database.
+     *
+     * @param conn    Active database connection
+     * @param account The Account bean to persist
+     * @throws DAOException             if a database error occurs
+     * @throws DuplicateEntityException if the username or email already exists in the database
+     * @throws IllegalArgumentException if the account is null
+     */
     public void insert(Connection conn, AccountBean account) throws DAOException {
         if (account == null) {
             throw new IllegalArgumentException("Cannot insert a null Account");
@@ -44,19 +57,33 @@ public class AccountDAO extends BaseDAO {
             ps.setString(12, account.getProfileImagePath());
 
             ps.executeUpdate();
-            logger.info("Account successfully inserted with ID: {} and Username: {}", account.getAccountId(),
-                    account.getUsername());
+            logger.info("Account successfully inserted with ID: {} and Username: {}",
+                    account.getAccountId(), account.getUsername());
         } catch (SQLException e) {
             logger.error("Failed to insert account with Username: {}", account.getUsername(), e);
-            if (MYSQL_DUPLICATE_KEY_STATE.equals(e.getSQLState()) || e.getErrorCode() == MYSQL_DUPLICATE_KEY_CODE) {
+            if (SQLSTATE_INTEGRITY_CONSTRAINT_VIOLATION.equals(e.getSQLState()) ||
+                    e.getErrorCode() == MYSQL_ERR_DUPLICATE_KEY) {
                 throw new DuplicateEntityException("Username or Email already exists: " + account.getUsername(), e);
             }
             throw new DAOException("Error occurred while inserting account", e);
         }
     }
 
+    /**
+     * Finds an Account by its unique ID.
+     *
+     * @param conn      Active database connection
+     * @param accountId Unique identifier of the target account
+     * @return An Optional containing the populated bean, or empty if not found
+     * @throws DAOException             if a database error occurs
+     * @throws IllegalArgumentException if the accountId is null or empty
+     */
     public Optional<AccountBean> findById(Connection conn, String accountId) throws DAOException {
-        String sql = SELECT_BASE + " WHERE account_id = ?";
+        if (accountId == null || accountId.trim().isEmpty()) {
+            throw new IllegalArgumentException("Account ID cannot be null or empty");
+        }
+
+        String sql = SELECT_BASE + "WHERE account_id = ?";
 
         try (PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setString(1, accountId);
@@ -72,8 +99,21 @@ public class AccountDAO extends BaseDAO {
         return Optional.empty();
     }
 
+    /**
+     * Finds an Account by its unique username.
+     *
+     * @param conn     Active database connection
+     * @param username Unique username of the target account
+     * @return An Optional containing the populated bean, or empty if not found
+     * @throws DAOException             if a database error occurs
+     * @throws IllegalArgumentException if the username is null or empty
+     */
     public Optional<AccountBean> findByUsername(Connection conn, String username) throws DAOException {
-        String sql = SELECT_BASE + " WHERE username = ?";
+        if (username == null || username.trim().isEmpty()) {
+            throw new IllegalArgumentException("Username cannot be null or empty");
+        }
+
+        String sql = SELECT_BASE + "WHERE username = ?";
 
         try (PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setString(1, username);
@@ -89,8 +129,21 @@ public class AccountDAO extends BaseDAO {
         return Optional.empty();
     }
 
+    /**
+     * Finds an Account by its unique registered email address.
+     *
+     * @param conn  Active database connection
+     * @param email Unique email of the target account
+     * @return An Optional containing the populated bean, or empty if not found
+     * @throws DAOException             if a database error occurs
+     * @throws IllegalArgumentException if the email is null or empty
+     */
     public Optional<AccountBean> findByEmail(Connection conn, String email) throws DAOException {
-        String sql = SELECT_BASE + " WHERE email = ?";
+        if  (email == null || email.trim().isEmpty()) {
+            throw new IllegalArgumentException("Email cannot be null or empty");
+        }
+
+        String sql = SELECT_BASE + "WHERE email = ?";
 
         try (PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setString(1, email);
@@ -106,6 +159,13 @@ public class AccountDAO extends BaseDAO {
         return Optional.empty();
     }
 
+    /**
+     * Retrieves all Account records.
+     *
+     * @param conn Active database connection
+     * @return List of all accounts
+     * @throws DAOException if a database error occurs
+     */
     public List<AccountBean> findAll(Connection conn) throws DAOException {
         List<AccountBean> accounts = new ArrayList<>();
 
@@ -121,8 +181,15 @@ public class AccountDAO extends BaseDAO {
         return accounts;
     }
 
+    /**
+     * Retrieves all active Account records.
+     *
+     * @param conn Active database connection
+     * @return List of active accounts
+     * @throws DAOException if a database error occurs
+     */
     public List<AccountBean> findAllActive(Connection conn) throws DAOException {
-        String sql = SELECT_BASE + " WHERE is_active = TRUE";
+        String sql = SELECT_BASE + "WHERE is_active = TRUE";
         List<AccountBean> accounts = new ArrayList<>();
 
         try (PreparedStatement ps = conn.prepareStatement(sql);
@@ -137,8 +204,15 @@ public class AccountDAO extends BaseDAO {
         return accounts;
     }
 
+    /**
+     * Retrieves all administrator Account records.
+     *
+     * @param conn Active database connection
+     * @return List of administrator accounts
+     * @throws DAOException if a database error occurs
+     */
     public List<AccountBean> findAllAdmin(Connection conn) throws DAOException {
-        String sql = SELECT_BASE + " WHERE is_admin = TRUE";
+        String sql = SELECT_BASE + "WHERE is_admin = TRUE";
         List<AccountBean> accounts = new ArrayList<>();
 
         try (PreparedStatement ps = conn.prepareStatement(sql);
@@ -153,7 +227,21 @@ public class AccountDAO extends BaseDAO {
         return accounts;
     }
 
+    /**
+     * Updates an existing Account profile with new values using its unique ID.
+     *
+     * @param conn      Active database connection
+     * @param accountId Unique identifier of the target account
+     * @param account   The model containing the updated details
+     * @return true if the row was successfully updated; false otherwise
+     * @throws DAOException             if a database error occurs
+     * @throws DuplicateEntityException if the update violates a unique constraint
+     * @throws IllegalArgumentException if the accountId is null or empty, or if the account is null
+     */
     public boolean update(Connection conn, String accountId, AccountBean account) throws DAOException {
+        if (accountId == null || accountId.trim().isEmpty()) {
+            throw new IllegalArgumentException("Account ID cannot be null or empty for updates");
+        }
         if (account == null) {
             throw new IllegalArgumentException("Cannot update with a null Account object");
         }
@@ -174,8 +262,7 @@ public class AccountDAO extends BaseDAO {
             ps.setBoolean(9, account.isAdmin());
             ps.setString(10, account.getPasswordHash());
             ps.setString(11, account.getProfileImagePath());
-            ps.setString(12, account.getAccountId());
-            ps.setString(13, account.getAccountId());
+            ps.setString(12, accountId);
 
             int rowsAffected = ps.executeUpdate();
             if (rowsAffected > 0) {
@@ -186,7 +273,8 @@ public class AccountDAO extends BaseDAO {
             }
         } catch (SQLException e) {
             logger.error("Failed to update account with ID: {}", accountId, e);
-            if (MYSQL_DUPLICATE_KEY_STATE.equals(e.getSQLState()) || e.getErrorCode() == MYSQL_DUPLICATE_KEY_CODE) {
+            if (SQLSTATE_INTEGRITY_CONSTRAINT_VIOLATION.equals(e.getSQLState()) ||
+                    e.getErrorCode() == MYSQL_ERR_DUPLICATE_KEY) {
                 throw new DuplicateEntityException("Username or Email already exists for update: " +
                         account.getUsername(), e);
             }
@@ -195,6 +283,15 @@ public class AccountDAO extends BaseDAO {
         return false;
     }
 
+    /**
+     * Updates an existing Account profile with new values using its domain model representation.
+     *
+     * @param conn    Active database connection
+     * @param account The model containing the updated details
+     * @return true if the row was successfully updated; false otherwise
+     * @throws DAOException             if a database error occurs
+     * @throws IllegalArgumentException if the account is null or does not have a valid ID
+     */
     public boolean update(Connection conn, AccountBean account) throws DAOException {
         if (account == null || account.getAccountId() == null) {
             throw new IllegalArgumentException("Attempted to update a null account or an account without an ID");
@@ -202,10 +299,22 @@ public class AccountDAO extends BaseDAO {
         return update(conn, account.getAccountId(), account);
     }
 
+    /**
+     * Updates only the password hash parameter of an Account.
+     *
+     * @param conn            Active database connection
+     * @param accountId       Unique identifier of the target account
+     * @param newPasswordHash The new secure hash string of the password
+     * @return true if the password update succeeded; false otherwise
+     * @throws DAOException             if a database error occurs
+     * @throws IllegalArgumentException if the accountId is null or empty, or if the newPasswordHash is null or empty
+     */
     public boolean updatePassword(Connection conn, String accountId, String newPasswordHash) throws DAOException {
-        if (accountId == null || newPasswordHash == null) {
-            throw new IllegalArgumentException("Account ID and password hash cannot be null");
+        if (accountId == null || accountId.trim().isEmpty() ||
+                newPasswordHash == null || newPasswordHash.trim().isEmpty()) {
+            throw new IllegalArgumentException("Account ID and password hash cannot be null or empty");
         }
+
         String sql = "UPDATE account SET password_hash = ? WHERE account_id = ?";
 
         try (PreparedStatement ps = conn.prepareStatement(sql)) {
@@ -213,13 +322,28 @@ public class AccountDAO extends BaseDAO {
             ps.setString(2, accountId);
 
             int rowsAffected = ps.executeUpdate();
-            return rowsAffected > 0;
+            if (rowsAffected > 0) {
+                logger.info("Password successfully updated for account ID: {}", accountId);
+                return true;
+            } else {
+                logger.warn("Password update issued for non-existent account ID: {}", accountId);
+            }
         } catch (SQLException e) {
             logger.error("Failed to update password for account ID: {}", accountId, e);
             throw new DAOException("Error updating account password", e);
         }
+        return false;
     }
 
+    /**
+     * Reactivates an Account using its unique ID.
+     *
+     * @param conn      Active database connection
+     * @param accountId Unique identifier of the target account
+     * @return true if the account was successfully activated; false otherwise
+     * @throws DAOException             if a database error occurs
+     * @throws IllegalArgumentException if the accountId is null or empty
+     */
     public boolean activate(Connection conn, String accountId) throws DAOException {
         if (accountId == null || accountId.trim().isEmpty()) {
             throw new IllegalArgumentException("Account ID cannot be null or empty for activation");
@@ -243,14 +367,36 @@ public class AccountDAO extends BaseDAO {
         return false;
     }
 
-    public boolean activate(Connection conn, AccountBean account) throws DAOException, IllegalArgumentException {
+    /**
+     * Reactivates an Account using its domain model representation.
+     *
+     * @param conn    Active database connection
+     * @param account The model containing the target account's identifier
+     * @return true if the account was successfully activated; false otherwise
+     * @throws DAOException             if a database error occurs
+     * @throws IllegalArgumentException if the account is null or does not have a valid ID
+     */
+    public boolean activate(Connection conn, AccountBean account) throws DAOException {
         if (account == null || account.getAccountId() == null) {
             throw new IllegalArgumentException("Attempted to activate a null account or an account without an ID");
         }
         return activate(conn, account.getAccountId());
     }
 
+    /**
+     * Deactivates an Account using its unique ID.
+     *
+     * @param conn      Active database connection
+     * @param accountId Unique identifier of the target account
+     * @return true if the account was successfully deactivated; false otherwise
+     * @throws DAOException             if a database error occurs
+     * @throws IllegalArgumentException if the accountId is null or empty
+     */
     public boolean deactivate(Connection conn, String accountId) throws DAOException {
+        if (accountId == null || accountId.trim().isEmpty()) {
+            throw new IllegalArgumentException("Account ID cannot be null or empty for deactivation");
+        }
+
         String sql = "UPDATE account SET is_active = FALSE WHERE account_id = ?";
 
         try (PreparedStatement ps = conn.prepareStatement(sql)) {
@@ -269,6 +415,15 @@ public class AccountDAO extends BaseDAO {
         return false;
     }
 
+    /**
+     * Deactivates an Account using its domain model representation.
+     *
+     * @param conn    Active database connection
+     * @param account The model containing the target account's identifier
+     * @return true if the account was successfully deactivated; false otherwise
+     * @throws DAOException             if a database error occurs
+     * @throws IllegalArgumentException if the account is null or does not have a valid ID
+     */
     public boolean deactivate(Connection conn, AccountBean account) throws DAOException {
         if (account == null || account.getAccountId() == null) {
             throw new IllegalArgumentException("Attempted to deactivate a null account or an account without an ID");
@@ -276,7 +431,20 @@ public class AccountDAO extends BaseDAO {
         return deactivate(conn, account.getAccountId());
     }
 
+    /**
+     * Hard-deletes an Account record from the database using its unique ID.
+     *
+     * @param conn      Active database connection
+     * @param accountId Unique identifier of the target account
+     * @return true if the record was successfully deleted; false otherwise
+     * @throws DAOException             if a database error occurs
+     * @throws IllegalArgumentException if the accountId is null or empty
+     */
     public boolean forceDelete(Connection conn, String accountId) throws DAOException {
+        if (accountId == null || accountId.trim().isEmpty()) {
+            throw new IllegalArgumentException("Account ID cannot be null or empty for deletion");
+        }
+
         String sql = "DELETE FROM account WHERE account_id = ?";
 
         try (PreparedStatement ps = conn.prepareStatement(sql)) {
@@ -295,6 +463,15 @@ public class AccountDAO extends BaseDAO {
         return false;
     }
 
+    /**
+     * Hard-deletes an Account record from the database using its domain model representation.
+     *
+     * @param conn    Active database connection
+     * @param account The model containing the target account's identifier
+     * @return true if the record was successfully deleted; false otherwise
+     * @throws DAOException             if a database error occurs
+     * @throws IllegalArgumentException if the account is null or does not have a valid ID
+     */
     public boolean forceDelete(Connection conn, AccountBean account) throws DAOException {
         if (account == null || account.getAccountId() == null) {
             throw new IllegalArgumentException("Attempted to force delete a null account or an account without an ID");
@@ -302,6 +479,9 @@ public class AccountDAO extends BaseDAO {
         return forceDelete(conn, account.getAccountId());
     }
 
+    /**
+     * Maps a database row from a {@link ResultSet} into an {@link AccountBean}.
+     */
     private AccountBean mapRow(ResultSet rs) throws SQLException {
         AccountBean account = new AccountBean();
         account.setAccountId(rs.getString("account_id"));

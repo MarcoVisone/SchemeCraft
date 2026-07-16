@@ -15,13 +15,29 @@ import com.xyra.schemecraft.model.AddressBean;
 
 import static com.xyra.schemecraft.constant.DatabaseConstants.*;
 
+/**
+ * Data Access Object (DAO) for managing persistent {@link AddressBean} entities.
+ */
 public class AddressDAO extends BaseDAO {
-    private static final String SELECT_BASE = "SELECT address_id, account_id, country_id, city, flag_default, " +
-            "is_active, postal_code, state_province, street_address FROM address";
 
+    private static final String SELECT_BASE = "SELECT address_id, account_id, country_id, city, flag_default, " +
+            "is_active, postal_code, state_province, street_address FROM address ";
+
+    /**
+     * Inserts a new Address record into the database.
+     *
+     * @param conn    Active database connection
+     * @param address The Address bean to persist
+     * @throws DAOException             if a database error occurs
+     * @throws DuplicateEntityException if an active default address already exists for the account
+     * @throws IllegalArgumentException if the address is null or lacks a valid account ID
+     */
     public void insert(Connection conn, AddressBean address) throws DAOException {
         if (address == null) {
             throw new IllegalArgumentException("Cannot insert a null Address");
+        }
+        if (address.getAccountId() == null || address.getAccountId().trim().isEmpty()) {
+            throw new IllegalArgumentException("Address must be associated with a valid Account ID");
         }
 
         String sql = "INSERT INTO address (address_id, account_id, country_id, city, flag_default, " +
@@ -45,19 +61,33 @@ public class AddressDAO extends BaseDAO {
             ps.setString(9, address.getStreetAddress());
 
             ps.executeUpdate();
-            logger.info("Address successfully inserted with ID: {} for Account: {}", address.getAddressId(),
+            logger.info("Address successfully inserted with ID: {} for Account ID: {}", address.getAddressId(),
                     address.getAccountId());
         } catch (SQLException e) {
-            logger.error("Failed to insert address for Account: {}", address.getAccountId(), e);
-            if (MYSQL_DUPLICATE_KEY_STATE.equals(e.getSQLState()) || e.getErrorCode() == MYSQL_DUPLICATE_KEY_CODE) {
+            logger.error("Failed to insert address for Account ID: {}", address.getAccountId(), e);
+            if (SQLSTATE_INTEGRITY_CONSTRAINT_VIOLATION.equals(e.getSQLState()) ||
+                    e.getErrorCode() == MYSQL_ERR_DUPLICATE_KEY) {
                 throw new DuplicateEntityException("An active default address already exists for this account", e);
             }
             throw new DAOException("Error occurred while inserting address", e);
         }
     }
 
+    /**
+     * Finds an Address by its unique ID.
+     *
+     * @param conn      Active database connection
+     * @param addressId Unique identifier of the target address
+     * @return An Optional containing the populated bean, or empty if not found
+     * @throws DAOException             if a database error occurs
+     * @throws IllegalArgumentException if the addressId is null or empty
+     */
     public Optional<AddressBean> findById(Connection conn, String addressId) throws DAOException {
-        String sql = SELECT_BASE + " WHERE address_id = ?";
+        if (addressId == null || addressId.trim().isEmpty()) {
+            throw new IllegalArgumentException("Address ID cannot be null or empty for lookup");
+        }
+
+        String sql = SELECT_BASE + "WHERE address_id = ?";
 
         try (PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setString(1, addressId);
@@ -73,8 +103,21 @@ public class AddressDAO extends BaseDAO {
         return Optional.empty();
     }
 
+    /**
+     * Retrieves all addresses associated with a specific account.
+     *
+     * @param conn      Active database connection
+     * @param accountId Unique identifier of the parent account
+     * @return List of addresses linked to the account
+     * @throws DAOException             if a database error occurs
+     * @throws IllegalArgumentException if the accountId is null or empty
+     */
     public List<AddressBean> findAllByAccountId(Connection conn, String accountId) throws DAOException {
-        String sql = SELECT_BASE + " WHERE account_id = ?";
+        if (accountId == null || accountId.trim().isEmpty()) {
+            throw new IllegalArgumentException("Account ID cannot be null or empty for retrieval");
+        }
+
+        String sql = SELECT_BASE + "WHERE account_id = ?";
         List<AddressBean> addresses = new ArrayList<>();
 
         try (PreparedStatement ps = conn.prepareStatement(sql)) {
@@ -85,14 +128,27 @@ public class AddressDAO extends BaseDAO {
                 }
             }
         } catch (SQLException e) {
-            logger.error("Database error while retrieving addresses for account ID: {}", accountId, e);
+            logger.error("Database error while retrieving addresses for Account ID: {}", accountId, e);
             throw new DAOException("Error retrieving addresses by account ID", e);
         }
         return addresses;
     }
 
+    /**
+     * Locates the active default address of a given account.
+     *
+     * @param conn      Active database connection
+     * @param accountId Unique identifier of the target account
+     * @return An Optional containing the default address, or empty if none is set
+     * @throws DAOException             if a database error occurs
+     * @throws IllegalArgumentException if the accountId is null or empty
+     */
     public Optional<AddressBean> findDefaultByAccountId(Connection conn, String accountId) throws DAOException {
-        String sql = SELECT_BASE + " WHERE account_id = ? AND flag_default = TRUE";
+        if (accountId == null || accountId.trim().isEmpty()) {
+            throw new IllegalArgumentException("Account ID cannot be null or empty for default address lookup");
+        }
+
+        String sql = SELECT_BASE + "WHERE account_id = ? AND flag_default = TRUE";
 
         try (PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setString(1, accountId);
@@ -102,12 +158,19 @@ public class AddressDAO extends BaseDAO {
                 }
             }
         } catch (SQLException e) {
-            logger.error("Database error while fetching default address for account ID: {}", accountId, e);
+            logger.error("Database error while fetching default address for Account ID: {}", accountId, e);
             throw new DAOException("Error fetching default address", e);
         }
         return Optional.empty();
     }
 
+    /**
+     * Retrieves all Address records.
+     *
+     * @param conn Active database connection
+     * @return List of all addresses
+     * @throws DAOException if a database error occurs
+     */
     public List<AddressBean> findAll(Connection conn) throws DAOException {
         List<AddressBean> addresses = new ArrayList<>();
 
@@ -123,7 +186,21 @@ public class AddressDAO extends BaseDAO {
         return addresses;
     }
 
+    /**
+     * Updates an existing Address record with new values using its unique ID.
+     *
+     * @param conn      Active database connection
+     * @param addressId Unique identifier of the address to modify
+     * @param address   Address bean with new properties
+     * @return true if the row was successfully updated; false otherwise
+     * @throws DAOException             if a database error occurs
+     * @throws DuplicateEntityException if changing the default flag conflicts with an existing default address
+     * @throws IllegalArgumentException if the addressId is null or empty, or if the address is null
+     */
     public boolean update(Connection conn, String addressId, AddressBean address) throws DAOException {
+        if (addressId == null || addressId.trim().isEmpty()) {
+            throw new IllegalArgumentException("Address ID cannot be null or empty for updates");
+        }
         if (address == null) {
             throw new IllegalArgumentException("Cannot update with a null Address object");
         }
@@ -156,7 +233,8 @@ public class AddressDAO extends BaseDAO {
             }
         } catch (SQLException e) {
             logger.error("Failed to update address with ID: {}", addressId, e);
-            if (MYSQL_DUPLICATE_KEY_STATE.equals(e.getSQLState()) || e.getErrorCode() == MYSQL_DUPLICATE_KEY_CODE) {
+            if (SQLSTATE_INTEGRITY_CONSTRAINT_VIOLATION.equals(e.getSQLState()) ||
+                    e.getErrorCode() == MYSQL_ERR_DUPLICATE_KEY) {
                 throw new DuplicateEntityException("An active default address already exists for this account", e);
             }
             throw new DAOException("Error updating address", e);
@@ -164,14 +242,35 @@ public class AddressDAO extends BaseDAO {
         return false;
     }
 
-    public boolean update(Connection conn, AddressBean address) throws DAOException, IllegalArgumentException {
+    /**
+     * Updates an existing Address record with new values using its domain model representation.
+     *
+     * @param conn    Active database connection
+     * @param address The model containing the updated details
+     * @return true if the row was successfully updated; false otherwise
+     * @throws DAOException             if a database error occurs
+     * @throws IllegalArgumentException if the address is null or does not have a valid ID
+     */
+    public boolean update(Connection conn, AddressBean address) throws DAOException {
         if (address == null || address.getAddressId() == null) {
             throw new IllegalArgumentException("Attempted to update a null address or an address without an ID");
         }
         return update(conn, address.getAddressId(), address);
     }
 
+    /**
+     * Reactivates an Address using its unique ID.
+     *
+     * @param conn      Active database connection
+     * @param addressId Unique identifier of the target address
+     * @return true if the address was successfully activated; false otherwise
+     * @throws DAOException             if a database error occurs
+     * @throws IllegalArgumentException if the addressId is null or empty
+     */
     public boolean activate(Connection conn, String addressId) throws DAOException {
+        if (addressId == null || addressId.trim().isEmpty()) {
+            throw new IllegalArgumentException("Address ID cannot be null or empty for activation");
+        }
         String sql = "UPDATE address SET is_active = TRUE WHERE address_id = ?";
 
         try (PreparedStatement ps = conn.prepareStatement(sql)) {
@@ -190,14 +289,35 @@ public class AddressDAO extends BaseDAO {
         return false;
     }
 
-    public boolean activate(Connection conn, AddressBean address) throws DAOException, IllegalArgumentException {
+    /**
+     * Reactivates an Address using its domain model representation.
+     *
+     * @param conn    Active database connection
+     * @param address The model containing the target address's identifier
+     * @return true if the address was successfully activated; false otherwise
+     * @throws DAOException             if a database error occurs
+     * @throws IllegalArgumentException if the address is null or does not have a valid ID
+     */
+    public boolean activate(Connection conn, AddressBean address) throws DAOException {
         if (address == null || address.getAddressId() == null) {
             throw new IllegalArgumentException("Attempted to activate a null address or an address without an ID");
         }
         return activate(conn, address.getAddressId());
     }
 
+    /**
+     * Deactivates an Address using its unique ID.
+     *
+     * @param conn      Active database connection
+     * @param addressId Unique identifier of the target address
+     * @return true if the address was successfully deactivated; false otherwise
+     * @throws DAOException             if a database error occurs
+     * @throws IllegalArgumentException if the addressId is null or empty
+     */
     public boolean deactivate(Connection conn, String addressId) throws DAOException {
+        if (addressId == null || addressId.trim().isEmpty()) {
+            throw new IllegalArgumentException("Address ID cannot be null or empty for deactivation");
+        }
         String sql = "UPDATE address SET is_active = FALSE WHERE address_id = ?";
 
         try (PreparedStatement ps = conn.prepareStatement(sql)) {
@@ -216,21 +336,42 @@ public class AddressDAO extends BaseDAO {
         return false;
     }
 
-    public boolean deactivate(Connection conn, AddressBean address) throws DAOException, IllegalArgumentException {
+    /**
+     * Deactivates an Address using its domain model representation.
+     *
+     * @param conn    Active database connection
+     * @param address The model containing the target address's identifier
+     * @return true if the address was successfully deactivated; false otherwise
+     * @throws DAOException             if a database error occurs
+     * @throws IllegalArgumentException if the address is null or does not have a valid ID
+     */
+    public boolean deactivate(Connection conn, AddressBean address) throws DAOException {
         if (address == null || address.getAddressId() == null) {
             throw new IllegalArgumentException("Attempted to deactivate a null address or an address without an ID");
         }
         return deactivate(conn, address.getAddressId());
     }
 
+    /**
+     * Hard-deletes an Address record from the database using its unique ID.
+     *
+     * @param conn      Active database connection
+     * @param addressId Unique identifier of the address to delete
+     * @return true if the record was successfully deleted; false otherwise
+     * @throws DAOException             if a database error occurs
+     * @throws IllegalArgumentException if the addressId is null or empty
+     */
     public boolean forceDelete(Connection conn, String addressId) throws DAOException {
+        if (addressId == null || addressId.trim().isEmpty()) {
+            throw new IllegalArgumentException("Address ID cannot be null or empty for deletion");
+        }
         String sql = "DELETE FROM address WHERE address_id = ?";
 
         try (PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setString(1, addressId);
             int rowsAffected = ps.executeUpdate();
             if (rowsAffected > 0) {
-                logger.info("Address with ID: {} successfully physical deleted from database", addressId);
+                logger.info("Address with ID: {} successfully force deleted from database", addressId);
                 return true;
             } else {
                 logger.warn("Force delete issued for non-existent address ID: {}", addressId);
@@ -242,13 +383,25 @@ public class AddressDAO extends BaseDAO {
         return false;
     }
 
-    public boolean forceDelete(Connection conn, AddressBean address) throws DAOException, IllegalArgumentException {
+    /**
+     * Hard-deletes an Address record from the database using its domain model representation.
+     *
+     * @param conn    Active database connection
+     * @param address The model containing the target address's identifier
+     * @return true if the record was successfully deleted; false otherwise
+     * @throws DAOException             if a database error occurs
+     * @throws IllegalArgumentException if the address is null or does not have a valid ID
+     */
+    public boolean forceDelete(Connection conn, AddressBean address) throws DAOException {
         if (address == null || address.getAddressId() == null) {
             throw new IllegalArgumentException("Attempted to force delete a null address or an address without an ID");
         }
         return forceDelete(conn, address.getAddressId());
     }
 
+    /**
+     * Maps a database row from a {@link ResultSet} into an {@link AddressBean}.
+     */
     private AddressBean mapRow(ResultSet rs) throws SQLException {
         AddressBean address = new AddressBean();
         address.setAddressId(rs.getString("address_id"));
