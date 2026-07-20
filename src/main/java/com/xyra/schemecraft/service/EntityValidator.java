@@ -1,8 +1,10 @@
 package com.xyra.schemecraft.service;
 
 import com.xyra.schemecraft.dao.*;
+import com.xyra.schemecraft.exception.DuplicateEntityException;
 import com.xyra.schemecraft.exception.EntityNotFoundException;
 import com.xyra.schemecraft.exception.InactiveEntityException;
+import com.xyra.schemecraft.exception.InsufficientStockException;
 import com.xyra.schemecraft.model.*;
 
 import org.slf4j.Logger;
@@ -18,9 +20,11 @@ public class EntityValidator {
     private final CurrencyDAO currencyDAO;
     private final LanguageDAO languageDAO;
     private final AddressDAO addressDAO;
+    private final ProductDAO productDAO;
     private final PaymentMethodDAO paymentMethodDAO;
     private final PaymentMethodTypeDAO paymentMethodTypeDAO;
     private final AccountDAO accountDAO;
+    private final AccountProductDAO accountProductDAO;
 
     public EntityValidator() {
         this.countryDAO = new CountryDAO();
@@ -30,6 +34,8 @@ public class EntityValidator {
         this.paymentMethodDAO = new PaymentMethodDAO();
         this.paymentMethodTypeDAO = new PaymentMethodTypeDAO();
         this.accountDAO = new AccountDAO();
+        this.productDAO = new ProductDAO();
+        this.accountProductDAO = new AccountProductDAO();
     }
 
     public CountryBean validateActiveCountry(Connection connection, String countryId) throws SQLException {
@@ -46,6 +52,49 @@ public class EntityValidator {
         }
 
         return country;
+    }
+
+    public ProductBean validateActiveProduct(Connection conn, String productId)
+            throws EntityNotFoundException, InactiveEntityException {
+        ProductBean product = productDAO.findById(conn, productId)
+                .orElseThrow(() -> new EntityNotFoundException("Product not found",
+                        EntityNotFoundException.EntityType.PRODUCT));
+
+        if (!product.isActive()) {
+            logger.error("Product is not active for ID: {}", productId);
+            throw new InactiveEntityException("Product with id " + productId + " is not active",
+                    InactiveEntityException.EntityType.PRODUCT);
+        }
+        return product;
+    }
+
+    public ProductBean validateProduct(Connection connection, String productId) throws SQLException {
+        ProductBean product = productDAO.findById(connection, productId).orElseThrow(() -> {
+            logger.error("Product not found for ID: {}", productId);
+            return new EntityNotFoundException("Product not found for ID: " + productId,
+                    EntityNotFoundException.EntityType.PRODUCT);
+        });
+
+        if (!product.isActive()) {
+            logger.error("Product is not active for ID: {}", productId);
+            throw new InactiveEntityException("Product with id " + productId + " is not active",
+                    InactiveEntityException.EntityType.PRODUCT);
+        }
+
+        if (product.getStockQuantity() != null && product.getStockQuantity() <= 0) {
+            logger.error("Product is out of stock for ID: {}", productId);
+            throw new InsufficientStockException("Product with id " + productId + " is out of stock");
+        }
+        return product;
+    }
+
+    public void validateProductNotAlreadyOwned(Connection connection, String accountId, String productId)
+            throws SQLException {
+        boolean isOwned = accountProductDAO.findById(connection, accountId, productId).isPresent();
+        if (isOwned) {
+            logger.error("Account: {} already owns Product: {}", accountId, productId);
+            throw new DuplicateEntityException("Account already owns this product");
+        }
     }
 
     public CurrencyBean validateActiveCurrency(Connection connection, String currencyId) throws SQLException {

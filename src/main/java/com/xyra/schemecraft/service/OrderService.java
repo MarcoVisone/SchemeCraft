@@ -220,7 +220,7 @@ public class OrderService {
                         throw new DuplicateEntityException("An order for this product is already being processed.");
                     }
 
-                    ProductBean product = validateProduct(connection, productId);
+                    ProductBean product = entityValidator.validateProduct(connection, productId);
                     validateProductNotAlreadyOwned(connection, accountId, productId);
 
                     boolean stockOk = productDAO.decrementStock(connection, productId);
@@ -414,7 +414,7 @@ public class OrderService {
 
     private AccountBean validateAccount(Connection connection, String accountId) throws SQLException {
         return accountDAO.findById(connection, accountId).orElseThrow(() ->
-                new EntityNotFoundException("Account not found for ID: " + accountId));
+                new EntityNotFoundException("Account not found for ID: " + accountId, EntityNotFoundException.EntityType.ACCOUNT));
     }
 
     private void validateProductNotAlreadyOwned(Connection connection, String accountId, String productId)
@@ -424,24 +424,6 @@ public class OrderService {
             logger.error("Account: {} already owns Product: {}", accountId, productId);
             throw new DuplicateEntityException("Account already owns this product");
         }
-    }
-
-    private ProductBean validateProduct(Connection connection, String productId) throws SQLException {
-        ProductBean product = productDAO.findById(connection, productId).orElseThrow(() -> {
-            logger.error("Product not found for ID: {}", productId);
-            return new EntityNotFoundException("Product not found for ID: " + productId);
-        });
-
-        if (!product.isActive()) {
-            logger.error("Product is not active for ID: {}", productId);
-            throw new InactiveEntityException("Product with id " + productId + " is not active");
-        }
-
-        if (product.getStockQuantity() != null && product.getStockQuantity() <= 0) {
-            logger.error("Product is out of stock for ID: {}", productId);
-            throw new InsufficientStockException("Product with id " + productId + " is out of stock");
-        }
-        return product;
     }
 
     private void rollback(Connection connection) {
