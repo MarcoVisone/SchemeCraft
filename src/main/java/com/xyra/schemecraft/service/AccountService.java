@@ -216,6 +216,12 @@ public class AccountService {
                     e.addSuppressed(rollbackEx);
                 }
                 throw e;
+            } finally {
+                try {
+                    conn.setAutoCommit(true);
+                } catch (SQLException resetEx) {
+                    logger.warn("Failed to reset autoCommit to true after registration attempt", resetEx);
+                }
             }
         } catch (SQLException | DAOException e) {
             logger.error("Database connection error during registration for username: {}", request.username(), e);
@@ -443,6 +449,7 @@ public class AccountService {
                         logger.error("Rollback failed while adding address for account {}", accountId, rollbackEx);
                     }
                 }
+                conn.setAutoCommit(true);
             }
         } catch (SQLException | DAOException e) {
             logger.error("Database connection error while adding address for account {}", accountId, e);
@@ -493,6 +500,8 @@ public class AccountService {
                     e.addSuppressed(rollbackEx);
                 }
                 throw e;
+            } finally {
+                conn.setAutoCommit(true);
             }
         } catch (SQLException | DAOException e) {
             logger.error("Database connection error while removing address {}", addressId, e);
@@ -537,6 +546,8 @@ public class AccountService {
                     e.addSuppressed(rollbackEx);
                 }
                 throw e;
+            } finally {
+                conn.setAutoCommit(true);
             }
         } catch (SQLException | DAOException e) {
             logger.error("Database connection error while setting default address {} for account {}", addressId, accountId, e);
@@ -622,6 +633,8 @@ public class AccountService {
                     e.addSuppressed(rollbackEx);
                 }
                 throw e;
+            } finally {
+                conn.setAutoCommit(true);
             }
         } catch (SQLException | DAOException e) {
             logger.error("Database connection error while adding payment method for account {}",
@@ -670,6 +683,8 @@ public class AccountService {
                     e.addSuppressed(rollbackEx);
                 }
                 throw e;
+            }finally {
+                conn.setAutoCommit(true);
             }
         } catch (SQLException | DAOException e) {
             logger.error("Database connection error while removing payment method {}", paymentMethodId, e);
@@ -712,6 +727,8 @@ public class AccountService {
                     e.addSuppressed(rollbackEx);
                 }
                 throw e;
+            } finally {
+                conn.setAutoCommit(true);
             }
         } catch (SQLException | DAOException e) {
             logger.error("Database connection error while setting default payment method {} for account {}",
