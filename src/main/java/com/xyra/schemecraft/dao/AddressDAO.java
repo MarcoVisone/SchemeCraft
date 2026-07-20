@@ -65,10 +65,15 @@ public class AddressDAO extends BaseDAO {
                     address.getAccountId());
         } catch (SQLException e) {
             logger.error("Failed to insert address for Account ID: {}", address.getAccountId(), e);
-            if (SQLSTATE_INTEGRITY_CONSTRAINT_VIOLATION.equals(e.getSQLState()) ||
-                    e.getErrorCode() == MYSQL_ERR_DUPLICATE_KEY) {
+            if (e.getErrorCode() == MYSQL_ERR_DUPLICATE_KEY) {
                 throw new DuplicateEntityException("An active default address already exists for this account", e);
             }
+
+            if (e.getErrorCode() == MYSQL_ERR_NO_REFERENCED_ROW ||
+                    e.getErrorCode() == MYSQL_ERR_NO_REFERENCED_ROW_LEGACY) {
+                throw new DAOException("Invalid account or country reference for address", e);
+            }
+
             throw new DAOException("Error occurred while inserting address", e);
         }
     }
@@ -397,6 +402,76 @@ public class AddressDAO extends BaseDAO {
             throw new IllegalArgumentException("Attempted to force delete a null address or an address without an ID");
         }
         return forceDelete(conn, address.getAddressId());
+    }
+
+    /**
+     * Unsets the default flag of an Address, without affecting its other fields.
+     * Used when swapping the default address for an account, before setting a new one.
+     *
+     * @param conn      Active database connection
+     * @param addressId Unique identifier of the target address
+     * @return true if the address was successfully updated; false otherwise
+     * @throws DAOException             if a database error occurs
+     * @throws IllegalArgumentException if the addressId is null or empty
+     */
+    public boolean unsetDefault(Connection conn, String addressId) throws DAOException {
+        if (addressId == null || addressId.trim().isEmpty()) {
+            throw new IllegalArgumentException("Address ID cannot be null or empty for unsetting default");
+        }
+        String sql = "UPDATE address SET flag_default = NULL WHERE address_id = ?";
+
+        try (PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setString(1, addressId);
+            int rowsAffected = ps.executeUpdate();
+            if (rowsAffected > 0) {
+                logger.info("Default flag unset for Address ID: {}", addressId);
+                return true;
+            } else {
+                logger.warn("Unset default issued for non-existent address ID: {}", addressId);
+            }
+        } catch (SQLException e) {
+            logger.error("Failed to unset default for address with ID: {}", addressId, e);
+            throw new DAOException("Error unsetting default address", e);
+        }
+        return false;
+    }
+
+    // --- Nuovo metodo in AddressDAO ---
+
+    /**
+     * Finds any single active address for the account, excluding a specific address ID.
+     * Used to pick a candidate for default promotion when the current default is removed.
+     * No ordering guarantee beyond what MySQL returns; acceptable since there is no
+     * temporal column (e.g. created_at) on this table to define "most recent".
+     *
+     * @param conn             Active database connection
+     * @param accountId        Unique identifier of the target account
+     * @param excludeAddressId Address ID to exclude from the search (the one being removed)
+     * @return An Optional containing an active address, or empty if none is available
+     * @throws DAOException             if a database error occurs
+     * @throws IllegalArgumentException if accountId is null or empty
+     */
+    public Optional<AddressBean> findAnyActiveByAccountIdExcluding(Connection conn, String accountId,
+                                                                   String excludeAddressId) throws DAOException {
+        if (accountId == null || accountId.trim().isEmpty()) {
+            throw new IllegalArgumentException("Account ID cannot be null or empty for lookup");
+        }
+
+        String sql = SELECT_BASE + "WHERE account_id = ? AND is_active = TRUE AND address_id <> ? LIMIT 1";
+
+        try (PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setString(1, accountId);
+            ps.setString(2, excludeAddressId);
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    return Optional.of(mapRow(rs));
+                }
+            }
+        } catch (SQLException e) {
+            logger.error("Database error while fetching active address for Account ID: {}", accountId, e);
+            throw new DAOException("Error fetching active address", e);
+        }
+        return Optional.empty();
     }
 
     /**

@@ -1,5 +1,7 @@
 package com.xyra.schemecraft.model;
 
+import com.xyra.schemecraft.constant.ValidationConstants;
+
 import java.io.Serial;
 import java.io.Serializable;
 import java.time.LocalDateTime;
@@ -24,13 +26,13 @@ public class AccountBean implements Serializable {
 
     /** Unique alphanumeric username. */
     @NotBlank(message = "Username cannot be blank")
-    @Size(min = 3, max = 50, message = "Username must be between {min} and {max} characters")
-    @Pattern(regexp = "^[a-zA-Z0-9_]+$", message = "Username can only contain letters, numbers, and underscores")
+    @Size(min = ValidationConstants.USERNAME_MIN_LENGTH, max = ValidationConstants.USERNAME_MAX_LENGTH, message = "Username must be between {min} and {max} characters")
+    @Pattern(regexp = ValidationConstants.USERNAME_REGEXP, message = "Username can only contain letters, numbers, and underscores")
     private String username;
 
     /** Unique email address associated with the account. */
     @NotBlank(message = "Email address cannot be blank")
-    @Email(regexp = "^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,6}$",
+    @Email(regexp = ValidationConstants.EMAIL_REGEXP,
             message = "Email address must be syntactically valid")
     private String email;
 
@@ -68,8 +70,7 @@ public class AccountBean implements Serializable {
     /**
      * Default no-argument constructor.
      */
-    public AccountBean() {
-    }
+    public AccountBean() {}
 
     /**
      * Constructs a partially-initialized AccountBean without a registration timestamp.
@@ -243,6 +244,15 @@ public class AccountBean implements Serializable {
 
     public void setProfileImagePath(String profileImagePath) {
         this.profileImagePath = profileImagePath;
+    }
+
+    public void applyDefaultsIfMissing() {
+        if (this.bannerPath == null) {
+            this.bannerPath = "uploads/banners/default-banner.png";
+        }
+        if (this.profileImagePath == null) {
+            this.profileImagePath = "uploads/avatars/default-avatar.png";
+        }
     }
 
     // --- Standard Object Override Methods ---

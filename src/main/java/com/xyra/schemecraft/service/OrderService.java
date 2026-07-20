@@ -29,31 +29,23 @@ public class OrderService {
     private static final ConcurrentHashMap<String, Boolean> purchaseLocks = new ConcurrentHashMap<>();
 
     private final ProductDAO productDAO;
-    private final PaymentMethodDAO paymentMethodDAO;
     private final CartDAO cartDAO;
     private final OrderDAO orderDAO;
     private final OrderItemDAO orderItemDAO;
-    private final PaymentMethodTypeDAO paymentMethodTypeDAO;
-    private final AddressDAO addressDAO;
-    private final CountryDAO countryDAO;
     private final AccountDAO accountDAO;
-    private final CurrencyDAO currencyDAO;
     private final AccountProductDAO accountProductDAO;
     private final FakePaymentGateway paymentGateway;
+    private final EntityValidator entityValidator;
 
     public OrderService() {
         this.productDAO = new ProductDAO();
-        this.paymentMethodDAO = new PaymentMethodDAO();
         this.cartDAO = new CartDAO();
         this.orderDAO = new OrderDAO();
         this.orderItemDAO = new OrderItemDAO();
-        this.paymentMethodTypeDAO = new PaymentMethodTypeDAO();
-        this.addressDAO = new AddressDAO();
-        this.countryDAO = new CountryDAO();
         this.accountDAO = new AccountDAO();
-        this.currencyDAO = new CurrencyDAO();
         this.accountProductDAO = new AccountProductDAO();
         this.paymentGateway = new FakePaymentGateway();
+        this.entityValidator = new EntityValidator();
     }
 
     public enum OrderStatus {
@@ -179,10 +171,17 @@ public class OrderService {
             connection.setAutoCommit(false);
 
             AccountBean account = validateAccount(connection, accountId);
-            CountryBean country = validateAccountCountry(connection, account, accountId);
-            PaymentMethodBean paymentMethod = validateDefaultPaymentMethod(connection, accountId);
-            CurrencyBean currency = validateCurrency(connection, account.getCurrencyId());
-            AddressBean address = validateAddress(connection, accountId);
+
+            String countryId = account.getCountryId();
+            if (countryId == null) {
+                logger.error("Country ID is null for Account: {}", accountId);
+                throw new EntityNotFoundException("Country ID is null for Account: " + accountId);
+            }
+
+            CountryBean country = entityValidator.validateActiveCountry(connection, countryId);
+            PaymentMethodBean paymentMethod = entityValidator.validateActiveDefaultPaymentMethod(connection, accountId);
+            CurrencyBean currency = entityValidator.validateActiveCurrency(connection, account.getCurrencyId());
+            AddressBean address = entityValidator.validateActiveDefaultAddress(connection, accountId);
 
             List<String> productIdsToValidate = new ArrayList<>();
             if (isFromCart) {
@@ -216,8 +215,7 @@ public class OrderService {
                 BigDecimal tax = country.getTax();
 
                 for (String productId : productIdsToValidate) {
-                    boolean alreadyProcessing = orderDAO.existsActiveOrPending(connection, accountId, productId,
-                            15);
+                    boolean alreadyProcessing = orderDAO.existsActiveOrPending(connection, accountId, productId, 15);
                     if (alreadyProcessing) {
                         throw new DuplicateEntityException("An order for this product is already being processed.");
                     }
@@ -277,10 +275,9 @@ public class OrderService {
             logger.error("Database error during order validation/creation for Account: {}", accountId, e);
             throw new ServiceException("Unable to process the order due to an internal error", e);
         } finally {
-            // Se non è stato completato con successo (es. è stata lanciata una RuntimeException o ServiceException)
             if (connection != null) {
                 if (!success) {
-                    rollback(connection); // Rollback sicuro garantito!
+                    rollback(connection);
                 }
                 closeConnection(connection);
             }
@@ -401,12 +398,10 @@ public class OrderService {
         BigDecimal total = BigDecimal.ZERO;
 
         for (OrderItemSnapshot item : items) {
-            // price * (1 - (discount / 100))
             BigDecimal discountFactor = BigDecimal.ONE.subtract(item.discount().divide(HUNDRED, 4,
                     RoundingMode.HALF_UP));
             BigDecimal priceAfterDiscount = item.price().multiply(discountFactor);
 
-            // priceAfterDiscount * (1 + (tax / 100))
             BigDecimal taxFactor = BigDecimal.ONE.add(item.tax().divide(HUNDRED, 4, RoundingMode.HALF_UP));
             BigDecimal finalItemPrice = priceAfterDiscount.multiply(taxFactor).setScale(2,
                     RoundingMode.HALF_UP);
@@ -420,81 +415,6 @@ public class OrderService {
     private AccountBean validateAccount(Connection connection, String accountId) throws SQLException {
         return accountDAO.findById(connection, accountId).orElseThrow(() ->
                 new EntityNotFoundException("Account not found for ID: " + accountId));
-    }
-
-    private CountryBean validateAccountCountry(Connection connection, AccountBean account, String accountId)
-            throws SQLException {
-        String countryId = account.getCountryId();
-
-        if (countryId == null) {
-            logger.error("Country ID is null for Account: {}", accountId);
-            throw new EntityNotFoundException("Country ID is null for Account: " + accountId);
-        }
-
-        CountryBean country = countryDAO.findById(connection, countryId).orElseThrow(() -> {
-            logger.error("Country not found for ID: {} (Account: {})", countryId, accountId);
-            return new EntityNotFoundException("Country not found for ID: " + countryId);
-        });
-
-        if (!country.isActive()) {
-            logger.error("Country is not active for Account: {}", accountId);
-            throw new InactiveEntityException("Country is not active for Account: " + accountId);
-        }
-        return country;
-    }
-
-    private PaymentMethodBean validateDefaultPaymentMethod(Connection connection, String accountId)
-            throws SQLException {
-        PaymentMethodBean paymentMethod =
-                paymentMethodDAO.findDefaultByAccountId(connection, accountId).orElseThrow(
-                        () -> {
-                            logger.error("No default payment method found for Account: {}", accountId);
-                            return new EntityNotFoundException("No default payment method found for account " +
-                                    accountId);
-                        });
-
-        int paymentMethodTypeId = paymentMethod.getMethodType();
-
-        PaymentMethodTypeBean paymentMethodType =
-                paymentMethodTypeDAO.findById(connection, paymentMethodTypeId).orElseThrow(() -> {
-                    logger.error("Payment method type not found for ID: {}", paymentMethodTypeId);
-                    return new EntityNotFoundException("Invalid payment method type");
-                });
-
-        if (!paymentMethodType.isActive()) {
-            logger.error("Payment method type is not active for ID: {}", paymentMethodTypeId);
-            throw new InactiveEntityException("PaymentMethodType with id " + paymentMethodTypeId + " is not active");
-        }
-
-        return paymentMethod;
-    }
-
-    private CurrencyBean validateCurrency(Connection connection, String currencyId) throws SQLException {
-        CurrencyBean currency = currencyDAO.findById(connection, currencyId).orElseThrow(() -> {
-            logger.error("Currency not found for ID: {}", currencyId);
-            return new EntityNotFoundException("Currency not found for ID: " + currencyId);
-        });
-
-        if (!currency.isActive()) {
-            logger.error("Currency is not active for ID: {}", currencyId);
-            throw new InactiveEntityException("Currency with id " + currencyId + " is not active");
-        }
-
-        return currency;
-    }
-
-    private AddressBean validateAddress(Connection connection, String accountId) throws SQLException {
-        AddressBean address = addressDAO.findDefaultByAccountId(connection, accountId).orElseThrow(() -> {
-            logger.error("Address not found for Account ID: {}", accountId);
-            return new EntityNotFoundException("Address not found for Account ID: " + accountId);
-        });
-
-        if (!address.isActive()) {
-            logger.error("Address is not active for ID: {}", address.getAddressId());
-            throw new InactiveEntityException("Address with id " + address.getAddressId() + " is not active");
-        }
-
-        return address;
     }
 
     private void validateProductNotAlreadyOwned(Connection connection, String accountId, String productId)
