@@ -12,6 +12,9 @@ public class EntityNotFoundException extends DAOException {
         PAYMENT_METHOD_TYPE,
         PRODUCT,
         ORDER,
+        IMAGE,
+        PRODUCT_VERSION,
+        CATEGORY,
         UNKNOWN
     }
 
