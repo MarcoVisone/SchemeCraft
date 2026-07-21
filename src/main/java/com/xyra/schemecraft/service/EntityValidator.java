@@ -24,6 +24,7 @@ public class EntityValidator {
     private final PaymentMethodDAO paymentMethodDAO;
     private final PaymentMethodTypeDAO paymentMethodTypeDAO;
     private final AccountDAO accountDAO;
+    private final CategoryDAO categoryDAO;
     private final AccountProductDAO accountProductDAO;
 
     public EntityValidator() {
@@ -36,6 +37,7 @@ public class EntityValidator {
         this.accountDAO = new AccountDAO();
         this.productDAO = new ProductDAO();
         this.accountProductDAO = new AccountProductDAO();
+        this.categoryDAO = new CategoryDAO();
     }
 
     public CountryBean validateActiveCountry(Connection connection, String countryId) throws SQLException {
@@ -86,6 +88,12 @@ public class EntityValidator {
             throw new InsufficientStockException("Product with id " + productId + " is out of stock");
         }
         return product;
+    }
+
+    public CategoryBean validateActiveCategory(Connection connection, String categoryId) throws SQLException {
+        return categoryDAO.findById(connection, categoryId)
+                .orElseThrow(() -> new EntityNotFoundException("Category not found for ID: " + categoryId
+                        , EntityNotFoundException.EntityType.CATEGORY));
     }
 
     public void validateProductNotAlreadyOwned(Connection connection, String accountId, String productId)
