@@ -9,5 +9,6 @@ public record ProductRequest(
         String description,
         BigDecimal discount,
         BigDecimal price,
-        Integer stockQuantity
+        Integer stockQuantity,
+        boolean unlimitedStock
 ) {}
