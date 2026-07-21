@@ -2,6 +2,7 @@ package com.xyra.schemecraft.service;
 
 import com.xyra.schemecraft.connection.ConnectionPool;
 import com.xyra.schemecraft.dao.CartDAO;
+import com.xyra.schemecraft.dao.ProductDAO;
 import com.xyra.schemecraft.exception.*;
 import com.xyra.schemecraft.model.CartBean;
 import com.xyra.schemecraft.model.ProductBean;
@@ -11,15 +12,19 @@ import org.slf4j.LoggerFactory;
 import java.sql.Connection;
 import java.sql.SQLException;
 import java.util.List;
+import java.util.Optional;
 
 public class CartService {
     private static final Logger logger = LoggerFactory.getLogger(CartService.class);
 
-    private static CartDAO cartDAO;
-    private static EntityValidator entityValidator;
+    private final CartDAO cartDAO;
+    private final ProductDAO productDAO;
+
+    private final EntityValidator entityValidator;
     CartService(){
-        cartDAO = new CartDAO();
-        entityValidator = new EntityValidator();
+        this.cartDAO = new CartDAO();
+        this.productDAO = new ProductDAO();
+        this.entityValidator = new EntityValidator();
     }
 
     public void addToCart(String rawAccountId, String rawProductId) {
@@ -73,7 +78,7 @@ public class CartService {
         }
     }
 
-    public List<CartBean> viewCart(String rawAccountId) {
+    public List<ProductBean> viewCart(String rawAccountId) {
         String accountId = rawAccountId == null ? null : rawAccountId.trim();
 
         if(accountId == null || accountId.isBlank()) {
@@ -83,8 +88,11 @@ public class CartService {
         try(Connection conn = ConnectionPool.getConnection()) {
             entityValidator.validateActiveAccount(conn, accountId);
             List<CartBean> productsInCart = cartDAO.findAllByAccountId(conn, accountId);
-            logger.info("Retrieved {} products in cart for account {}", productsInCart.size(), accountId);
-            return productsInCart;
+            return productsInCart.stream()
+                    .map(cart -> productDAO.findById(conn, cart.getProductId()))
+                    .flatMap(Optional::stream)
+                    .filter(ProductBean::isActive)
+                    .toList();
         } catch(DAOException | SQLException e) {
             logger.error("Database connection error while viewing cart", e);
             throw new ServiceException("Internal database error occurred", e);
