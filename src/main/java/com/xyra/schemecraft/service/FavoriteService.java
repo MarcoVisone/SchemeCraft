@@ -25,7 +25,7 @@ public class FavoriteService {
     private final FavoriteDAO favoriteDAO;
     private final ProductDAO productDAO;
 
-    public  FavoriteService(){
+    public FavoriteService(){
         this.favoriteDAO = new FavoriteDAO();
         this.entityValidator = new EntityValidator();
         this.productDAO = new ProductDAO();

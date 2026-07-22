@@ -21,7 +21,7 @@ public class CartService {
     private final ProductDAO productDAO;
 
     private final EntityValidator entityValidator;
-    CartService(){
+    public CartService(){
         this.cartDAO = new CartDAO();
         this.productDAO = new ProductDAO();
         this.entityValidator = new EntityValidator();

@@ -1,0 +1,15 @@
+package com.xyra.schemecraft.dao;
+
+import java.sql.Connection;
+import java.util.List;
+
+public class CartDAO {
+
+    public List<String> findItemsByCart(Connection connection, String cartId) {
+        throw new UnsupportedOperationException("Not implemented yet");
+    }
+
+    public void clear(Connection connection, String cartId) {
+        throw new UnsupportedOperationException("Not implemented yet");
+    }
+}

@@ -28,7 +28,7 @@ public class ProductService {
     private final ProductCategoryDAO productCategoryDAO;
     private final AccountProductDAO accountProductDAO;
 
-    ProductService(){
+    public ProductService(){
         this.productDAO = new ProductDAO();
         this.entityValidator = new EntityValidator();
         this.productImageDAO = new ProductImageDAO();

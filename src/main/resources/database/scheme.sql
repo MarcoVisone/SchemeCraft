@@ -61,6 +61,8 @@ CREATE TABLE IF NOT EXISTS account (
     is_admin BOOLEAN DEFAULT FALSE,
     password_hash VARCHAR(255) NOT NULL,
     profile_image_path VARCHAR(255) DEFAULT 'uploads/avatars/default-avatar.png',
+    CONSTRAINT uk_account_username UNIQUE (username),
+    CONSTRAINT uk_account_email UNIQUE (email),
     CONSTRAINT fk_account_country FOREIGN KEY (country_id) REFERENCES country(country_id)
         ON DELETE SET NULL ON UPDATE CASCADE,
     CONSTRAINT fk_account_currency FOREIGN KEY (currency_id) REFERENCES currency(currency_id)

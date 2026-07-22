@@ -40,7 +40,7 @@ public class AccountService {
     private final EntityValidator entityValidator;
     private final FakeTokenizationService tokenizationGateway;
 
-    AccountService(){
+    public AccountService(){
         this.accountDAO = new AccountDAO();
         this.addressDAO = new AddressDAO();
         this.paymentMethodDAO = new PaymentMethodDAO();
@@ -101,7 +101,7 @@ public class AccountService {
 
             return session;
 
-        } catch (SQLException e) {
+        } catch (SQLException | DAOException e) {
             logger.error("Database connection error during login attempt", e);
             throw new ServiceException("Internal database error occurred", e);
         }
@@ -127,8 +127,6 @@ public class AccountService {
         }
 
         try (Connection conn = ConnectionPool.getConnection()) {
-            conn.setAutoCommit(false);
-
             try {
                 entityValidator.validateActiveCountry(conn, request.countryId());
                 entityValidator.validateActiveCurrency(conn, request.currencyId());
@@ -153,7 +151,6 @@ public class AccountService {
                 account.setActive(true);
 
                 accountDAO.insert(conn, account);
-                conn.commit();
 
                 logger.info("Account registered successfully with ID: {}", account.getAccountId());
 
@@ -208,7 +205,7 @@ public class AccountService {
 
                 throw new DuplicateEntityException(userMessage, field);
 
-            } catch (Exception e) {
+            } catch (SQLException | DAOException e) {
                 try {
                     conn.rollback();
                 } catch (SQLException rollbackEx) {
@@ -216,12 +213,6 @@ public class AccountService {
                     e.addSuppressed(rollbackEx);
                 }
                 throw e;
-            } finally {
-                try {
-                    conn.setAutoCommit(true);
-                } catch (SQLException resetEx) {
-                    logger.warn("Failed to reset autoCommit to true after registration attempt", resetEx);
-                }
             }
         } catch (SQLException | DAOException e) {
             logger.error("Database connection error during registration for username: {}", request.username(), e);

@@ -27,7 +27,7 @@ public class ReviewService {
     private final ReviewDAO reviewDAO;
     private final AccountProductDAO accountProductDAO;
 
-    public  ReviewService(){
+    public ReviewService(){
         this.reviewDAO = new ReviewDAO();
         this.entityValidator = new EntityValidator();
         this.accountProductDAO = new AccountProductDAO();
