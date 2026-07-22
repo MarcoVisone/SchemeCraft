@@ -44,6 +44,7 @@ public final class DatabaseConstants {
 
     /**
      * Private constructor to prevent instantiation of this constant utility class.
+     *
      * @throws AssertionError if this constructor is called via reflection
      */
     private DatabaseConstants() {

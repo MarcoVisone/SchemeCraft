@@ -405,51 +405,62 @@ public class AddressDAO extends BaseDAO {
     }
 
     /**
-     * Unsets the default flag of an Address, without affecting its other fields.
-     * Used when swapping the default address for an account, before setting a new one.
+     * Unsets the default address flag for a specific address entry.
      *
      * @param conn      Active database connection
      * @param addressId Unique identifier of the target address
-     * @return true if the address was successfully updated; false otherwise
+     * @return true if the address flag was successfully updated; false if not found
      * @throws DAOException             if a database error occurs
-     * @throws IllegalArgumentException if the addressId is null or empty
+     * @throws IllegalArgumentException if Address ID is null or empty
      */
     public boolean unsetDefault(Connection conn, String addressId) throws DAOException {
         if (addressId == null || addressId.trim().isEmpty()) {
             throw new IllegalArgumentException("Address ID cannot be null or empty for unsetting default");
         }
+
         String sql = "UPDATE address SET flag_default = NULL WHERE address_id = ?";
 
         try (PreparedStatement ps = conn.prepareStatement(sql)) {
-            ps.setString(1, addressId);
+            ps.setString(1, addressId.trim());
             int rowsAffected = ps.executeUpdate();
             if (rowsAffected > 0) {
-                logger.info("Default flag unset for Address ID: {}", addressId);
+                logger.info("Default flag successfully unset for Address ID: {}", addressId);
                 return true;
             } else {
-                logger.warn("Unset default issued for non-existent address ID: {}", addressId);
+                logger.warn("Unset default issued for non-existent Address ID: {}", addressId);
             }
         } catch (SQLException e) {
-            logger.error("Failed to unset default for address with ID: {}", addressId, e);
+            logger.error("Failed to unset default flag for Address ID: {}", addressId, e);
             throw new DAOException("Error unsetting default address", e);
         }
         return false;
     }
 
-    // --- Nuovo metodo in AddressDAO ---
+    /**
+     * Unsets the default address flag for a specific address entry using its domain model representation.
+     *
+     * @param conn    Active database connection
+     * @param address The model containing the target address's identifier
+     * @return true if the address flag was successfully updated; false if not found
+     * @throws DAOException             if a database error occurs
+     * @throws IllegalArgumentException if the address is null or does not have a valid ID
+     */
+    public boolean unsetDefault(Connection conn, AddressBean address) throws DAOException {
+        if (address == null || address.getAddressId() == null) {
+            throw new IllegalArgumentException("Attempted to unset default address");
+        }
+        return unsetDefault(conn, address.getAddressId());
+    }
 
     /**
-     * Finds any single active address for the account, excluding a specific address ID.
-     * Used to pick a candidate for default promotion when the current default is removed.
-     * No ordering guarantee beyond what MySQL returns; acceptable since there is no
-     * temporal column (e.g. created_at) on this table to define "most recent".
+     * Retrieves any single active address belonging to a specific account, excluding a designated address.
      *
      * @param conn             Active database connection
-     * @param accountId        Unique identifier of the target account
-     * @param excludeAddressId Address ID to exclude from the search (the one being removed)
-     * @return An Optional containing an active address, or empty if none is available
+     * @param accountId        Unique identifier of the account owner
+     * @param excludeAddressId Unique identifier of the address to exclude from search
+     * @return An Optional containing an alternative active address, or empty if none exist
      * @throws DAOException             if a database error occurs
-     * @throws IllegalArgumentException if accountId is null or empty
+     * @throws IllegalArgumentException if Account ID is null or empty
      */
     public Optional<AddressBean> findAnyActiveByAccountIdExcluding(Connection conn, String accountId,
                                                                    String excludeAddressId) throws DAOException {
@@ -460,15 +471,17 @@ public class AddressDAO extends BaseDAO {
         String sql = SELECT_BASE + "WHERE account_id = ? AND is_active = TRUE AND address_id <> ? LIMIT 1";
 
         try (PreparedStatement ps = conn.prepareStatement(sql)) {
-            ps.setString(1, accountId);
-            ps.setString(2, excludeAddressId);
+            ps.setString(1, accountId.trim());
+            ps.setString(2, excludeAddressId != null ? excludeAddressId.trim() : "");
+
             try (ResultSet rs = ps.executeQuery()) {
                 if (rs.next()) {
                     return Optional.of(mapRow(rs));
                 }
             }
         } catch (SQLException e) {
-            logger.error("Database error while fetching active address for Account ID: {}", accountId, e);
+            logger.error("Database error while fetching active address for Account ID: {} excluding Address ID: {}",
+                    accountId, excludeAddressId, e);
             throw new DAOException("Error fetching active address", e);
         }
         return Optional.empty();

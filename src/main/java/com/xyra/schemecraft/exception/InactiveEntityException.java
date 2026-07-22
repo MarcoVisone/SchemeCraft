@@ -1,6 +1,7 @@
 package com.xyra.schemecraft.exception;
 
 public class InactiveEntityException extends ServiceException {
+
     public enum EntityType {
         ACCOUNT,
         COUNTRY,

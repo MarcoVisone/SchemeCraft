@@ -265,62 +265,88 @@ public class PaymentMethodDAO extends BaseDAO {
     }
 
     /**
-     * Clears the default flag on a payment method (sets flag_default to NULL).
-     * Required before assigning a new default, since the DB enforces at most
-     * one default per account via a unique constraint on (flag_default, account_id).
+     * Unsets the default payment method flag for a specific payment method entry.
      *
      * @param conn            Active database connection
-     * @param paymentMethodId Unique identifier of the payment method to demote
+     * @param paymentMethodId Unique identifier of the target payment method
+     * @return true if the flag was successfully cleared; false if the record was not found
      * @throws DAOException             if a database error occurs
-     * @throws IllegalArgumentException if the paymentMethodId is null or empty
+     * @throws IllegalArgumentException if Payment Method ID is null or empty
      */
-    public void unsetDefault(Connection conn, String paymentMethodId) throws DAOException {
+    public boolean unsetDefault(Connection conn, String paymentMethodId) throws DAOException {
         if (paymentMethodId == null || paymentMethodId.trim().isEmpty()) {
-            throw new IllegalArgumentException("Payment Method ID cannot be null or empty");
+            throw new IllegalArgumentException("Payment Method ID cannot be null or empty for unsetting default");
         }
 
         String sql = "UPDATE payment_method SET flag_default = NULL WHERE payment_method_id = ?";
 
         try (PreparedStatement ps = conn.prepareStatement(sql)) {
-            ps.setString(1, paymentMethodId);
-            ps.executeUpdate();
-            logger.info("Default flag cleared for Payment Method ID: {}", paymentMethodId);
+            ps.setString(1, paymentMethodId.trim());
+            int rowsAffected = ps.executeUpdate();
+            if (rowsAffected > 0) {
+                logger.info("Default flag successfully cleared for Payment Method ID: {}", paymentMethodId);
+                return true;
+            } else {
+                logger.warn("Unset default issued for non-existent Payment Method ID: {}", paymentMethodId);
+            }
         } catch (SQLException e) {
             logger.error("Failed to clear default flag for Payment Method ID: {}", paymentMethodId, e);
             throw new DAOException("Error clearing default payment method flag", e);
         }
+        return false;
     }
 
     /**
-     * Retrieves any single payment method belonging to an account, excluding a specific one.
-     * Used to find a candidate for default-promotion after the current default is removed.
+     * Unsets the default payment method flag for a specific payment method entry.
      *
-     * @param conn         Active database connection
-     * @param accountId    Unique identifier of the account
-     * @param excludingId  Payment Method ID to exclude from the search
-     * @return An Optional containing a candidate payment method, or empty if none remain
+     * @param conn   Active database connection
+     * @param method The payment method for which to unset the default flag
+     * @return true if the flag was successfully cleared; false if the record was not found
      * @throws DAOException             if a database error occurs
-     * @throws IllegalArgumentException if accountId or excludingId are null or empty
+     * @throws IllegalArgumentException if the payment method is null or has no ID
+     */
+    public boolean unsetDefault(Connection conn, PaymentMethodBean method) throws DAOException {
+        if (method == null || method.getPaymentMethodId() == null) {
+            throw new IllegalArgumentException("Attempted to unset default for a null payment method " +
+                    "or a payment method without an ID");
+        }
+        return unsetDefault(conn, method.getPaymentMethodId());
+    }
+
+    /**
+     * Retrieves any single payment method belonging to a specific account, excluding a designated payment method.
+     * <p>
+     * Useful for finding a fallback default candidate when soft-deleting or modifying an existing payment method.
+     * </p>
+     *
+     * @param conn        Active database connection
+     * @param accountId   Unique identifier of the account owner
+     * @param excludingId Unique identifier of the payment method to exclude from search
+     * @return An Optional containing an alternative payment method, or empty if none exist
+     * @throws DAOException             if a database error occurs
+     * @throws IllegalArgumentException if Account ID or excluding Payment Method ID are null or empty
      */
     public Optional<PaymentMethodBean> findAnyByAccountIdExcluding(Connection conn, String accountId,
                                                                    String excludingId) throws DAOException {
         if (accountId == null || accountId.trim().isEmpty() ||
                 excludingId == null || excludingId.trim().isEmpty()) {
-            throw new IllegalArgumentException("Account ID and excluding ID cannot be null or empty");
+            throw new IllegalArgumentException("Account ID and excluding Payment Method ID cannot be null or empty");
         }
 
-        String sql = SELECT_BASE + "WHERE account_id = ? AND payment_method_id != ? LIMIT 1";
+        String sql = SELECT_BASE + "WHERE account_id = ? AND payment_method_id <> ? LIMIT 1";
 
         try (PreparedStatement ps = conn.prepareStatement(sql)) {
-            ps.setString(1, accountId);
-            ps.setString(2, excludingId);
+            ps.setString(1, accountId.trim());
+            ps.setString(2, excludingId.trim());
+
             try (ResultSet rs = ps.executeQuery()) {
                 if (rs.next()) {
                     return Optional.of(mapRow(rs));
                 }
             }
         } catch (SQLException e) {
-            logger.error("Database error while finding candidate payment method for Account ID: {}", accountId, e);
+            logger.error("Database error while finding candidate payment method for Account ID: " +
+                    "{} excluding Payment Method ID: {}", accountId, excludingId, e);
             throw new DAOException("Error finding candidate payment method", e);
         }
         return Optional.empty();

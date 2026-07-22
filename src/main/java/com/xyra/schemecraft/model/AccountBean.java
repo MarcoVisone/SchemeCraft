@@ -246,12 +246,20 @@ public class AccountBean implements Serializable {
         this.profileImagePath = profileImagePath;
     }
 
+    /**
+     * Inspects the image path fields and sets fallbacks to default assets if they are missing or empty.
+     */
     public void applyDefaultsIfMissing() {
-        if (this.bannerPath == null) {
+        if (this.bannerPath == null || this.bannerPath.trim().isEmpty()) {
             this.bannerPath = "uploads/banners/default-banner.png";
+        } else {
+            this.bannerPath = this.bannerPath.trim();
         }
-        if (this.profileImagePath == null) {
+
+        if (this.profileImagePath == null || this.profileImagePath.trim().isEmpty()) {
             this.profileImagePath = "uploads/avatars/default-avatar.png";
+        } else {
+            this.profileImagePath = this.profileImagePath.trim();
         }
     }
 
