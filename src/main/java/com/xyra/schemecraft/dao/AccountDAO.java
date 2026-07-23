@@ -309,6 +309,7 @@ public class AccountDAO extends BaseDAO {
      * @param newUsername The new username to be set for the account
      * @return true if the username update succeeded; false otherwise
      * @throws DAOException             if a database error occurs
+     * @throws DuplicateEntityException if the new username is already taken by another account
      * @throws IllegalArgumentException if the accountId or newUsername is null or empty
      */
     public boolean updateUsername(Connection conn, String accountId, String newUsername) throws DAOException {
@@ -334,6 +335,11 @@ public class AccountDAO extends BaseDAO {
             }
         } catch (SQLException e) {
             logger.error("Failed to update username for account ID: {}", accountId, e);
+            if (SQLSTATE_INTEGRITY_CONSTRAINT_VIOLATION.equals(e.getSQLState()) ||
+                    e.getErrorCode() == MYSQL_ERR_DUPLICATE_KEY) {
+                throw new DuplicateEntityException("Username already taken: " + newUsername,
+                        DuplicateEntityException.ConflictingField.USERNAME);
+            }
             throw new DAOException("Error updating account username", e);
         }
         return false;
