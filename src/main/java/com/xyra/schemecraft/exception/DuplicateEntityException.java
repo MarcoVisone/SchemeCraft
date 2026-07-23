@@ -9,6 +9,7 @@ public class DuplicateEntityException extends DAOException {
         ACCOUNT,
         USERNAME,
         EMAIL,
+        DEFAULT_PAYMENT_METHOD,
         UNKNOWN
     }
 

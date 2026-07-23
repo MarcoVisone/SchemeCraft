@@ -623,7 +623,7 @@ public class AccountService {
 
                 logger.info("Payment method {} added successfully for account: {}",
                         method.getPaymentMethodId(), request.accountId());
-            } catch (Exception e) {
+            } catch (SQLException | DAOException e) {
                 try {
                     conn.rollback();
                 } catch (SQLException rollbackEx) {
@@ -673,7 +673,7 @@ public class AccountService {
                 conn.commit();
                 logger.info("Payment method {} removed successfully (default promotion: {})",
                         paymentMethodId, wasDefault);
-            } catch (Exception e) {
+            } catch (SQLException | DAOException e) {
                 try {
                     conn.rollback();
                 } catch (SQLException rollbackEx) {
@@ -717,7 +717,7 @@ public class AccountService {
 
                 conn.commit();
                 logger.info("Payment method {} set as default for account {}", paymentMethodId, accountId);
-            } catch (Exception e) {
+            } catch (SQLException | DAOException e) {
                 try {
                     conn.rollback();
                 } catch (SQLException rollbackEx) {

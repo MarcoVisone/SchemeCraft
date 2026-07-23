@@ -70,7 +70,7 @@ public class PaymentMethodDAO extends BaseDAO {
             if (SQLSTATE_INTEGRITY_CONSTRAINT_VIOLATION.equals(e.getSQLState()) ||
                     e.getErrorCode() == MYSQL_ERR_DUPLICATE_KEY) {
                 throw new DuplicateEntityException("A default payment method already exists for Account ID: " +
-                        method.getAccountId(), e);
+                        method.getAccountId(), DuplicateEntityException.ConflictingField.DEFAULT_PAYMENT_METHOD);
             }
             throw new DAOException("Error occurred while inserting payment method", e);
         }
