@@ -2,6 +2,8 @@ package com.xyra.schemecraft.service;
 
 import com.xyra.schemecraft.connection.ConnectionPool;
 import com.xyra.schemecraft.dao.*;
+import com.xyra.schemecraft.dto.OrderAdminView;
+import com.xyra.schemecraft.dto.OrderSearchCriteria;
 import com.xyra.schemecraft.exception.*;
 import com.xyra.schemecraft.model.*;
 import com.xyra.schemecraft.service.gateway.ChargeResult;
@@ -159,6 +161,15 @@ public class OrderService {
                 }
                 closeConnection(connection);
             }
+        }
+    }
+
+    public List<OrderAdminView> searchOrders(OrderSearchCriteria criteria) throws ServiceException {
+        try (Connection connection = ConnectionPool.getConnection()) {
+            return orderDAO.searchOrdersForAdmin(connection, criteria);
+        } catch (DAOException | SQLException e) {
+            logger.error("Database error while searching orders with criteria: {}", criteria, e);
+            throw new ServiceException("Unable to search orders due to an internal error", e);
         }
     }
 
