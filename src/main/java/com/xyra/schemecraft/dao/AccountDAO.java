@@ -394,6 +394,11 @@ public class AccountDAO extends BaseDAO {
             }
         } catch (SQLException e) {
             logger.error("Failed to update email for account ID: {}", accountId, e);
+            if (SQLSTATE_INTEGRITY_CONSTRAINT_VIOLATION.equals(e.getSQLState()) ||
+                    e.getErrorCode() == MYSQL_ERR_DUPLICATE_KEY) {
+                throw new DuplicateEntityException("Email already registered: " + newEmail,
+                        DuplicateEntityException.ConflictingField.EMAIL);
+            }
             throw new DAOException("Error updating account email", e);
         }
         return false;
