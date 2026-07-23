@@ -32,7 +32,6 @@ public class AccountService {
     private static final ValidatorFactory validatorFactory = Validation.buildDefaultValidatorFactory();
     private static final Validator validator = validatorFactory.getValidator();
     private static final String DUMMY_HASH =  "$2a$12$R9h/cIPz0gi.URNNX3kh2OPST9/PgBkqquzi.Ss7KIUgO3t0Rejsq";
-    private static final ConcurrentHashMap<String, Boolean> addressLocks = new ConcurrentHashMap<>();
 
     private final AccountDAO accountDAO;
     private final AddressDAO addressDAO;
@@ -344,7 +343,8 @@ public class AccountService {
                 throw new ServiceException("Failed to update profile.");
             }
         } catch (SQLException | DAOException e) {
-            logger.error("Database connection error while updating profile for account {}", updatedAccount.accountId(), e);
+            logger.error("Database connection error while updating profile for account {}"
+                    , updatedAccount.accountId(), e);
             throw new ServiceException("Internal database error occurred", e);
         }
     }
@@ -395,10 +395,6 @@ public class AccountService {
 
         String accountId = address.getAccountId();
 
-        if (addressLocks.putIfAbsent(accountId, Boolean.TRUE) != null) {
-            throw new DuplicateEntityException("An address operation for this account is already being processed.");
-        }
-
         try (Connection conn = ConnectionPool.getConnection()) {
             conn.setAutoCommit(false);
             boolean success = false;
@@ -421,9 +417,6 @@ public class AccountService {
 
                 logger.info("Address {} added successfully for account: {}", address.getAddressId(), accountId);
 
-            } catch (DuplicateEntityException e) {
-                logger.warn("Duplicate default address conflict for account {}: {}", accountId, e.getMessage());
-                throw new ServiceException(e.getMessage(), e);
             } finally {
                 if (!success) {
                     try {
@@ -437,8 +430,6 @@ public class AccountService {
         } catch (SQLException | DAOException e) {
             logger.error("Database connection error while adding address for account {}", accountId, e);
             throw new ServiceException("Internal database error occurred", e);
-        } finally {
-            addressLocks.remove(accountId);
         }
     }
 
@@ -599,7 +590,8 @@ public class AccountService {
                 } else if (method.isDefault()) {
                     Optional<PaymentMethodBean> currentDefault =
                             paymentMethodDAO.findDefaultByAccountId(conn, request.accountId());
-                    currentDefault.ifPresent(pm -> paymentMethodDAO
+                    currentDefault
+                            .ifPresent(pm -> paymentMethodDAO
                             .unsetDefault(conn, pm.getPaymentMethodId()));
                 }
 
