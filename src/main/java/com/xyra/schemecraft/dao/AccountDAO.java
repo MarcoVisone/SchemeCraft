@@ -12,6 +12,7 @@ import java.util.Optional;
 import com.xyra.schemecraft.exception.DAOException;
 import com.xyra.schemecraft.exception.DuplicateEntityException;
 import com.xyra.schemecraft.model.AccountBean;
+import com.xyra.schemecraft.model.ProfileUpdateRequest;
 
 import static com.xyra.schemecraft.constant.DatabaseConstants.*;
 
@@ -63,7 +64,8 @@ public class AccountDAO extends BaseDAO {
             logger.error("Failed to insert account with Username: {}", account.getUsername(), e);
             if (SQLSTATE_INTEGRITY_CONSTRAINT_VIOLATION.equals(e.getSQLState()) ||
                     e.getErrorCode() == MYSQL_ERR_DUPLICATE_KEY) {
-                throw new DuplicateEntityException("Username or Email already exists: " + account.getUsername(), e);
+                throw new DuplicateEntityException("Username or Email already exists: " + account.getUsername(),
+                        DuplicateEntityException.ConflictingField.UNKNOWN);
             }
             throw new DAOException("Error occurred while inserting account", e);
         }
@@ -462,66 +464,72 @@ public class AccountDAO extends BaseDAO {
     }
 
     /**
-     * Updates the banner path, bio, and profile image path of an Account using its unique ID.
+     * Dynamically updates only the non-null fields provided in the {@link ProfileUpdateRequest}.
      *
-     * @param conn       Active database connection
-     * @param accountId        Unique identifier of the target account
-     * @param bannerPath       The new path to the banner image
-     * @param bio              The new biography text for the account
-     * @param profileImagePath The new path to the profile image
-     * @return true if the update succeeded; false otherwise
-     * @throws DAOException             if a database error occurs
-     * @throws IllegalArgumentException if any of the parameters are null or empty
+     * @param conn    the active database connection
+     * @param request payload containing the fields to update and the target account identifier
+     * @return true if the record was successfully updated in the database; false otherwise
+     * @throws DAOException             if a database access error occurs during execution
+     * @throws IllegalArgumentException if the request is null
      */
-    public boolean softUpdate(Connection conn, String accountId, String bannerPath, String bio, String profileImagePath)
-            throws DAOException {
-        if (accountId == null || accountId.trim().isEmpty()) {
-            throw new IllegalArgumentException("Account ID cannot be null or empty");
-        }
-        if (bannerPath == null || bannerPath.trim().isEmpty()) {
-            throw new IllegalArgumentException("Banner path cannot be null or empty");
-        }
-        if (profileImagePath == null || profileImagePath.trim().isEmpty()) {
-            throw new IllegalArgumentException("Profile image path cannot be null or empty");
+    public boolean softUpdate(Connection conn, ProfileUpdateRequest request) throws DAOException {
+        if (request == null) {
+            throw new IllegalArgumentException("request cannot be null");
         }
 
-        String sql = "UPDATE account SET banner_path = ?, bio =  ?, profile_image_path = ? WHERE account_id = ?";
+        List<String> setClauses = new ArrayList<>();
+        List<Object> parameters = new ArrayList<>();
+
+        if (request.countryId() != null) {
+            setClauses.add("country_id = ?");
+            parameters.add(request.countryId());
+        }
+
+        if (request.currencyId() != null) {
+            setClauses.add("currency_id = ?");
+            parameters.add(request.currencyId());
+        }
+
+        if (request.languageId() != null) {
+            setClauses.add("language_id = ?");
+            parameters.add(request.languageId());
+        }
+
+        if (request.bannerPath() != null) {
+            setClauses.add("banner_path = ?");
+            parameters.add(request.bannerPath());
+        }
+
+        if (request.bio() != null) {
+            setClauses.add("bio = ?");
+            parameters.add(request.bio());
+        }
+
+        if (request.profileImagePath() != null) {
+            setClauses.add("profile_image_path = ?");
+            parameters.add(request.profileImagePath());
+        }
+
+        if (setClauses.isEmpty()) {
+            return false;
+        }
+
+        String sql = "UPDATE account_profile SET " + String.join(", ", setClauses) + " WHERE account_id = ?";
 
         try (PreparedStatement ps = conn.prepareStatement(sql)) {
-            ps.setString(1, bannerPath);
-            ps.setString(2, bio);
-            ps.setString(3, profileImagePath);
-            ps.setString(4, accountId);
+            int paramIndex = 1;
+            for (Object param : parameters) {
+                ps.setObject(paramIndex++, param);
+            }
+
+            ps.setString(paramIndex, request.accountId());
 
             int rowsAffected = ps.executeUpdate();
-            if (rowsAffected > 0) {
-                logger.info("Account with ID: {} successfully updated with new banner and profile image", accountId);
-                return true;
-            } else {
-                logger.warn("Soft update issued for non-existent account ID: {}", accountId);
-            }
-        } catch (SQLException e) {
-            logger.error("Failed to perform soft update for account with ID: {}", accountId, e);
-            throw new DAOException("Error performing soft update on account", e);
-        }
-        return false;
-    }
+            return rowsAffected > 0;
 
-    /**
-     * Updates the banner path, bio, and profile image path of an Account using its domain model representation.
-     *
-     * @param conn    Active database connection
-     * @param account The model containing the target account's identifier and new details
-     * @return true if the update succeeded; false otherwise
-     * @throws DAOException             if a database error occurs
-     * @throws IllegalArgumentException if the account is null or does not have a valid ID
-     */
-    public boolean softUpdate(Connection conn, AccountBean account) throws DAOException {
-        if (account == null || account.getAccountId() == null || account.getPasswordHash() == null) {
-            throw new IllegalArgumentException("Account ID and password hash cannot be null");
+        } catch (SQLException e) {
+            throw new DAOException("Failed to perform soft update for accountId: " + request.accountId(), e);
         }
-        return softUpdate(conn, account.getAccountId(), account.getBannerPath(), account.getBio(),
-                account.getProfileImagePath());
     }
 
     /**
