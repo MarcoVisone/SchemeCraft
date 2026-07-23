@@ -237,33 +237,25 @@ public class AccountService {
         }
 
         try (Connection conn = ConnectionPool.getConnection()) {
-            AccountBean account = accountDAO.findById(conn, accountId)
-                    .orElseThrow(() -> new EntityNotFoundException("Account not found.",
-                            EntityNotFoundException.EntityType.ACCOUNT));
+            AccountBean account = entityValidator.validateActiveAccount(conn, accountId);
 
             String storedHash = account.getPasswordHash();
-            if (storedHash == null || storedHash.isEmpty()) {
+            if(storedHash == null || storedHash.isEmpty()) {
                 throw new ServiceException("Account has no password hash.");
             }
 
-            if (!BCrypt.checkpw(oldPassword, storedHash)) {
+            if(!BCrypt.checkpw(oldPassword, storedHash)) {
                 throw new BadCredentialsException("Invalid credentials.");
-            }
-
-            if (BCrypt.checkpw(newPassword, storedHash)) {
-                throw new BadCredentialsException("New password must be different from the old one.");
             }
 
             String newHash = BCrypt.hashpw(newPassword, BCrypt.gensalt(BCRYPT_WORKLOAD));
 
-            account.setPasswordHash(newHash);
-            boolean updated = accountDAO.update(conn, account);
-            if (!updated) {
+            boolean updated = accountDAO.updatePassword(conn, accountId, newHash);
+            if(!updated) {
                 logger.error("Password update failed unexpectedly for account {}", accountId);
                 throw new ServiceException("Failed to update password.");
             }
             logger.info("Password changed for account {}", accountId);
-
         } catch (SQLException | DAOException e) {
             logger.error("Database error during password change", e);
             throw new ServiceException("Internal database error occurred", e);
