@@ -300,6 +300,114 @@ public class AccountDAO extends BaseDAO {
     }
 
     /**
+     * Updates only the username parameter of an Account.
+     *
+     * @param conn        Active database connection
+     * @param accountId   Unique identifier of the target account
+     * @param newUsername The new username to be set for the account
+     * @return true if the username update succeeded; false otherwise
+     * @throws DAOException             if a database error occurs
+     * @throws IllegalArgumentException if the accountId or newUsername is null or empty
+     */
+    public boolean updateUsername(Connection conn, String accountId, String newUsername) throws DAOException {
+        if (accountId == null || accountId.trim().isEmpty()) {
+            throw new IllegalArgumentException("Account ID cannot be null or empty");
+        }
+        if (newUsername == null || newUsername.trim().isEmpty()) {
+            throw new IllegalArgumentException("New username cannot be null or empty");
+        }
+
+        String sql = "UPDATE account SET username = ? WHERE account_id = ?";
+
+        try (PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setString(1, newUsername);
+            ps.setString(2, accountId);
+
+            int rowsAffected = ps.executeUpdate();
+            if (rowsAffected > 0) {
+                logger.info("Username successfully updated for account ID: {}", accountId);
+                return true;
+            } else {
+                logger.warn("Username update issued for non-existent account ID: {}", accountId);
+            }
+        } catch (SQLException e) {
+            logger.error("Failed to update username for account ID: {}", accountId, e);
+            throw new DAOException("Error updating account username", e);
+        }
+        return false;
+    }
+
+    /**
+     * Updates only the username parameter of an Account using its domain model representation.
+     *
+     * @param conn    Active database connection
+     * @param account The model containing the target account's identifier and new username
+     * @return true if the username update succeeded; false otherwise
+     * @throws DAOException             if a database error occurs
+     * @throws IllegalArgumentException if the account is null or does not have a valid ID
+     */
+    public boolean updateUsername(Connection conn, AccountBean account) throws DAOException {
+        if (account == null || account.getAccountId() == null || account.getUsername() == null) {
+            throw new IllegalArgumentException("Account ID and username cannot be null");
+        }
+        return updateUsername(conn, account.getAccountId(), account.getUsername());
+    }
+
+    /**
+     * Updates only the email parameter of an Account.
+     *
+     * @param conn      Active database connection
+     * @param accountId Unique identifier of the target account
+     * @param newEmail  The new email address to be set for the account
+     * @return true if the email update succeeded; false otherwise
+     * @throws DAOException             if a database error occurs
+     * @throws IllegalArgumentException if the accountId or newEmail is null or empty
+     */
+    public boolean updateEmail(Connection conn, String accountId, String newEmail) throws DAOException {
+        if (accountId == null || accountId.trim().isEmpty()) {
+            throw new IllegalArgumentException("Account ID cannot be null or empty");
+        }
+        if (newEmail == null || newEmail.trim().isEmpty()) {
+            throw new IllegalArgumentException("New email cannot be null or empty");
+        }
+
+        String sql = "UPDATE account SET email = ? WHERE account_id = ?";
+
+        try (PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setString(1, newEmail);
+            ps.setString(2, accountId);
+
+            int rowsAffected = ps.executeUpdate();
+            if (rowsAffected > 0) {
+                logger.info("Email successfully updated for account ID: {}", accountId);
+                return true;
+            } else {
+                logger.warn("Email update issued for non-existent account ID: {}", accountId);
+            }
+        } catch (SQLException e) {
+            logger.error("Failed to update email for account ID: {}", accountId, e);
+            throw new DAOException("Error updating account email", e);
+        }
+        return false;
+    }
+
+    /**
+     * Updates only the email parameter of an Account using its domain model representation.
+     *
+     * @param conn    Active database connection
+     * @param account The model containing the target account's identifier and new email
+     * @return true if the email update succeeded; false otherwise
+     * @throws DAOException             if a database error occurs
+     * @throws IllegalArgumentException if the account is null or does not have a valid ID
+     */
+    public boolean updateEmail(Connection conn, AccountBean account) throws DAOException {
+        if (account == null || account.getAccountId() == null || account.getEmail() == null) {
+            throw new IllegalArgumentException("Account ID and/or email cannot be null");
+        }
+        return updateEmail(conn, account.getAccountId(), account.getEmail());
+    }
+
+    /**
      * Updates only the password hash parameter of an Account.
      *
      * @param conn            Active database connection
@@ -310,9 +418,11 @@ public class AccountDAO extends BaseDAO {
      * @throws IllegalArgumentException if the accountId is null or empty, or if the newPasswordHash is null or empty
      */
     public boolean updatePassword(Connection conn, String accountId, String newPasswordHash) throws DAOException {
-        if (accountId == null || accountId.trim().isEmpty() ||
-                newPasswordHash == null || newPasswordHash.trim().isEmpty()) {
-            throw new IllegalArgumentException("Account ID and password hash cannot be null or empty");
+        if (accountId == null || accountId.trim().isEmpty()) {
+            throw new IllegalArgumentException("Account ID cannot be null or empty");
+        }
+        if (newPasswordHash == null || newPasswordHash.trim().isEmpty()) {
+            throw new IllegalArgumentException("New password hash cannot be null or empty");
         }
 
         String sql = "UPDATE account SET password_hash = ? WHERE account_id = ?";
@@ -333,6 +443,85 @@ public class AccountDAO extends BaseDAO {
             throw new DAOException("Error updating account password", e);
         }
         return false;
+    }
+
+    /**
+     * Updates only the password hash parameter of an Account using its domain model representation.
+     *
+     * @param conn    Active database connection
+     * @param account The model containing the target account's identifier and new password hash
+     * @return true if the password update succeeded; false otherwise
+     * @throws DAOException             if a database error occurs
+     * @throws IllegalArgumentException if the account is null or does not have a valid ID
+     */
+    public boolean updatePassword(Connection conn, AccountBean account) throws DAOException {
+        if (account == null || account.getAccountId() == null || account.getPasswordHash() == null) {
+            throw new IllegalArgumentException("Account and its ID and password hash cannot be null");
+        }
+        return updatePassword(conn, account.getAccountId(), account.getPasswordHash());
+    }
+
+    /**
+     * Updates the banner path, bio, and profile image path of an Account using its unique ID.
+     *
+     * @param conn       Active database connection
+     * @param accountId        Unique identifier of the target account
+     * @param bannerPath       The new path to the banner image
+     * @param bio              The new biography text for the account
+     * @param profileImagePath The new path to the profile image
+     * @return true if the update succeeded; false otherwise
+     * @throws DAOException             if a database error occurs
+     * @throws IllegalArgumentException if any of the parameters are null or empty
+     */
+    public boolean softUpdate(Connection conn, String accountId, String bannerPath, String bio, String profileImagePath)
+            throws DAOException {
+        if (accountId == null || accountId.trim().isEmpty()) {
+            throw new IllegalArgumentException("Account ID cannot be null or empty");
+        }
+        if (bannerPath == null || bannerPath.trim().isEmpty()) {
+            throw new IllegalArgumentException("Banner path cannot be null or empty");
+        }
+        if (profileImagePath == null || profileImagePath.trim().isEmpty()) {
+            throw new IllegalArgumentException("Profile image path cannot be null or empty");
+        }
+
+        String sql = "UPDATE account SET banner_path = ?, bio =  ?, profile_image_path = ? WHERE account_id = ?";
+
+        try (PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setString(1, bannerPath);
+            ps.setString(2, bio);
+            ps.setString(3, profileImagePath);
+            ps.setString(4, accountId);
+
+            int rowsAffected = ps.executeUpdate();
+            if (rowsAffected > 0) {
+                logger.info("Account with ID: {} successfully updated with new banner and profile image", accountId);
+                return true;
+            } else {
+                logger.warn("Soft update issued for non-existent account ID: {}", accountId);
+            }
+        } catch (SQLException e) {
+            logger.error("Failed to perform soft update for account with ID: {}", accountId, e);
+            throw new DAOException("Error performing soft update on account", e);
+        }
+        return false;
+    }
+
+    /**
+     * Updates the banner path, bio, and profile image path of an Account using its domain model representation.
+     *
+     * @param conn    Active database connection
+     * @param account The model containing the target account's identifier and new details
+     * @return true if the update succeeded; false otherwise
+     * @throws DAOException             if a database error occurs
+     * @throws IllegalArgumentException if the account is null or does not have a valid ID
+     */
+    public boolean softUpdate(Connection conn, AccountBean account) throws DAOException {
+        if (account == null || account.getAccountId() == null || account.getPasswordHash() == null) {
+            throw new IllegalArgumentException("Account ID and password hash cannot be null");
+        }
+        return softUpdate(conn, account.getAccountId(), account.getBannerPath(), account.getBio(),
+                account.getProfileImagePath());
     }
 
     /**
