@@ -1,13 +1,24 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <Context>
-    <Resource name="jdbc/schemecraftdb"
+    <!--
+      JNDI Resource Configuration for SchemeCraft Database Connection Pool.
+      Managed directly by Tomcat Application Server container.
+    -->
+    <Resource name="jdbc/SchemeCraftDB"
               auth="Container"
               type="javax.sql.DataSource"
+              factory="org.apache.tomcat.jdbc.pool.DataSourceFactory"
+              maxTotal="100"
+              maxIdle="30"
+              minIdle="10"
+              maxWaitMillis="10000"
+              initialSize="10"
+              removeAbandonedOnBorrow="true"
+              removeAbandonedTimeout="60"
+              validationQuery="SELECT 1"
+              testOnBorrow="true"
               driverClassName="com.mysql.cj.jdbc.Driver"
-              url="jdbc:mysql://localhost:3606/schemecraftdb?allowPublicKeyRetrieval=true&amp;useSSL=false&amp;serverTimezone=UTC"
+              url="jdbc:mysql://localhost:3306/schemecraft_db?useSSL=false&amp;allowPublicKeyRetrieval=true&amp;serverTimezone=UTC&amp;characterEncoding=UTF-8"
               username="IlTuoUsername"
-              password="LaTuaPassword"
-              maxTotal="20"
-              maxIdle="10"
-              maxWaitMillis="-1"/>
+              password="LaTuaPassword"/>
 </Context>

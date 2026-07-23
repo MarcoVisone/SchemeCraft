@@ -49,8 +49,8 @@ CREATE TABLE IF NOT EXISTS payment_method_type (
 -- Registered users and administrators credentials and preferences
 CREATE TABLE IF NOT EXISTS account (
     account_id VARCHAR(36) PRIMARY KEY,
-    username VARCHAR(50) NOT NULL UNIQUE,
-    email VARCHAR(100) NOT NULL UNIQUE,
+    username VARCHAR(50) NOT NULL,
+    email VARCHAR(100) NOT NULL,
     country_id VARCHAR(3) NULL,
     currency_id VARCHAR(3) NULL,
     language_id VARCHAR(3) NULL,
@@ -146,6 +146,8 @@ CREATE TABLE IF NOT EXISTS product_image (
     image_id VARCHAR(36) PRIMARY KEY,
     product_id VARCHAR(36) NOT NULL,
     image_path VARCHAR(255) NOT NULL,
+    display_order INT DEFAULT 0 NOT NULL,
+    CONSTRAINT uq_product_image_order UNIQUE (product_id, display_order),
     CONSTRAINT fk_product_image_product FOREIGN KEY (product_id) REFERENCES product(product_id)
         ON DELETE CASCADE ON UPDATE CASCADE,
     INDEX idx_image_product (product_id)
@@ -174,7 +176,7 @@ CREATE TABLE IF NOT EXISTS product_version (
 CREATE TABLE IF NOT EXISTS category (
     category_id VARCHAR(36) PRIMARY KEY,
     category_name VARCHAR(100) NOT NULL UNIQUE,
-    parent_category_id VARCHAR(100) NULL,
+    parent_category_id VARCHAR(36) NULL,
     description TEXT,
     CONSTRAINT fk_category_parent FOREIGN KEY (parent_category_id) REFERENCES category(category_id)
         ON DELETE SET NULL ON UPDATE CASCADE

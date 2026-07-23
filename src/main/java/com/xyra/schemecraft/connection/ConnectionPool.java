@@ -18,7 +18,7 @@ import org.slf4j.LoggerFactory;
 public final class ConnectionPool {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(ConnectionPool.class);
-    private static final String JNDI_LOOKUP_PATH = "java:comp/env/jdbc/schemecraftdb";
+    private static final String JNDI_LOOKUP_PATH = "java:comp/env/jdbc/SchemeCraftDB";
     private static final DataSource dataSource;
 
     static {
@@ -27,7 +27,7 @@ public final class ConnectionPool {
             dataSource = (DataSource) ctx.lookup(JNDI_LOOKUP_PATH);
             LOGGER.info("JNDI DataSource successfully bound from path: {}", JNDI_LOOKUP_PATH);
         } catch (NamingException e) {
-            String errorMessage = "CRITICAL: Failed to locate JNDI DataSource 'jdbc/schemecraftdb'. " +
+            String errorMessage = "CRITICAL: Failed to locate JNDI DataSource at path '" + JNDI_LOOKUP_PATH + "'. " +
                     "Verify that the Resource is correctly declared in your 'context.xml' or 'server.xml', " +
                     "and that the servlet container's library folder contains the MySQL JDBC Driver.";
             LOGGER.error(errorMessage, e);

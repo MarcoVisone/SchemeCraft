@@ -24,6 +24,12 @@ public final class DatabaseConstants {
     public static final int MYSQL_ERR_ROW_IS_REFERENCED = 1451;
 
     /**
+     * MySQL Error Code: 1217 (ER_ROW_IS_REFERENCED).
+     * Legacy error code for foreign key deletion failures.
+     */
+    public static final int MYSQL_ERR_ROW_IS_REFERENCED_LEGACY = 1217;
+
+    /**
      * MySQL Error Code: 1452 (ER_NO_REFERENCED_ROW_2).
      * Occurs when trying to insert or update a child row with a foreign key value that does not exist
      * in the parent table.
@@ -35,12 +41,6 @@ public final class DatabaseConstants {
      * Legacy error code for foreign key insertion failures.
      */
     public static final int MYSQL_ERR_NO_REFERENCED_ROW_LEGACY = 1216;
-
-    /**
-     * MySQL Error Code: 1217 (ER_ROW_IS_REFERENCED).
-     * Legacy error code for foreign key deletion failures.
-     */
-    public static final int MYSQL_ERR_ROW_IS_REFERENCED_LEGACY = 1217;
 
     /**
      * Private constructor to prevent instantiation of this constant utility class.
