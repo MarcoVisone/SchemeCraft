@@ -18,13 +18,9 @@ import org.slf4j.LoggerFactory;
 import javax.validation.*;
 import java.sql.Connection;
 import java.sql.SQLException;
-import java.sql.SQLIntegrityConstraintViolationException;
 import java.util.List;
 import java.util.Optional;
-import java.util.Set;
 import java.util.UUID;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ScheduledExecutorService;
 
 public class AccountService {
     private static final Logger logger = LoggerFactory.getLogger(AccountService.class);
@@ -126,95 +122,50 @@ public class AccountService {
         }
 
         try (Connection conn = ConnectionPool.getConnection()) {
-            try {
-                entityValidator.validateActiveCountry(conn, request.countryId());
-                entityValidator.validateActiveCurrency(conn, request.currencyId());
-                entityValidator.validateLanguage(conn, request.languageId());
+            entityValidator.validateActiveCountry(conn, request.countryId());
+            entityValidator.validateActiveCurrency(conn, request.currencyId());
+            entityValidator.validateLanguage(conn, request.languageId());
 
-                String passwordHash = BCrypt.hashpw(request.plainTextPassword(), BCrypt.gensalt(BCRYPT_WORKLOAD));
+            String passwordHash = BCrypt.hashpw(request.plainTextPassword(), BCrypt.gensalt(BCRYPT_WORKLOAD));
 
-                AccountBean account = new AccountBean();
-                account.setAccountId(java.util.UUID.randomUUID().toString());
-                account.setUsername(request.username().trim());
-                account.setEmail(request.email().trim().toLowerCase());
-                account.setPasswordHash(passwordHash);
-                account.setCountryId(request.countryId());
-                account.setLanguageId(request.languageId());
-                account.setCurrencyId(request.currencyId());
-                account.setBio(request.bio());
-                account.setBannerPath(request.bannerPath());
-                account.setProfileImagePath(request.profileImagePath());
-                account.applyDefaultsIfMissing();
+            AccountBean account = new AccountBean();
+            account.setAccountId(java.util.UUID.randomUUID().toString());
+            account.setUsername(request.username().trim());
+            account.setEmail(request.email().trim().toLowerCase());
+            account.setPasswordHash(passwordHash);
+            account.setCountryId(request.countryId());
+            account.setLanguageId(request.languageId());
+            account.setCurrencyId(request.currencyId());
+            account.setBio(request.bio());
+            account.setBannerPath(request.bannerPath());
+            account.setProfileImagePath(request.profileImagePath());
+            account.applyDefaultsIfMissing();
 
-                account.setAdmin(false);
-                account.setActive(true);
+            account.setAdmin(false);
+            account.setActive(true);
 
-                accountDAO.insert(conn, account);
+            accountDAO.insert(conn, account);
 
-                logger.info("Account registered successfully with ID: {}", account.getAccountId());
+            logger.info("Account registered successfully with ID: {}", account.getAccountId());
 
-                return new AccountRegistrationResponse(
-                        account.getAccountId(),
-                        account.getUsername(),
-                        account.getEmail(),
-                        account.getCountryId(),
-                        account.getLanguageId(),
-                        account.getCurrencyId(),
-                        account.getBio(),
-                        account.getBannerPath(),
-                        account.getProfileImagePath(),
-                        account.isAdmin(),
-                        account.isActive()
-                );
+            return new AccountRegistrationResponse(
+                    account.getAccountId(),
+                    account.getUsername(),
+                    account.getEmail(),
+                    account.getCountryId(),
+                    account.getLanguageId(),
+                    account.getCurrencyId(),
+                    account.getBio(),
+                    account.getBannerPath(),
+                    account.getProfileImagePath(),
+                    account.isAdmin(),
+                    account.isActive()
+            );
 
-            } catch (SQLIntegrityConstraintViolationException e) {
-                try {
-                    conn.rollback();
-                } catch (SQLException rollbackEx) {
-                    logger.error("Rollback failed after constraint violation", rollbackEx);
-                }
-
-                String conflictingUsername = request.username().trim();
-                String conflictingEmail = request.email().trim().toLowerCase();
-                DuplicateEntityException.ConflictingField field;
-                String userMessage;
-
-                try {
-                    boolean usernameExists = accountDAO.findByUsername(conn, conflictingUsername).isPresent();
-                    boolean emailExists = accountDAO.findByEmail(conn, conflictingEmail).isPresent();
-
-                    if (usernameExists && emailExists) {
-                        field = DuplicateEntityException.ConflictingField.ACCOUNT;
-                        userMessage = "Username and email already registered";
-                    } else if (usernameExists) {
-                        field = DuplicateEntityException.ConflictingField.USERNAME;
-                        userMessage = "Username already taken";
-                    } else if (emailExists) {
-                        field = DuplicateEntityException.ConflictingField.EMAIL;
-                        userMessage = "Email already registered";
-                    } else {
-                        field = DuplicateEntityException.ConflictingField.UNKNOWN;
-                        userMessage = "Registration failed due to constraint violation";
-                    }
-                } catch (DAOException lookupEx) {
-                    logger.error("Failed to determine conflicting field after constraint violation", lookupEx);
-                    field = DuplicateEntityException.ConflictingField.UNKNOWN;
-                    userMessage = "Registration failed due to constraint violation";
-                }
-
-                throw new DuplicateEntityException(userMessage, field);
-
-            } catch (SQLException | DAOException e) {
-                try {
-                    conn.rollback();
-                } catch (SQLException rollbackEx) {
-                    logger.error("Rollback failed", rollbackEx);
-                    e.addSuppressed(rollbackEx);
-                }
-                throw e;
-            }
+        } catch (DuplicateEntityException | EntityNotFoundException | InactiveEntityException e) {
+            throw e;
         } catch (SQLException | DAOException e) {
-            logger.error("Database connection error during registration for username: {}", request.username(), e);
+            logger.error("Database error during registration for username: {}", request.username(), e);
             throw new ServiceException("Internal database error occurred", e);
         }
     }
@@ -269,7 +220,7 @@ public class AccountService {
         try (Connection conn = ConnectionPool.getConnection()) {
             return accountDAO.findByEmail(conn, email).isPresent();
         } catch (SQLException | DAOException e) {
-            logger.error("Database error while checking email existence");
+            logger.error("Database error while checking email existence", e);
             throw new ServiceException("Internal database error occurred", e);
         }
     }
@@ -282,10 +233,63 @@ public class AccountService {
         try (Connection conn = ConnectionPool.getConnection()) {
             return accountDAO.findByUsername(conn, username).isPresent();
         } catch (SQLException | DAOException e) {
-            logger.error("Database error while checking username existence");
+            logger.error("Database error while checking username existence", e);
             throw new ServiceException("Internal database error occurred", e);
         }
     }
+
+    public void changeUsername(String accountId, String newUsername) throws EntityNotFoundException {
+        if (accountId == null || accountId.isBlank()) {
+            throw new IllegalArgumentException("Account ID cannot be null or blank");
+        }
+        if (newUsername == null || newUsername.isBlank()) {
+            throw new IllegalArgumentException("New username cannot be null or blank");
+        }
+
+        try (Connection conn = ConnectionPool.getConnection()) {
+            entityValidator.validateActiveAccount(conn, accountId);
+
+            boolean updated = accountDAO.updateUsername(conn, accountId, newUsername.trim());
+            if (updated) {
+                logger.info("Username changed successfully for account: {}", accountId);
+            } else {
+                logger.error("Username update failed for account {}", accountId);
+                throw new ServiceException("Failed to update username.");
+            }
+        } catch (DuplicateEntityException | EntityNotFoundException e) {
+            throw e;
+        } catch (SQLException | DAOException e) {
+            logger.error("Database connection error while changing username for account {}", accountId, e);
+            throw new ServiceException("Internal database error occurred", e);
+        }
+    }
+
+    public void changeEmail(String accountId, String newEmail) throws EntityNotFoundException {
+        if (accountId == null || accountId.isBlank()) {
+            throw new IllegalArgumentException("Account ID cannot be null or blank");
+        }
+        if (newEmail == null || newEmail.isBlank()) {
+            throw new IllegalArgumentException("New email cannot be null or blank");
+        }
+
+        try (Connection conn = ConnectionPool.getConnection()) {
+            entityValidator.validateActiveAccount(conn, accountId);
+
+            boolean updated = accountDAO.updateEmail(conn, accountId, newEmail.trim().toLowerCase());
+            if (updated) {
+                logger.info("Email changed successfully for account: {}", accountId);
+            } else {
+                logger.error("Email update failed for account {}", accountId);
+                throw new ServiceException("Failed to update email.");
+            }
+        } catch (DuplicateEntityException | EntityNotFoundException e) {
+            throw e;
+        } catch (SQLException | DAOException e) {
+            logger.error("Database connection error while changing email for account {}", accountId, e);
+            throw new ServiceException("Internal database error occurred", e);
+        }
+    }
+
 
     public AccountBean getAccountById(String accountId) throws EntityNotFoundException {
         if (accountId == null || accountId.isBlank()) {
@@ -304,47 +308,44 @@ public class AccountService {
         }
     }
 
-    public void updateProfile(ProfileUpdateRequest updatedAccount) throws EntityNotFoundException {
+    public void updateProfile(ProfileUpdateRequest updatedAccount) throws EntityNotFoundException, ServiceException {
         if (updatedAccount == null) {
             throw new IllegalArgumentException("ProfileUpdateRequest cannot be null");
         }
+
         if (updatedAccount.accountId() == null || updatedAccount.accountId().isBlank()) {
             throw new ServiceException("Invalid account ID.");
         }
 
+        if (updatedAccount.countryId() == null && updatedAccount.currencyId() == null &&
+                updatedAccount.languageId() == null && updatedAccount.bannerPath() == null &&
+                updatedAccount.bio() == null && updatedAccount.profileImagePath() == null) {
+            throw new ServiceException("At least one profile field must be provided for update.");
+        }
+
         try (Connection conn = ConnectionPool.getConnection()) {
-            AccountBean account = entityValidator.validateActiveAccount(conn, updatedAccount.accountId());
+            entityValidator.validateActiveAccount(conn, updatedAccount.accountId());
 
-            boolean modified = false;
-
-            if (updatedAccount.bannerPath() != null) {
-                account.setBannerPath(updatedAccount.bannerPath().isBlank() ? null : updatedAccount.bannerPath());
-                modified = true;
+            if (updatedAccount.countryId() != null) {
+                entityValidator.validateActiveCountry(conn, updatedAccount.countryId());
             }
-            if (updatedAccount.profileImagePath() != null) {
-                account.setProfileImagePath(updatedAccount.profileImagePath().isBlank() ? null : updatedAccount.profileImagePath());
-                modified = true;
+            if (updatedAccount.currencyId() != null) {
+                entityValidator.validateActiveCurrency(conn, updatedAccount.currencyId());
             }
-            if (updatedAccount.bio() != null) {
-                account.setBio(updatedAccount.bio().isBlank() ? null : updatedAccount.bio());
-                modified = true;
+            if (updatedAccount.languageId() != null) {
+                entityValidator.validateLanguage(conn, updatedAccount.languageId());
             }
 
-            if (!modified) {
-                throw new ServiceException("At least one profile field must be provided for update.");
-            }
-
-            account.applyDefaultsIfMissing();
-
-            if (accountDAO.update(conn, account)) {
+            boolean updated = accountDAO.softUpdate(conn, updatedAccount);
+            if (updated) {
                 logger.info("Profile updated successfully for account: {}", updatedAccount.accountId());
             } else {
                 logger.error("Profile update failed for account {}", updatedAccount.accountId());
                 throw new ServiceException("Failed to update profile.");
             }
         } catch (SQLException | DAOException e) {
-            logger.error("Database connection error while updating profile for account {}"
-                    , updatedAccount.accountId(), e);
+            logger.error("Database connection error while updating profile for account {}",
+                    updatedAccount.accountId(), e);
             throw new ServiceException("Internal database error occurred", e);
         }
     }
@@ -363,6 +364,24 @@ public class AccountService {
             }
         } catch (SQLException | DAOException e) {
             logger.error("Database connection error while deactivating account {}", accountId, e);
+            throw new ServiceException("Internal database error occurred", e);
+        }
+    }
+
+    public void reactivateAccount(String accountId) throws EntityNotFoundException {
+        if (accountId == null || accountId.isBlank()) {
+            throw new IllegalArgumentException("Account ID cannot be null or blank");
+        }
+
+        try (Connection conn = ConnectionPool.getConnection()) {
+            if (accountDAO.activate(conn, accountId)) {
+                logger.info("Account reactivated successfully for account: {}", accountId);
+            } else {
+                logger.error("Failed to reactivate account for account {}", accountId);
+                throw new ServiceException("Failed to reactivate account.");
+            }
+        } catch (SQLException | DAOException e) {
+            logger.error("Database connection error while reactivating account {}", accountId, e);
             throw new ServiceException("Internal database error occurred", e);
         }
     }
@@ -403,7 +422,7 @@ public class AccountService {
                 entityValidator.validateActiveAccount(conn, accountId);
                 entityValidator.validateActiveCountry(conn, address.getCountryId());
 
-                boolean isFirstAddress = addressDAO.findAllByAccountId(conn, accountId).isEmpty();
+                boolean isFirstAddress = addressDAO.findAllActiveByAccountId(conn, accountId).isEmpty();
                 if (isFirstAddress) {
                     address.setDefault(true);
                 } else if (address.isDefault()) {
