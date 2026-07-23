@@ -514,7 +514,7 @@ public class AccountDAO extends BaseDAO {
             return false;
         }
 
-        String sql = "UPDATE account_profile SET " + String.join(", ", setClauses) + " WHERE account_id = ?";
+        String sql = "UPDATE account SET " + String.join(", ", setClauses) + " WHERE account_id = ?";
 
         try (PreparedStatement ps = conn.prepareStatement(sql)) {
             int paramIndex = 1;
