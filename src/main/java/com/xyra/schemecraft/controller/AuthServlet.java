@@ -1,8 +1,7 @@
 package com.xyra.schemecraft.controller;
 
 import java.io.IOException;
-import java.io.PrintWriter;
-import java.io.Serial;
+
 import javax.servlet.ServletException;
 import javax.servlet.annotation.WebServlet;
 import javax.servlet.http.HttpServlet;
@@ -13,203 +12,215 @@ import javax.servlet.http.HttpSession;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.xyra.schemecraft.model.AccountBean;
-import com.xyra.schemecraft.service.AccountService;
 import com.xyra.schemecraft.exception.BadCredentialsException;
-import com.xyra.schemecraft.exception.InactiveEntityException;
 import com.xyra.schemecraft.exception.DuplicateEntityException;
+import com.xyra.schemecraft.exception.EntityNotFoundException;
+import com.xyra.schemecraft.exception.InactiveEntityException;
+import com.xyra.schemecraft.exception.ServiceException;
+import com.xyra.schemecraft.dto.AccountRegistrationRequest;
+import com.xyra.schemecraft.dto.AccountRegistrationResponse;
+import com.xyra.schemecraft.model.UserSession;
+import com.xyra.schemecraft.service.AccountService;
 
-@WebServlet("/auth/*")
+@WebServlet(name = "AuthServlet", urlPatterns = {"/auth/*"})
 public class AuthServlet extends HttpServlet {
-    @Serial
-    private static final long serialVersionUID = 1L;
 
     private static final Logger logger = LoggerFactory.getLogger(AuthServlet.class);
 
     private AccountService accountService;
 
-    @FunctionalInterface
-    private interface ExistenceChecker {
-        boolean check(String value) throws Exception;
+    public AuthServlet() {
+        super();
+    }
+
+    public AuthServlet(AccountService accountService) {
+        this.accountService = accountService;
     }
 
     @Override
     public void init() throws ServletException {
-        this.accountService = new AccountService();
+        super.init();
+        if (this.accountService == null) {
+            this.accountService = new AccountService();
+        }
+        logger.info("AuthServlet successfully initialized.");
     }
 
     @Override
-    protected void doGet(HttpServletRequest request, HttpServletResponse response)
-            throws ServletException, IOException {
-        String pathInfo = request.getPathInfo();
+    protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
+        configureEncoding(req, resp);
+        String action = getActionPath(req);
 
-        if (pathInfo == null || pathInfo.equals("/")) {
-            response.sendRedirect(request.getContextPath() + "/index.jsp");
-            return;
-        }
-
-        switch (pathInfo) {
-            case "/logout":
-                handleLogout(request, response);
-                break;
-
-            case "/check-email":
-                handleCheckEmail(request, response);
-                break;
-
-            case "/check-username":
-                handleCheckUsername(request, response);
-                break;
-
-            default:
-                response.sendError(HttpServletResponse.SC_NOT_FOUND);
-                break;
+        switch (action) {
+            case "/logout" -> handleLogout(req, resp);
+            case "/check-username" -> handleCheckUsername(req, resp);
+            case "/check-email" -> handleCheckEmail(req, resp);
+            case "/login" -> req.getRequestDispatcher("/login.jsp").forward(req, resp);
+            case "/register" -> req.getRequestDispatcher("/register.jsp").forward(req, resp);
+            default -> resp.sendError(HttpServletResponse.SC_NOT_FOUND, "The requested resource was not found.");
         }
     }
 
     @Override
-    protected void doPost(HttpServletRequest request, HttpServletResponse response)
-            throws ServletException, IOException {
-        String pathInfo = request.getPathInfo();
+    protected void doPost(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
+        configureEncoding(req, resp);
+        String action = getActionPath(req);
 
-        if (pathInfo == null) {
-            response.sendError(HttpServletResponse.SC_BAD_REQUEST);
-            return;
-        }
-
-        switch (pathInfo) {
-            case "/login":
-                handleLogin(request, response);
-                break;
-
-            case "/register":
-                handleRegister(request, response);
-                break;
-
-            default:
-                response.sendError(HttpServletResponse.SC_NOT_FOUND);
-                break;
+        switch (action) {
+            case "/login" -> handleLogin(req, resp);
+            case "/register" -> handleRegister(req, resp);
+            case "/logout" -> handleLogout(req, resp);
+            default -> resp.sendError(HttpServletResponse.SC_METHOD_NOT_ALLOWED,
+                    "HTTP method not allowed for this endpoint.");
         }
     }
 
-    private void handleLogin(HttpServletRequest request, HttpServletResponse response)
-            throws ServletException, IOException {
-        String usernameOrEmail = request.getParameter("usernameOrEmail");
-        String password = request.getParameter("password");
+    // =========================================================================
+    // ACTION HANDLERS
+    // =========================================================================
 
-        if (usernameOrEmail == null || password == null || usernameOrEmail.trim().isEmpty() || password.trim().isEmpty()) {
-            request.setAttribute("errorMessage", "All fields are required.");
-            request.getRequestDispatcher("/login.jsp").forward(request, response);
+    private void handleLogin(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
+        String usernameOrEmail = req.getParameter("usernameOrEmail");
+        String password = req.getParameter("password");
+
+        if (isNullOrBlank(usernameOrEmail) || isNullOrBlank(password)) {
+            req.setAttribute("errorMessage", "Username/Email and Password are required.");
+            req.getRequestDispatcher("/login.jsp").forward(req, resp);
             return;
         }
 
         try {
-            AccountBean account = accountService.login(usernameOrEmail, password);
+            UserSession userSession = accountService.login(usernameOrEmail, password);
 
-            HttpSession session = request.getSession(true);
-            session.setAttribute("currentAccount", account);
+            HttpSession oldSession = req.getSession(false);
+            if (oldSession != null) {
+                oldSession.invalidate();
+            }
 
-            logger.info("User '{}' successfully logged in.", usernameOrEmail);
-            response.sendRedirect(request.getContextPath() + "/index.jsp");
+            HttpSession newSession = req.getSession(true);
+            newSession.setAttribute("userSession", userSession);
+            newSession.setAttribute("account", userSession.getAccount());
+
+            logger.info("User successfully logged in. Account ID: {}", userSession.getAccount().getAccountId());
+
+            resp.sendRedirect(req.getContextPath() + "/index.jsp");
 
         } catch (BadCredentialsException e) {
-            logger.warn("Failed login attempt for user '{}': invalid credentials.", usernameOrEmail);
-            request.setAttribute("errorMessage", "Invalid credentials. Please try again.");
-            request.getRequestDispatcher("/login.jsp").forward(request, response);
-        } catch (InactiveEntityException e) {
-            logger.warn("Failed login attempt for user '{}': account is deactivated.", usernameOrEmail);
-            request.setAttribute("errorMessage", "This account has been deactivated.");
-            request.getRequestDispatcher("/login.jsp").forward(request, response);
-        } catch (Exception e) {
-            logger.error("Unexpected error during login for user '{}'", usernameOrEmail, e);
-            response.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
+            logger.warn("Authentication failed for user input: {}", usernameOrEmail);
+            req.setAttribute("errorMessage", "Invalid credentials.");
+            req.getRequestDispatcher("/login.jsp").forward(req, resp);
+
+        } catch (ServiceException e) {
+            logger.error("Internal service error during login process for user: {}", usernameOrEmail, e);
+            resp.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR,
+                    "An internal server error occurred. Please try again later.");
         }
     }
 
-    private void handleRegister(HttpServletRequest request, HttpServletResponse response)
-            throws ServletException, IOException {
-        String username = request.getParameter("username");
-        String email = request.getParameter("email");
-        String password = request.getParameter("password");
-        String countryId = request.getParameter("countryId");
+    private void handleRegister(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
+        AccountRegistrationRequest registrationRequest = buildRegistrationRequest(req);
 
-        if (username == null || !username.matches("^[a-zA-Z0-9_]{3,20}$")) {
-            request.setAttribute("errorMessage", "Invalid username (3-20 characters, alphanumeric and underscores only).");
-            request.getRequestDispatcher("/register.jsp").forward(request, response);
-            return;
+        try {
+            AccountRegistrationResponse response = accountService.registerAccount(registrationRequest);
+            logger.info("New account successfully registered. Account ID: {}", response.accountId());
+
+            resp.sendRedirect(req.getContextPath() + "/login.jsp?registered=true");
+
+        } catch (DuplicateEntityException e) {
+            logger.warn("Registration failed - Duplicate entity constraint: {}", e.getMessage());
+            req.setAttribute("errorMessage", e.getMessage());
+            req.getRequestDispatcher("/register.jsp").forward(req, resp);
+
+        } catch (IllegalArgumentException | EntityNotFoundException | InactiveEntityException e) {
+            logger.warn("Registration failed - Invalid input parameter: {}", e.getMessage());
+            req.setAttribute("errorMessage", e.getMessage());
+            req.getRequestDispatcher("/register.jsp").forward(req, resp);
+
+        } catch (ServiceException e) {
+            logger.error("System failure during account registration for user: {}", registrationRequest.username(), e);
+            resp.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR,
+                    "Internal server error occurred during registration.");
         }
-        if (email == null || !email.matches("^[A-Za-z0-9+_.-]+@(.+)$")) {
-            request.setAttribute("errorMessage", "Invalid email format.");
-            request.getRequestDispatcher("/register.jsp").forward(request, response);
+    }
+
+    private void handleLogout(HttpServletRequest req, HttpServletResponse resp) throws IOException {
+        HttpSession session = req.getSession(false);
+        if (session != null) {
+            session.invalidate();
+            logger.debug("User session successfully invalidated.");
+        }
+        resp.sendRedirect(req.getContextPath() + "/login.jsp?logout=true");
+    }
+
+    private void handleCheckUsername(HttpServletRequest req, HttpServletResponse resp) throws IOException {
+        String username = req.getParameter("username");
+        resp.setContentType("application/json");
+
+        if (isNullOrBlank(username)) {
+            resp.setStatus(HttpServletResponse.SC_BAD_REQUEST);
+            resp.getWriter().write("{\"error\": \"Username parameter is missing or blank\"}");
             return;
         }
 
         try {
-            AccountBean newAccount = new AccountBean();
-            newAccount.setUsername(username);
-            newAccount.setEmail(email);
-            newAccount.setCountryId(countryId);
-
-            accountService.registerAccount(newAccount, password);
-
-            logger.info("New account registered successfully: '{}' ({})", username, email);
-            request.setAttribute("successMessage", "Registration completed successfully! You can now log in.");
-            request.getRequestDispatcher("/login.jsp").forward(request, response);
-
-        } catch (DuplicateEntityException e) {
-            logger.warn("Registration failed: username '{}' or email '{}' already exists.", username, email);
-            request.setAttribute("errorMessage", "Username or email already registered in the system.");
-            request.getRequestDispatcher("/register.jsp").forward(request, response);
-        } catch (Exception e) {
-            logger.error("Error during registration of user '{}'", username, e);
-            response.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
+            boolean exists = accountService.checkUsernameExists(username);
+            resp.getWriter().write(String.format("{\"exists\": %b}", exists));
+        } catch (ServiceException e) {
+            logger.error("Failed to execute AJAX username availability check", e);
+            resp.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
+            resp.getWriter().write("{\"error\": \"Unable to process username validation check\"}");
         }
     }
 
-    private void handleLogout(HttpServletRequest request, HttpServletResponse response)
-            throws IOException {
-        HttpSession session = request.getSession(false);
-        if (session != null) {
-            AccountBean current = (AccountBean) session.getAttribute("currentAccount");
-            if (current != null) {
-                logger.info("User '{}' logged out.", current.getUsername());
-            }
-            session.invalidate();
+    private void handleCheckEmail(HttpServletRequest req, HttpServletResponse resp) throws IOException {
+        String email = req.getParameter("email");
+        resp.setContentType("application/json");
+
+        if (isNullOrBlank(email)) {
+            resp.setStatus(HttpServletResponse.SC_BAD_REQUEST);
+            resp.getWriter().write("{\"error\": \"Email parameter is missing or blank\"}");
+            return;
         }
-        response.sendRedirect(request.getContextPath() + "/index.jsp?logout=success");
-    }
 
-    private void handleCheckEmail(HttpServletRequest request, HttpServletResponse response)
-            throws IOException {
-        String email = request.getParameter("email");
-        executeAvailabilityCheck(response, email, accountService::checkEmailExists, "AJAX check-email error");
-    }
-
-    private void handleCheckUsername(HttpServletRequest request, HttpServletResponse response)
-            throws IOException {
-        String username = request.getParameter("username");
-        executeAvailabilityCheck(response, username, accountService::checkUsernameExists, "AJAX check-username error");
-    }
-
-    private void executeAvailabilityCheck(HttpServletResponse response, String value,
-                                          ExistenceChecker checker, String logMessage) throws IOException {
-        response.setContentType("application/json");
-        response.setCharacterEncoding("UTF-8");
-
-        try (PrintWriter out = response.getWriter()) {
-            if (value == null || value.trim().isEmpty()) {
-                out.print("{\"exists\": false}");
-                return;
-            }
-
-            try {
-                boolean exists = checker.check(value);
-                out.print("{\"exists\": " + exists + "}");
-            } catch (Exception e) {
-                logger.error("{}, value: '{}'", logMessage, value, e);
-                response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
-                out.print("{\"error\": \"Server error\"}");
-            }
+        try {
+            boolean exists = accountService.checkEmailExists(email);
+            resp.getWriter().write(String.format("{\"exists\": %b}", exists));
+        } catch (ServiceException e) {
+            logger.error("Failed to execute AJAX email availability check", e);
+            resp.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
+            resp.getWriter().write("{\"error\": \"Unable to process email validation check\"}");
         }
+    }
+
+    // =========================================================================
+    // UTILITY / HELPER METHODS
+    // =========================================================================
+
+    private void configureEncoding(HttpServletRequest req, HttpServletResponse resp) throws IOException {
+        req.setCharacterEncoding("UTF-8");
+        resp.setCharacterEncoding("UTF-8");
+    }
+
+    private String getActionPath(HttpServletRequest req) {
+        String pathInfo = req.getPathInfo();
+        return (pathInfo == null) ? "" : pathInfo;
+    }
+
+    private boolean isNullOrBlank(String str) {
+        return str == null || str.trim().isEmpty();
+    }
+
+    private AccountRegistrationRequest buildRegistrationRequest(HttpServletRequest req) {
+        return new AccountRegistrationRequest(
+                req.getParameter("username"),
+                req.getParameter("email"),
+                req.getParameter("password"),
+                req.getParameter("countryId"),
+                req.getParameter("languageId"),
+                req.getParameter("currencyId"),
+                req.getParameter("bio"),
+                req.getParameter("bannerPath"),
+                req.getParameter("profileImagePath")
+        );
     }
 }
