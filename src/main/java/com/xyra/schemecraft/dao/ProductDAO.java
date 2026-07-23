@@ -9,6 +9,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
+import com.xyra.schemecraft.dto.ProductSearchCriteria;
 import com.xyra.schemecraft.exception.DAOException;
 import com.xyra.schemecraft.exception.DuplicateEntityException;
 import com.xyra.schemecraft.model.ProductBean;

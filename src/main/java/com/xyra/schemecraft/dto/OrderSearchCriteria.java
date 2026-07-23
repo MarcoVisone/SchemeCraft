@@ -1,4 +1,4 @@
-package com.xyra.schemecraft.dao;
+package com.xyra.schemecraft.dto;
 
 import java.time.LocalDateTime;
 

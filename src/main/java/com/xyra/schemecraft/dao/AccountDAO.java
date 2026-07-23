@@ -12,7 +12,7 @@ import java.util.Optional;
 import com.xyra.schemecraft.exception.DAOException;
 import com.xyra.schemecraft.exception.DuplicateEntityException;
 import com.xyra.schemecraft.model.AccountBean;
-import com.xyra.schemecraft.model.ProfileUpdateRequest;
+import com.xyra.schemecraft.dto.ProfileUpdateRequest;
 
 import static com.xyra.schemecraft.constant.DatabaseConstants.*;
 

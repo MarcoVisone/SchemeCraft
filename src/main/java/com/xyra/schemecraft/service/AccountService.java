@@ -4,6 +4,10 @@ import com.xyra.schemecraft.connection.ConnectionPool;
 import com.xyra.schemecraft.constant.ValidationConstants;
 import com.xyra.schemecraft.dao.AddressDAO;
 import com.xyra.schemecraft.dao.PaymentMethodDAO;
+import com.xyra.schemecraft.dto.AccountRegistrationRequest;
+import com.xyra.schemecraft.dto.AccountRegistrationResponse;
+import com.xyra.schemecraft.dto.PaymentMethodRequest;
+import com.xyra.schemecraft.dto.ProfileUpdateRequest;
 import com.xyra.schemecraft.exception.*;
 import com.xyra.schemecraft.model.*;
 

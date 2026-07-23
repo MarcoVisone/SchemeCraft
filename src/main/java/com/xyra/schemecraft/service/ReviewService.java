@@ -3,15 +3,11 @@ package com.xyra.schemecraft.service;
 import com.xyra.schemecraft.connection.ConnectionPool;
 import com.xyra.schemecraft.constant.ServiceConstants;
 import com.xyra.schemecraft.dao.AccountProductDAO;
-import com.xyra.schemecraft.dao.FavoriteDAO;
-import com.xyra.schemecraft.dao.ProductDAO;
 import com.xyra.schemecraft.dao.ReviewDAO;
 import com.xyra.schemecraft.exception.DAOException;
 import com.xyra.schemecraft.exception.ServiceException;
 import com.xyra.schemecraft.model.ReviewBean;
-import com.xyra.schemecraft.exception.DuplicateEntityException;
-import com.xyra.schemecraft.exception.EntityNotFoundException;
-import com.xyra.schemecraft.model.ReviewRequest;
+import com.xyra.schemecraft.dto.ReviewRequest;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

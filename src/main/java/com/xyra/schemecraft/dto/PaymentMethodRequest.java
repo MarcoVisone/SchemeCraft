@@ -1,4 +1,4 @@
-package com.xyra.schemecraft.model;
+package com.xyra.schemecraft.dto;
 
 /**
  * Data Transfer Object (DTO) carrying the payload required to add or register a new payment method for an account.

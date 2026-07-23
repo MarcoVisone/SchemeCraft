@@ -1,4 +1,4 @@
-package com.xyra.schemecraft.model;
+package com.xyra.schemecraft.dto;
 
 import java.math.BigDecimal;
 

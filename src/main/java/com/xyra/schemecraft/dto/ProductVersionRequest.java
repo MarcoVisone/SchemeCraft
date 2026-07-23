@@ -1,4 +1,4 @@
-package com.xyra.schemecraft.model;
+package com.xyra.schemecraft.dto;
 
 /**
  * Data Transfer Object (DTO) carrying the payload required to create or register a new product version release.

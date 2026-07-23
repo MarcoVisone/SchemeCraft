@@ -1,4 +1,4 @@
-package com.xyra.schemecraft.model;
+package com.xyra.schemecraft.dto;
 
 /**
  * Data Transfer Object (DTO) representing the sanitized response payload

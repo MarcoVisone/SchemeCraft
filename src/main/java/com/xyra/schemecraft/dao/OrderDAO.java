@@ -6,10 +6,10 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Timestamp;
 import java.time.LocalDateTime;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Optional;
+import java.util.*;
 
+import com.xyra.schemecraft.dto.OrderAdminView;
+import com.xyra.schemecraft.dto.OrderSearchCriteria;
 import com.xyra.schemecraft.exception.DAOException;
 import com.xyra.schemecraft.exception.DuplicateEntityException;
 import com.xyra.schemecraft.model.OrderBean;
@@ -23,6 +23,19 @@ public class OrderDAO extends BaseDAO {
 
     private static final String SELECT_BASE = "SELECT order_id, account_id, address_id, currency_id, method_type, " +
             "status, created_at, total_amount, transaction_id FROM order_table ";
+
+    private static final Map<String, String> ORDER_BY_COLUMN_MAP = Map.of(
+            "orderId", "o.order_id",
+            "createdAt", "o.created_at",
+            "totalAmount", "o.total_amount",
+            "status", "o.status",
+            "accountId", "o.account_id",
+            "customerId", "o.account_id",
+            "username", "a.username",
+            "customerUsername", "a.username",
+            "email", "a.email",
+            "customerEmail", "a.email"
+    );
 
     /**
      * Inserts a new Order record into the database.
@@ -136,6 +149,126 @@ public class OrderDAO extends BaseDAO {
             throw new DAOException("Error retrieving account order history", e);
         }
         return orders;
+    }
+
+    /**
+     * Executes a dynamic search for admin order listing based on specified criteria,
+     * including filters, sorting, and pagination. Performs a JOIN with the account table
+     * to populate customer information.
+     *
+     * @param conn     Active database connection
+     * @param criteria Object containing filters, pagination, and sorting preferences
+     * @return List of matching {@link OrderAdminView} DTOs
+     * @throws DAOException             if a database error occurs
+     * @throws IllegalArgumentException if criteria or connection is null
+     */
+    public List<OrderAdminView> searchOrdersForAdmin(Connection conn, OrderSearchCriteria criteria) throws DAOException {
+        if (criteria == null) {
+            throw new IllegalArgumentException("Search criteria cannot be null");
+        }
+
+        StringBuilder sql = new StringBuilder();
+        sql.append("SELECT o.order_id, o.created_at, o.total_amount, o.status, ")
+                .append("o.account_id, a.username, a.email ")
+                .append("FROM order_table o ")
+                .append("JOIN account a ON o.account_id = a.account_id ")
+                .append("WHERE 1=1 ");
+
+        List<Object> params = new ArrayList<>();
+
+        if (criteria.getDateFrom() != null) {
+            sql.append("AND o.created_at >= ? ");
+            params.add(Timestamp.valueOf(criteria.getDateFrom()));
+        }
+
+        if (criteria.getDateTo() != null) {
+            sql.append("AND o.created_at <= ? ");
+            params.add(Timestamp.valueOf(criteria.getDateTo()));
+        }
+
+        if (criteria.getCustomerId() != null && !criteria.getCustomerId().isEmpty()) {
+            sql.append("AND o.account_id = ? ");
+            params.add(criteria.getCustomerId());
+        }
+
+        if (criteria.getCustomerUsername() != null && !criteria.getCustomerUsername().isEmpty()) {
+            sql.append("AND LOWER(a.username) LIKE LOWER(?) ");
+            params.add("%" + criteria.getCustomerUsername() + "%");
+        }
+
+        if (criteria.getCustomerEmail() != null && !criteria.getCustomerEmail().isEmpty()) {
+            sql.append("AND LOWER(a.email) LIKE LOWER(?) ");
+            params.add("%" + criteria.getCustomerEmail() + "%");
+        }
+
+        if (criteria.getStatus() != null) {
+            sql.append("AND o.status = ? ");
+            params.add(criteria.getStatus());
+        }
+
+        String rawOrderBy = criteria.getOrderByColumn();
+        String targetColumn = null;
+
+        if (rawOrderBy != null) {
+            String cleanKey = rawOrderBy.replace("_", "").replaceAll("\\s+", "");
+
+            for (Map.Entry<String, String> entry : ORDER_BY_COLUMN_MAP.entrySet()) {
+                if (entry.getKey().equalsIgnoreCase(cleanKey)) {
+                    targetColumn = entry.getValue();
+                    break;
+                }
+            }
+        }
+
+        if (targetColumn != null) {
+            sql.append("ORDER BY ").append(targetColumn).append(" ");
+        } else {
+            sql.append("ORDER BY o.created_at ");
+        }
+
+        if (Boolean.TRUE.equals(criteria.getAscending())) {
+            sql.append("ASC ");
+        } else {
+            sql.append("DESC ");
+        }
+
+        int limit = criteria.getPageSize();
+        int offset = (criteria.getPageNumber() - 1) * limit;
+
+        sql.append("LIMIT ? OFFSET ?");
+        params.add(limit);
+        params.add(offset);
+
+        List<OrderAdminView> resultList = new ArrayList<>();
+
+        try (PreparedStatement ps = conn.prepareStatement(sql.toString())) {
+            for (int i = 0; i < params.size(); i++) {
+                ps.setObject(i + 1, params.get(i));
+            }
+
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    Timestamp createdAtTs = rs.getTimestamp("created_at");
+                    LocalDateTime createdAt = (createdAtTs != null) ? createdAtTs.toLocalDateTime() : null;
+
+                    OrderAdminView view = new OrderAdminView(
+                            rs.getString("order_id"),
+                            createdAt,
+                            rs.getBigDecimal("total_amount"),
+                            rs.getInt("status"),
+                            rs.getString("account_id"),
+                            rs.getString("username"),
+                            rs.getString("email")
+                    );
+                    resultList.add(view);
+                }
+            }
+        } catch (SQLException e) {
+            logger.error("Error executing admin order dynamic search query", e);
+            throw new DAOException("Error searching orders for admin view", e);
+        }
+
+        return resultList;
     }
 
     /**
