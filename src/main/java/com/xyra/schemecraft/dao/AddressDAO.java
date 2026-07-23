@@ -139,6 +139,28 @@ public class AddressDAO extends BaseDAO {
         return addresses;
     }
 
+    public List<AddressBean> findAllActiveByAccountId(Connection conn, String accountId) throws DAOException {
+        if (accountId == null || accountId.trim().isEmpty()) {
+            throw new IllegalArgumentException("Account ID cannot be null or empty for retrieval");
+        }
+
+        String sql = SELECT_BASE + "WHERE account_id = ? AND is_active = TRUE";
+        List<AddressBean> addresses = new ArrayList<>();
+
+        try (PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setString(1, accountId);
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    addresses.add(mapRow(rs));
+                }
+            }
+        } catch (SQLException e) {
+            logger.error("Database error while retrieving active addresses for Account ID: {}", accountId, e);
+            throw new DAOException("Error retrieving active addresses by account ID", e);
+        }
+        return addresses;
+    }
+
     /**
      * Locates the active default address of a given account.
      *
