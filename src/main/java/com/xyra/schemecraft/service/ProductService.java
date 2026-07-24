@@ -236,7 +236,7 @@ public class ProductService {
         }
     }
 
-    public ProductImageBean addImage(String rawProductId, String imagePath) {
+    public ProductImageBean addImage(String rawProductId, String imagePath, int displayOrder) {
         String id = rawProductId == null ? null : rawProductId.trim();
         if (id == null || id.isBlank()) {
             throw new IllegalArgumentException("Product ID cannot be null or blank");
@@ -257,7 +257,7 @@ public class ProductService {
                         + ServiceConstants.MAX_PRODUCT_IMAGES + ")");
             }
 
-            ProductImageBean image = new ProductImageBean(UUID.randomUUID().toString(), id, imagePath);
+            ProductImageBean image = new ProductImageBean(UUID.randomUUID().toString(), id, imagePath, displayOrder);
             productImageDAO.insert(conn, image);
 
             logger.info("Image {} successfully added to Product {}", image.getImageId(), id);
@@ -265,6 +265,25 @@ public class ProductService {
 
         } catch (SQLException | DAOException e) {
             logger.error("Database error while adding image for Product: {}", id, e);
+            throw new ServiceException("Error while adding product image", e);
+        }
+    }
+
+    public ProductImageBean addImage(String rawProductId, String imagePath) {
+        String id = rawProductId == null ? null : rawProductId.trim();
+        if (id == null || id.isBlank()) {
+            throw new IllegalArgumentException("Product ID cannot be null or blank");
+        }
+
+        try (Connection conn = ConnectionPool.getConnection()) {
+            List<ProductImageBean> existingImages = productImageDAO.findAllByProductId(conn, id);
+
+            int autoDisplayOrder = existingImages.size();
+
+            return addImage(id, imagePath, autoDisplayOrder);
+
+        } catch (SQLException | DAOException e) {
+            logger.error("Database error while calculating order for Product: {}", id, e);
             throw new ServiceException("Error while adding product image", e);
         }
     }

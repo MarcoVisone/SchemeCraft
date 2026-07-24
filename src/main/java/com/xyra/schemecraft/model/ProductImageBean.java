@@ -26,6 +26,8 @@ public class ProductImageBean implements Serializable {
     @NotBlank(message = "Image path cannot be blank")
     private String imagePath;
 
+    private int displayOrder;
+
     /**
      * Default no-argument constructor.
      */
@@ -38,11 +40,13 @@ public class ProductImageBean implements Serializable {
      * @param imageId   Unique image identifier
      * @param productId Associated product identifier
      * @param imagePath Path or URL pointing to the image file
+     * @param displayOrder Order in which the image should be displayed
      */
-    public ProductImageBean(String imageId, String productId, String imagePath) {
+    public ProductImageBean(String imageId, String productId, String imagePath, int displayOrder) {
         this.imageId = imageId;
         this.productId = productId;
         this.imagePath = imagePath;
+        this.displayOrder = displayOrder;
     }
 
     // --- Getters and Setters ---
@@ -69,6 +73,14 @@ public class ProductImageBean implements Serializable {
 
     public void setImagePath(String imagePath) {
         this.imagePath = imagePath;
+    }
+
+    public int getDisplayOrder() {
+        return displayOrder;
+    }
+
+    public void setDisplayOrder(int displayOrder) {
+        this.displayOrder = displayOrder;
     }
 
     // --- Standard Object Override Methods ---
@@ -109,6 +121,7 @@ public class ProductImageBean implements Serializable {
                 "imageId='" + imageId + '\'' +
                 ", productId='" + productId + '\'' +
                 ", imagePath='" + imagePath + '\'' +
+                ", displayOrder=" + displayOrder +
                 '}';
     }
 }

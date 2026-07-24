@@ -1,7 +1,6 @@
 package com.xyra.schemecraft.controller;
 
 import java.io.IOException;
-import java.io.PrintWriter;
 
 import javax.servlet.ServletException;
 import javax.servlet.annotation.WebServlet;
@@ -10,7 +9,6 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import javax.servlet.http.HttpSession;
 
-import org.json.JSONObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -23,6 +21,7 @@ import com.xyra.schemecraft.exception.InactiveEntityException;
 import com.xyra.schemecraft.exception.ServiceException;
 import com.xyra.schemecraft.model.UserSession;
 import com.xyra.schemecraft.service.AccountService;
+import com.xyra.schemecraft.util.JsonUtils;
 
 @WebServlet(name = "AuthServlet", urlPatterns = {"/auth/*"})
 public class AuthServlet extends HttpServlet {
@@ -153,54 +152,36 @@ public class AuthServlet extends HttpServlet {
     }
 
     private void handleCheckUsername(HttpServletRequest req, HttpServletResponse resp) throws IOException {
-        resp.setContentType("application/json");
-        PrintWriter out = resp.getWriter();
-        JSONObject json = new JSONObject();
-
         String username = req.getParameter("username");
 
         if (isNullOrBlank(username)) {
-            resp.setStatus(HttpServletResponse.SC_BAD_REQUEST);
-            json.put("error", "Username parameter is missing or blank");
-            out.print(json.toString());
+            JsonUtils.sendError(resp, "Username parameter is missing or blank", HttpServletResponse.SC_BAD_REQUEST);
             return;
         }
 
         try {
             boolean exists = accountService.checkUsernameExists(username);
-            json.put("exists", exists);
-            out.print(json.toString());
+            JsonUtils.sendSuccess(resp, null, "exists", exists);
         } catch (ServiceException e) {
             logger.error("Failed to execute AJAX username availability check", e);
-            resp.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
-            json.put("error", "Unable to process username validation check");
-            out.print(json.toString());
+            JsonUtils.sendError(resp, "Unable to process username validation check", HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
         }
     }
 
     private void handleCheckEmail(HttpServletRequest req, HttpServletResponse resp) throws IOException {
-        resp.setContentType("application/json");
-        PrintWriter out = resp.getWriter();
-        JSONObject json = new JSONObject();
-
         String email = req.getParameter("email");
 
         if (isNullOrBlank(email)) {
-            resp.setStatus(HttpServletResponse.SC_BAD_REQUEST);
-            json.put("error", "Email parameter is missing or blank");
-            out.print(json.toString());
+            JsonUtils.sendError(resp, "Email parameter is missing or blank", HttpServletResponse.SC_BAD_REQUEST);
             return;
         }
 
         try {
             boolean exists = accountService.checkEmailExists(email);
-            json.put("exists", exists);
-            out.print(json.toString());
+            JsonUtils.sendSuccess(resp, null, "exists", exists);
         } catch (ServiceException e) {
             logger.error("Failed to execute AJAX email availability check", e);
-            resp.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
-            json.put("error", "Unable to process email validation check");
-            out.print(json.toString());
+            JsonUtils.sendError(resp, "Unable to process email validation check", HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
         }
     }
 
