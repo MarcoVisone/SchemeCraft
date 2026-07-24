@@ -50,7 +50,6 @@ public class AuthServlet extends HttpServlet {
 
     @Override
     protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
-        configureEncoding(req, resp);
         String action = getActionPath(req);
 
         switch (action) {
@@ -65,7 +64,6 @@ public class AuthServlet extends HttpServlet {
 
     @Override
     protected void doPost(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
-        configureEncoding(req, resp);
         String action = getActionPath(req);
 
         switch (action) {
@@ -209,11 +207,6 @@ public class AuthServlet extends HttpServlet {
     // =========================================================================
     // UTILITY / HELPER METHODS
     // =========================================================================
-
-    private void configureEncoding(HttpServletRequest req, HttpServletResponse resp) throws IOException {
-        req.setCharacterEncoding("UTF-8");
-        resp.setCharacterEncoding("UTF-8");
-    }
 
     private String getActionPath(HttpServletRequest req) {
         String pathInfo = req.getPathInfo();
