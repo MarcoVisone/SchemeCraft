@@ -26,6 +26,7 @@ html, body {
 }
 
 .hero-video-mobile {
+    z-index: -1;
     display: none;
 }
 
@@ -103,6 +104,7 @@ html, body {
         display: none;
     }
     .hero-video-mobile {
+        z-index: 1;
         display: block;
     }
 
