@@ -1,93 +1,113 @@
-/* =========================================================================
-   HERO SECTION WITH VIDEO BACKGROUND
-   ========================================================================= */
-
-.hero-section {
-    position: relative;
+html, body {
+    margin: 0;
+    padding: 0;
     width: 100%;
-    height: calc(100vh - 80px); /* Regola in base all'altezza dell'header */
-    display: flex;
-    align-items: center;
-    padding-left: 8%;
-    overflow: hidden; /* Evita qualsiasi barra di scorrimento causata dal video */
-
-    /* Immagine di fallback sul contenitore principale */
-    background: #1e1e1e url('../images/hero-fallback.png') no-repeat center center / cover;
+    overflow-x: hidden;
 }
 
-/* Stilo del video a tutto schermo dentro la hero */
+.hero-container {
+    position: relative;
+    width: 100%;
+    height: 100vh;
+    min-height: 450px;
+    overflow: hidden;
+    font-family: var(--font-game);
+    background-color: var(--bg-main);
+    box-sizing: border-box;
+}
+
 .hero-video {
     position: absolute;
-    top: 50%;
-    left: 50%;
-    min-width: 100%;
-    min-height: 100%;
-    width: auto;
-    height: auto;
-    z-index: 1;
-    transform: translate(-50%, -50%);
-    object-fit: cover; /* Mantiene le proporzioni coprendo tutto lo spazio */
-}
-
-/* Overlay per oscurare leggermente il video/immagine e far risaltare il testo */
-.hero-overlay {
-    position: absolute;
-    top: 0;
-    left: 0;
+    inset: 0;
     width: 100%;
     height: 100%;
-    background: rgba(0, 0, 0, 0.25); /* Trasparenza regolabile (0.25 = 25% scuro) */
-    z-index: 2;
+    object-fit: cover;
+    will-change: transform;
 }
 
-/* Contenuto sopra il video e l'overlay */
-.hero-content {
+.hero-video-mobile {
+    display: none;
+}
+
+.hero-video-desktop {
+    display: block;
+}
+
+.hero-content-wrapper {
     position: relative;
-    z-index: 3;
+    z-index: 2;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: flex-start;
+    height: 100%;
+    padding-left: clamp(1.25rem, 8vw, 6rem);
+    padding-right: 1.25rem;
+    box-sizing: border-box;
+}
+
+.hero-content-inner {
     display: flex;
     flex-direction: column;
     align-items: flex-start;
-    gap: 2rem;
+    max-width: 100%;
 }
 
-/* Titolo Pixelato Stile Minecraft */
 .hero-title {
     font-family: var(--font-game);
-    font-size: 2.2rem;
-    line-height: 1.5;
+    font-size: clamp(1.6rem, 4.5vw + 0.5rem, 4.25rem);
     color: var(--text-primary);
-    text-transform: lowercase;
-    text-shadow: 4px 4px 0px #000000;
-    margin: 0;
+    text-shadow: 0.05em 0.05em 0 #3f3f3f, 0.1em 0.1em 0 rgba(0, 0, 0, 0.4);
+    margin: 0 0 clamp(1.5rem, 4vw, 2.5rem);
+    text-align: left;
+    line-height: 1.5;
+    letter-spacing: 0.04em;
+    word-break: break-word;
 }
 
-/* Botone Minecraft */
 .btn-mc {
     display: inline-block;
     font-family: var(--font-game);
-    font-size: 0.9rem;
-    color: #FFFFFF;
+    font-size: clamp(1.1rem, 1.8vw, 1.6rem);
+    font-weight: var(--weight-bold);
+    color: var(--text-primary);
     background-color: var(--btn-green);
-    padding: 12px 28px;
+    border: 0.22em solid #1a1a1a;
+    padding: 0.9em 2.2em;
+    width: fit-content;
+    max-width: 100%;
     text-decoration: none;
-    text-transform: uppercase;
-    border: 3px solid #000000;
-    box-shadow: inset -3px -3px 0px 0px #1a420f,
-    inset 3px 3px 0px 0px #6fdc4b;
-    text-shadow: 2px 2px 0px #000000;
+    text-align: center;
     cursor: pointer;
-    transition: background-color 0.15s ease, transform 0.1s ease;
+    text-shadow: 0.12em 0.12em 0 #000000;
+    letter-spacing: 0.08em;
+    box-shadow: inset 0.22em 0.22em 0 rgba(255, 255, 255, 0.35),
+    inset -0.22em -0.22em 0 rgba(0, 0, 0, 0.35);
+    image-rendering: pixelated;
+    transition: background-color 0.1s, box-shadow 0.1s;
+    box-sizing: border-box;
 }
 
 .btn-mc:hover {
     background-color: var(--btn-green-hover);
-    box-shadow: inset -3px -3px 0px 0px #245815,
-    inset 3px 3px 0px 0px #85f85e;
-    transform: scale(1.03);
 }
 
 .btn-mc:active {
-    box-shadow: inset 3px 3px 0px 0px #1a420f,
-    inset -3px -3px 0px 0px #6fdc4b;
-    transform: scale(0.98);
+    background-color: var(--btn-green);
+    box-shadow: inset -0.22em -0.22em 0 rgba(255, 255, 255, 0.35),
+    inset 0.22em 0.22em 0 rgba(0, 0, 0, 0.35);
+}
+
+@media (max-width: 768px) {
+    /* Switch del video */
+    .hero-video-desktop {
+        display: none;
+    }
+    .hero-video-mobile {
+        display: block;
+    }
+
+    .hero-content-wrapper {
+        display: none !important;
+    }
 }
