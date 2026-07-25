@@ -146,6 +146,22 @@ public class EntityValidator {
         return address;
     }
 
+    public AddressBean validateActiveAddress(Connection connection, String addressId) throws SQLException {
+        AddressBean address = addressDAO.findById(connection, addressId).orElseThrow(() -> {
+            logger.error("Address not found for ID: {}", addressId);
+            return new EntityNotFoundException("Address not found for ID: " + addressId,
+                    EntityNotFoundException.EntityType.ADDRESS);
+        });
+
+        if (!address.isActive()) {
+            logger.error("Address is not active for Address ID: {}", addressId);
+            throw new InactiveEntityException("Address with id " + addressId + " is not active",
+                    InactiveEntityException.EntityType.ADDRESS);
+        }
+
+        return address;
+    }
+
     public AccountBean validateActiveAccount(Connection connection, String accountId) throws SQLException {
         AccountBean account = accountDAO.findById(connection, accountId).orElseThrow(() -> {
             logger.error("Account not found for ID: {}", accountId);
@@ -160,6 +176,23 @@ public class EntityValidator {
         }
 
         return account;
+    }
+
+    public PaymentMethodTypeBean validateActivePaymentMethodType(Connection connection, int typeId) throws SQLException {
+        PaymentMethodTypeBean type = paymentMethodTypeDAO.findById(connection, typeId)
+                .orElseThrow(() -> new EntityNotFoundException(
+                        "Payment method type not found: " + typeId
+                        , EntityNotFoundException.EntityType.PAYMENT_METHOD_TYPE
+                ));
+
+        if (!type.isActive()) {
+            throw new InactiveEntityException(
+                    "Payment method type is not active: " + typeId
+                    , InactiveEntityException.EntityType.PAYMENT_METHOD_TYPE
+            );
+        }
+
+        return type;
     }
 
     public PaymentMethodBean validateActiveDefaultPaymentMethod(Connection connection, String accountId)

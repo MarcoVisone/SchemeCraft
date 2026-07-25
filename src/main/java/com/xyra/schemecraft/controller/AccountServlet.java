@@ -10,11 +10,7 @@ import javax.servlet.http.*;
 
 import com.xyra.schemecraft.dto.PaymentMethodRequest;
 import com.xyra.schemecraft.dto.ProfileUpdateRequest;
-import com.xyra.schemecraft.exception.BadCredentialsException;
-import com.xyra.schemecraft.exception.DuplicateEntityException;
-import com.xyra.schemecraft.exception.EntityNotFoundException;
-import com.xyra.schemecraft.exception.PaymentTokenizationException;
-import com.xyra.schemecraft.exception.ServiceException;
+import com.xyra.schemecraft.exception.*;
 import com.xyra.schemecraft.model.AccountBean;
 import com.xyra.schemecraft.model.AddressBean;
 import com.xyra.schemecraft.model.PaymentMethodBean;
@@ -95,11 +91,11 @@ public class AccountServlet extends HttpServlet {
             case "/deactivate" -> handleDeactivateAccount(req, resp, req.getSession(false), currentAccount.getAccountId());
 
             case "/add-address" -> handleAddAddress(req, resp, currentAccount.getAccountId());
-            case "/remove-address" -> handleRemoveAddress(req, resp);
+            case "/remove-address" -> handleRemoveAddress(req, resp, currentAccount.getAccountId());
             case "/set-default-address" -> handleSetDefaultAddress(req, resp, currentAccount.getAccountId());
 
             case "/add-payment-method" -> handleAddPaymentMethod(req, resp, currentAccount.getAccountId());
-            case "/remove-payment-method" -> handleRemovePaymentMethod(req, resp);
+            case "/remove-payment-method" -> handleRemovePaymentMethod(req, resp, currentAccount.getAccountId());
             case "/set-default-payment-method" -> handleSetDefaultPaymentMethod(req, resp, currentAccount.getAccountId());
 
             default -> resp.sendError(HttpServletResponse.SC_METHOD_NOT_ALLOWED, "HTTP method not allowed for this endpoint.");
@@ -202,7 +198,8 @@ public class AccountServlet extends HttpServlet {
         }
     }
 
-    private void handleChangePassword(HttpServletRequest req, HttpServletResponse resp, String accountId) throws IOException {
+    private void handleChangePassword(HttpServletRequest req, HttpServletResponse resp,
+                                      String accountId) throws IOException {
         String oldPassword = req.getParameter("oldPassword");
         String newPassword = req.getParameter("newPassword");
 
@@ -219,7 +216,8 @@ public class AccountServlet extends HttpServlet {
         }
     }
 
-    private void handleChangeUsername(HttpServletRequest req, HttpServletResponse resp, HttpSession session, AccountBean account) throws IOException {
+    private void handleChangeUsername(HttpServletRequest req, HttpServletResponse resp, HttpSession session,
+                                      AccountBean account) throws IOException {
         String newUsername = req.getParameter("newUsername");
 
         try {
@@ -286,21 +284,40 @@ public class AccountServlet extends HttpServlet {
             accountService.addAddress(address);
             JsonUtils.sendSuccess(resp, "Address added successfully.");
 
-        } catch (IllegalArgumentException | ServiceException e) {
-            logger.warn("Failed to add address for account: {}", accountId, e);
+        } catch (IllegalArgumentException e) {
             JsonUtils.sendError(resp, e.getMessage(), HttpServletResponse.SC_BAD_REQUEST);
+        } catch (EntityNotFoundException | InactiveEntityException e) {
+            logger.warn("Invalid reference while adding address for account {}: {}", accountId, e.getMessage());
+            JsonUtils.sendError(resp, "Invalid address details. Please check your input and try again.",
+                    HttpServletResponse.SC_BAD_REQUEST);
+        } catch (ServiceException e) {
+            logger.error("Failed to add address for account: {}", accountId, e);
+            JsonUtils.sendError(resp, "Unable to add address.", HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
         }
     }
 
-    private void handleRemoveAddress(HttpServletRequest req, HttpServletResponse resp) throws IOException {
+    private void handleRemoveAddress(HttpServletRequest req, HttpServletResponse resp, String accountId)
+            throws IOException {
         String addressId = req.getParameter("addressId");
 
         try {
-            accountService.removeAddress(addressId);
+            accountService.removeOwnAddress(accountId, addressId);
             JsonUtils.sendSuccess(resp, "Address removed successfully.");
 
-        } catch (IllegalArgumentException | EntityNotFoundException | ServiceException e) {
+        } catch (IllegalArgumentException e) {
             JsonUtils.sendError(resp, e.getMessage(), HttpServletResponse.SC_BAD_REQUEST);
+
+        } catch (UnauthorizedActionException e) {
+            logger.warn("Account {} attempted to remove an address it does not own (addressId: {})",
+                    accountId, addressId);
+            JsonUtils.sendError(resp, "Address not found.", HttpServletResponse.SC_NOT_FOUND);
+
+        } catch (EntityNotFoundException e) {
+            JsonUtils.sendError(resp, "Address not found.", HttpServletResponse.SC_NOT_FOUND);
+
+        } catch (ServiceException e) {
+            logger.error("Failed to remove address {} for account {}", addressId, accountId, e);
+            JsonUtils.sendError(resp, "Unable to remove address.", HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
         }
     }
 
@@ -342,22 +359,33 @@ public class AccountServlet extends HttpServlet {
         try {
             accountService.addPaymentMethod(request);
             JsonUtils.sendSuccess(resp, "Payment method added successfully.");
-
         } catch (PaymentTokenizationException e) {
-            JsonUtils.sendError(resp, "Payment tokenization failed: " + e.getErrorCode(), 422);
-
-        } catch (IllegalArgumentException | ServiceException e) {
-            JsonUtils.sendError(resp, e.getMessage(), HttpServletResponse.SC_BAD_REQUEST);
+            logger.warn("Tokenization failed for account {}: {}", accountId, e.getErrorCode());
+            String userMessage = mapTokenizationErrorToMessage(e.getErrorCode());
+            JsonUtils.sendError(resp, userMessage, 442);
+        } catch (IllegalArgumentException e) {
+            JsonUtils.sendError(resp, e.getMessage(), 442);
+        } catch (EntityNotFoundException | InactiveEntityException e) {
+            logger.warn("Invalid payment method type reference for account {}: {}",
+                    accountId, e.getMessage());
+            JsonUtils.sendError(resp, "Invalid payment method selected. Please try again.",
+                    HttpServletResponse.SC_BAD_REQUEST);
+        } catch (ServiceException e) {
+            logger.error("Failed to add payment method for account {}", accountId, e);
+            JsonUtils.sendError(resp, "Unable to add payment method.", HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
         }
     }
 
-    private void handleRemovePaymentMethod(HttpServletRequest req, HttpServletResponse resp) throws IOException {
+    private void handleRemovePaymentMethod(HttpServletRequest req, HttpServletResponse resp, String accountId) throws IOException {
         String paymentMethodId = req.getParameter("paymentMethodId");
 
         try {
-            accountService.removePaymentMethod(paymentMethodId);
+            accountService.removeOwnPaymentMethod(accountId, paymentMethodId);
             JsonUtils.sendSuccess(resp, "Payment method removed successfully.");
-
+        } catch (UnauthorizedActionException e) {
+            logger.warn("Account {} attempted to remove a payment method it does not own (paymentMethodId: {})",
+                    accountId, paymentMethodId);
+            JsonUtils.sendError(resp, "Payment method not found.", HttpServletResponse.SC_NOT_FOUND);
         } catch (IllegalArgumentException | EntityNotFoundException | ServiceException e) {
             JsonUtils.sendError(resp, e.getMessage(), HttpServletResponse.SC_BAD_REQUEST);
         }
@@ -408,5 +436,17 @@ public class AccountServlet extends HttpServlet {
     private String getActionPath(HttpServletRequest req) {
         String pathInfo = req.getPathInfo();
         return (pathInfo == null) ? "" : pathInfo;
+    }
+
+    private String mapTokenizationErrorToMessage(String errorCode) {
+        if (errorCode == null) {
+            return "We couldn't process your payment details. Please check them and try again.";
+        }
+        return switch (errorCode) {
+            case "INVALID_CARD_NUMBER" -> "The card number you entered is not valid.";
+            case "INVALID_CVV" -> "The CVV code you entered is not valid.";
+            case "INVALID_PAYPAL_EMAIL" -> "The PayPal email address you entered is not valid.";
+            default -> "We couldn't process your payment details. Please check them and try again.";
+        };
     }
 }

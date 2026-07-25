@@ -456,6 +456,62 @@ public class AccountService {
         }
     }
 
+    public void removeOwnAddress(String accountId, String addressId) throws EntityNotFoundException {
+        if (accountId == null || accountId.isBlank()) {
+            throw new IllegalArgumentException("Account ID cannot be null or blank");
+        }
+        if (addressId == null || addressId.isBlank()) {
+            throw new IllegalArgumentException("Address ID cannot be null or blank");
+        }
+
+        try (Connection conn = ConnectionPool.getConnection()) {
+            conn.setAutoCommit(false);
+
+            try {
+                AddressBean address = entityValidator.validateActiveAddress(conn, addressId);
+
+                if (!address.getAccountId().equals(accountId)) {
+                    logger.warn("Account {} attempted to remove address {} owned by a different account",
+                            accountId, addressId);
+                    throw new UnauthorizedActionException("Address does not belong to the specified account");
+                }
+
+                boolean wasDefault = address.isDefault();
+
+                addressDAO.deactivate(conn, addressId);
+
+                if (wasDefault) {
+                    addressDAO.unsetDefault(conn, addressId);
+
+                    Optional<AddressBean> candidate = addressDAO.findAnyActiveByAccountIdExcluding(conn, accountId,
+                            addressId);
+                    if (candidate.isPresent()) {
+                        AddressBean newDefault = candidate.get();
+                        newDefault.setDefault(true);
+                        addressDAO.update(conn, newDefault);
+                    }
+                }
+
+                conn.commit();
+                logger.info("Address {} removed successfully by owner {} (default promotion: {})",
+                        addressId, accountId, wasDefault);
+            } catch (Exception e) {
+                try {
+                    conn.rollback();
+                } catch (SQLException rollbackEx) {
+                    logger.error("Rollback failed", rollbackEx);
+                    e.addSuppressed(rollbackEx);
+                }
+                throw e;
+            } finally {
+                conn.setAutoCommit(true);
+            }
+        } catch (SQLException | DAOException e) {
+            logger.error("Database connection error while removing address {} for account {}", addressId, accountId, e);
+            throw new ServiceException("Internal database error occurred", e);
+        }
+    }
+
     public void removeAddress(String addressId) throws EntityNotFoundException {
         if (addressId == null || addressId.isBlank()) {
             throw new IllegalArgumentException("Address ID cannot be null or blank");
@@ -570,6 +626,14 @@ public class AccountService {
             throw new IllegalArgumentException("PaymentMethodRequest cannot be null");
         }
 
+        try (Connection conn = ConnectionPool.getConnection()) {
+            entityValidator.validateActivePaymentMethodType(conn, request.methodType());
+        } catch (SQLException e) {
+            logger.error("Database connection error while validating payment method type for account {}",
+                    request.accountId(), e);
+            throw new ServiceException("Internal database error occurred", e);
+        }
+
         TokenizationResult tokenizationResult;
         if (request.cardNumber() != null) {
             tokenizationResult = tokenizationGateway.tokenizeCC(
@@ -640,6 +704,67 @@ public class AccountService {
             throw new ServiceException("Internal database error occurred", e);
         }
     }
+
+    public void removeOwnPaymentMethod(String accountId, String paymentMethodId) throws EntityNotFoundException {
+        if (accountId == null || accountId.isBlank()) {
+            throw new IllegalArgumentException("Account ID cannot be null or blank");
+        }
+        if (paymentMethodId == null || paymentMethodId.isBlank()) {
+            throw new IllegalArgumentException("Payment Method ID cannot be null or blank");
+        }
+
+        try (Connection conn = ConnectionPool.getConnection()) {
+            conn.setAutoCommit(false);
+
+            try {
+                PaymentMethodBean method = paymentMethodDAO.findById(conn, paymentMethodId).orElseThrow(() -> {
+                    logger.error("Payment method not found for ID: {}", paymentMethodId);
+                    return new EntityNotFoundException("Payment method not found for ID: " + paymentMethodId);
+                });
+
+                // Ownership check happens within the same transaction as the removal itself,
+                // so there is no gap between verifying ownership and performing the delete.
+                if (!method.getAccountId().equals(accountId)) {
+                    logger.warn("Account {} attempted to remove payment method {} owned by a different account",
+                            accountId, paymentMethodId);
+                    throw new UnauthorizedActionException("Payment method does not belong to the specified account");
+                }
+
+                boolean wasDefault = method.isDefault();
+
+                paymentMethodDAO.forceDelete(conn, paymentMethodId);
+
+                if (wasDefault) {
+                    Optional<PaymentMethodBean> candidate =
+                            paymentMethodDAO.findAnyByAccountIdExcluding(conn, accountId, paymentMethodId);
+                    if (candidate.isPresent()) {
+                        PaymentMethodBean newDefault = candidate.get();
+                        newDefault.setDefault(true);
+                        paymentMethodDAO.update(conn, newDefault);
+                    }
+                }
+
+                conn.commit();
+                logger.info("Payment method {} removed successfully by owner {} (default promotion: {})",
+                        paymentMethodId, accountId, wasDefault);
+            } catch (Exception e) {
+                try {
+                    conn.rollback();
+                } catch (SQLException rollbackEx) {
+                    logger.error("Rollback failed", rollbackEx);
+                    e.addSuppressed(rollbackEx);
+                }
+                throw e;
+            } finally {
+                conn.setAutoCommit(true);
+            }
+        } catch (SQLException | DAOException e) {
+            logger.error("Database connection error while removing payment method {} for account {}",
+                    paymentMethodId, accountId, e);
+            throw new ServiceException("Internal database error occurred", e);
+        }
+    }
+
 
     public void removePaymentMethod(String paymentMethodId) throws EntityNotFoundException {
         if (paymentMethodId == null || paymentMethodId.isBlank()) {
