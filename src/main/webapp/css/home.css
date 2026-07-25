@@ -1,0 +1,93 @@
+/* =========================================================================
+   HERO SECTION WITH VIDEO BACKGROUND
+   ========================================================================= */
+
+.hero-section {
+    position: relative;
+    width: 100%;
+    height: calc(100vh - 80px); /* Regola in base all'altezza dell'header */
+    display: flex;
+    align-items: center;
+    padding-left: 8%;
+    overflow: hidden; /* Evita qualsiasi barra di scorrimento causata dal video */
+
+    /* Immagine di fallback sul contenitore principale */
+    background: #1e1e1e url('../images/hero-fallback.png') no-repeat center center / cover;
+}
+
+/* Stilo del video a tutto schermo dentro la hero */
+.hero-video {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    min-width: 100%;
+    min-height: 100%;
+    width: auto;
+    height: auto;
+    z-index: 1;
+    transform: translate(-50%, -50%);
+    object-fit: cover; /* Mantiene le proporzioni coprendo tutto lo spazio */
+}
+
+/* Overlay per oscurare leggermente il video/immagine e far risaltare il testo */
+.hero-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.25); /* Trasparenza regolabile (0.25 = 25% scuro) */
+    z-index: 2;
+}
+
+/* Contenuto sopra il video e l'overlay */
+.hero-content {
+    position: relative;
+    z-index: 3;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 2rem;
+}
+
+/* Titolo Pixelato Stile Minecraft */
+.hero-title {
+    font-family: var(--font-game);
+    font-size: 2.2rem;
+    line-height: 1.5;
+    color: var(--text-primary);
+    text-transform: lowercase;
+    text-shadow: 4px 4px 0px #000000;
+    margin: 0;
+}
+
+/* Botone Minecraft */
+.btn-mc {
+    display: inline-block;
+    font-family: var(--font-game);
+    font-size: 0.9rem;
+    color: #FFFFFF;
+    background-color: var(--btn-green);
+    padding: 12px 28px;
+    text-decoration: none;
+    text-transform: uppercase;
+    border: 3px solid #000000;
+    box-shadow: inset -3px -3px 0px 0px #1a420f,
+    inset 3px 3px 0px 0px #6fdc4b;
+    text-shadow: 2px 2px 0px #000000;
+    cursor: pointer;
+    transition: background-color 0.15s ease, transform 0.1s ease;
+}
+
+.btn-mc:hover {
+    background-color: var(--btn-green-hover);
+    box-shadow: inset -3px -3px 0px 0px #245815,
+    inset 3px 3px 0px 0px #85f85e;
+    transform: scale(1.03);
+}
+
+.btn-mc:active {
+    box-shadow: inset 3px 3px 0px 0px #1a420f,
+    inset -3px -3px 0px 0px #6fdc4b;
+    transform: scale(0.98);
+}
