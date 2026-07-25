@@ -99,7 +99,6 @@ html, body {
 }
 
 @media (max-width: 768px) {
-    /* Switch del video */
     .hero-video-desktop {
         display: none;
     }
