@@ -15,6 +15,7 @@ import com.xyra.schemecraft.dao.AccountDAO;
 
 import com.xyra.schemecraft.service.gateway.FakeTokenizationService;
 import com.xyra.schemecraft.service.gateway.TokenizationResult;
+import com.xyra.schemecraft.util.Utils;
 import org.mindrot.jbcrypt.BCrypt;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -55,10 +56,8 @@ public class AccountService {
         return input.matches(ValidationConstants.EMAIL_REGEXP);
     }
 
-    public UserSession login(String usernameOrEmail, String password)
-            throws BadCredentialsException {
-
-        if (usernameOrEmail == null || usernameOrEmail.isBlank() || password == null || password.isEmpty()) {
+    public UserSession login(String usernameOrEmail, String password) throws BadCredentialsException {
+        if (Utils.isNullOrBlank(usernameOrEmail) || Utils.isNullOrBlank(password)) {
             throw new BadCredentialsException("Invalid credentials.");
         }
 
@@ -79,7 +78,7 @@ public class AccountService {
                 throw new BadCredentialsException("Invalid credentials.");
             }
             String storedHash = account.getPasswordHash();
-            if (storedHash == null || storedHash.isEmpty()) {
+            if (Utils.isNullOrBlank(storedHash)) {
                 BCrypt.checkpw(password, DUMMY_HASH);
                 throw new BadCredentialsException("Invalid credentials.");
             }
@@ -107,21 +106,21 @@ public class AccountService {
     }
 
     public AccountRegistrationResponse registerAccount(AccountRegistrationRequest request)
-            throws DuplicateEntityException, EntityNotFoundException, InactiveEntityException, ServiceException {
+            throws DuplicateEntityException, EntityNotFoundException, ServiceException {
 
         if (request == null) {
             throw new IllegalArgumentException("Registration request cannot be null");
         }
-        if (request.plainTextPassword() == null || request.plainTextPassword().isEmpty()) {
+        if (Utils.isNullOrBlank(request.plainTextPassword())) {
             throw new IllegalArgumentException("Password cannot be null or empty");
         }
         if (request.plainTextPassword().getBytes(java.nio.charset.StandardCharsets.UTF_8).length > 72) {
             throw new IllegalArgumentException("Password exceeds maximum length of 72 bytes");
         }
-        if (request.username() == null || request.username().isBlank()) {
+        if (Utils.isNullOrBlank(request.username())) {
             throw new IllegalArgumentException("Username cannot be null or blank");
         }
-        if (request.email() == null || request.email().isBlank()) {
+        if (Utils.isNullOrBlank(request.email())) {
             throw new IllegalArgumentException("Email cannot be null or blank");
         }
 
@@ -194,11 +193,11 @@ public class AccountService {
             AccountBean account = entityValidator.validateActiveAccount(conn, accountId);
 
             String storedHash = account.getPasswordHash();
-            if(storedHash == null || storedHash.isEmpty()) {
+            if (Utils.isNullOrBlank(storedHash)) {
                 throw new ServiceException("Account has no password hash.");
             }
 
-            if(!BCrypt.checkpw(oldPassword, storedHash)) {
+            if (!BCrypt.checkpw(oldPassword, storedHash)) {
                 throw new BadCredentialsException("Invalid credentials.");
             }
 
@@ -723,7 +722,7 @@ public class AccountService {
                 });
 
                 // Ownership check happens within the same transaction as the removal itself,
-                // so there is no gap between verifying ownership and performing the delete.
+                // so there is no gap between verifying ownership and performing to delete.
                 if (!method.getAccountId().equals(accountId)) {
                     logger.warn("Account {} attempted to remove payment method {} owned by a different account",
                             accountId, paymentMethodId);
