@@ -11,8 +11,15 @@
 
     padding: 1.25rem 2.5rem;
 
-    /* Transparent by default: relies on hero background behind it */
     background: transparent;
+    transition: background-color 0.25s ease, backdrop-filter 0.25s ease;
+}
+
+.site-header--scrolled {
+    background-color: rgba(45, 45, 45, 0.55);
+    backdrop-filter: blur(6px);
+    -webkit-backdrop-filter: blur(6px);
+    border-bottom: 0px solid var(--border-color);
 }
 
 /* -----------------------------------------------------------------------

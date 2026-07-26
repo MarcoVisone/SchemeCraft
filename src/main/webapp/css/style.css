@@ -34,3 +34,8 @@ body {
     font-weight: var(--weight-regular);
     -webkit-font-smoothing: antialiased;
 }
+
+main {
+    display: block;
+    line-height: 0;
+}

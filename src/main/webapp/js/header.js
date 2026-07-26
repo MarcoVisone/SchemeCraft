@@ -1,6 +1,6 @@
 document.addEventListener("DOMContentLoaded", function () {
     const header = document.querySelector(".site-header");
-    const SCROLL_THRESHOLD = 1;
+    const SCROLL_THRESHOLD = 20;
 
     function updateHeaderState() {
         if (window.scrollY > SCROLL_THRESHOLD) {

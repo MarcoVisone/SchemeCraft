@@ -14,6 +14,8 @@
     <link rel="stylesheet" href="${pageContext.request.contextPath}/css/home.css">
     <link rel="stylesheet" href="${pageContext.request.contextPath}/css/header.css">
     <link rel="stylesheet" href="${pageContext.request.contextPath}/css/footer.css">
+
+    <script src="${pageContext.request.contextPath}/js/header.js"></script>
 </head>
 <body>
 
