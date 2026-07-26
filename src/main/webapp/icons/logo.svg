@@ -1,0 +1,80 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 920 200" width="100%" height="100%">
+  <defs>
+    <!-- SFUMATURE LATI CUBO -->
+    <linearGradient id="topFace" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#1e293b" />
+      <stop offset="100%" stop-color="#0f172a" />
+    </linearGradient>
+
+    <linearGradient id="leftFace" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#0f172a" />
+      <stop offset="100%" stop-color="#020617" />
+    </linearGradient>
+
+    <linearGradient id="rightFace" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#1e1b4b" />
+      <stop offset="100%" stop-color="#0f172a" />
+    </linearGradient>
+
+    <!-- PATTERN GRIGLIA BLUEPRINT -->
+    <pattern id="blueprintGrid" width="12" height="12" patternUnits="userSpaceOnUse">
+      <path d="M 12 0 L 0 0 0 12" fill="none" stroke="#38bdf8" stroke-width="0.8" opacity="0.22" />
+    </pattern>
+
+    <!-- SFUMATURE TESTO -->
+    <linearGradient id="textGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#ffffff" />
+      <stop offset="70%" stop-color="#e2e8f0" />
+      <stop offset="100%" stop-color="#cbd5e1" />
+    </linearGradient>
+
+    <!-- STILE FONT -->
+    <style>
+      .cobble-text {
+        font-family: 'Fredoka', 'Quicksand', 'Nunito', 'Arial Rounded MT Bold', sans-serif;
+        font-size: 102px;
+        font-weight: 800;
+      }
+    </style>
+  </defs>
+
+  <!-- ICONA CUBO BLUEPRINT (A SINISTRA) -->
+  <g transform="translate(15, 14) scale(0.72)">
+    <!-- 1. BORDO ESTERNO SPESSO -->
+    <polygon points="120,22 205,71 205,169 120,218 35,169 35,71" 
+             fill="none" 
+             stroke="#1e1e2d" 
+             stroke-width="16" 
+             stroke-linejoin="round" />
+
+    <!-- 2. STRUTTURA BASE DEL CUBO ISOMETRICO -->
+    <polygon points="120,25 200,71 120,117 40,71" fill="url(#topFace)" stroke="#1e293b" stroke-width="2" />
+    <polygon points="40,71 120,117 120,209 40,163" fill="url(#leftFace)" stroke="#1e293b" stroke-width="2" />
+    <polygon points="120,117 200,71 200,163 120,209" fill="url(#rightFace)" stroke="#1e293b" stroke-width="2" />
+
+    <!-- 3. TRAMA BLUEPRINT -->
+    <polygon points="120,25 200,71 120,117 40,71" fill="url(#blueprintGrid)" />
+    <polygon points="40,71 120,117 120,209 40,163" fill="url(#blueprintGrid)" />
+    <polygon points="120,117 200,71 200,163 120,209" fill="url(#blueprintGrid)" />
+
+    <!-- 4. SPIGOLI DEL CUBO -->
+    <g stroke="#38bdf8" stroke-width="1.5" opacity="0.4" stroke-dasharray="4 3">
+      <line x1="120" y1="25" x2="120" y2="117" />
+      <line x1="40" y1="71" x2="120" y2="117" />
+      <line x1="200" y1="71" x2="120" y2="117" />
+      <line x1="120" y1="117" x2="120" y2="209" />
+    </g>
+  </g>
+
+  <!-- SCRITTA "schemecraft" (A DESTRA, ALLINEATA CENTRATA) -->
+  <g transform="translate(190, 136)">
+    <!-- OUTLINE NERO SPESSO -->
+    <text class="cobble-text" x="0" y="0" fill="none" stroke="#1e1e2d" stroke-width="26" stroke-linejoin="round" stroke-linecap="round">schemecraft</text>
+    
+    <!-- OMBRA INTERNA SCURA PER PROFONDITÀ -->
+    <text class="cobble-text" x="0" y="4" fill="#000000" opacity="0.15">schemecraft</text>
+
+    <!-- RIEMPIMENTO TESTO CHIARO -->
+    <text class="cobble-text" x="0" y="0" fill="url(#textGrad)">schemecraft</text>
+  </g>
+</svg>

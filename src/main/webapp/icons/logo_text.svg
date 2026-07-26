@@ -1,0 +1,31 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 850 160" width="100%" height="100%">
+  <defs>
+    <!-- SFUMATURE TESTO (Lavanda / Bianco-Grigio stile Cobblemon) -->
+    <linearGradient id="textGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#ffffff" />
+      <stop offset="70%" stop-color="#e2e8f0" />
+      <stop offset="100%" stop-color="#cbd5e1" />
+    </linearGradient>
+
+    <!-- STILE FONT SCHEMECRAFT (Morbido, arrotondato, minuscolo) -->
+    <style>
+      .cobble-text {
+        font-family: 'Fredoka', 'Quicksand', 'Nunito', 'Arial Rounded MT Bold', sans-serif;
+        font-size: 102px;
+        font-weight: 800;
+      }
+    </style>
+  </defs>
+
+  <!-- TESTO MINUSCOLO "schemecraft" STILE COBBLEMON (SFONDO TRASPARENTE) -->
+  <g transform="translate(30, 115)">
+    <!-- OUTLINE NERO/SCURO SPESSO (Effetto Sticker Cobblemon) -->
+    <text class="cobble-text" x="0" y="0" fill="none" stroke="#1e1e2d" stroke-width="26" stroke-linejoin="round" stroke-linecap="round">schemecraft</text>
+    
+    <!-- OMBRA INTERNA SCURA PER PROFONDITÀ -->
+    <text class="cobble-text" x="0" y="4" fill="#000000" opacity="0.15">schemecraft</text>
+
+    <!-- RIEMPIMENTO TESTO CHIARO -->
+    <text class="cobble-text" x="0" y="0" fill="url(#textGrad)">schemecraft</text>
+  </g>
+</svg>

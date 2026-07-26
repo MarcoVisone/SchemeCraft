@@ -1,0 +1,56 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 240" width="100%" height="100%">
+  <defs>
+    <!-- SFUMATURE LATI CUBO -->
+    <linearGradient id="topFace" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#1e293b" />
+      <stop offset="100%" stop-color="#0f172a" />
+    </linearGradient>
+
+    <linearGradient id="leftFace" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#0f172a" />
+      <stop offset="100%" stop-color="#020617" />
+    </linearGradient>
+
+    <linearGradient id="rightFace" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#1e1b4b" />
+      <stop offset="100%" stop-color="#0f172a" />
+    </linearGradient>
+
+    <!-- PATTERN GRIGLIA BLUEPRINT (A QUADRETTI ISOMETRICI/MINECRAFT) -->
+    <pattern id="blueprintGrid" width="12" height="12" patternUnits="userSpaceOnUse">
+      <path d="M 12 0 L 0 0 0 12" fill="none" stroke="#38bdf8" stroke-width="0.8" opacity="0.22" />
+    </pattern>
+  </defs>
+
+  <g transform="translate(0, 0)">
+    <!-- 1. BORDO ESTERNO SPESSO (Stile Cobblemon/Sticker) -->
+    <polygon points="120,22 205,71 205,169 120,218 35,169 35,71" 
+             fill="none" 
+             stroke="#1e1e2d" 
+             stroke-width="16" 
+             stroke-linejoin="round" />
+
+    <!-- 2. STRUTTURA BASE DEL CUBO ISOMETRICO (FACCETTE) -->
+    <!-- Faccia Superiore -->
+    <polygon points="120,25 200,71 120,117 40,71" fill="url(#topFace)" stroke="#1e293b" stroke-width="2" />
+    
+    <!-- Faccia Sinistra -->
+    <polygon points="40,71 120,117 120,209 40,163" fill="url(#leftFace)" stroke="#1e293b" stroke-width="2" />
+    
+    <!-- Faccia Destra -->
+    <polygon points="120,117 200,71 200,163 120,209" fill="url(#rightFace)" stroke="#1e293b" stroke-width="2" />
+
+    <!-- 3. TRAMA BLUEPRINT (Griglia a quadretti proiettata sulle facce) -->
+    <polygon points="120,25 200,71 120,117 40,71" fill="url(#blueprintGrid)" />
+    <polygon points="40,71 120,117 120,209 40,163" fill="url(#blueprintGrid)" />
+    <polygon points="120,117 200,71 200,163 120,209" fill="url(#blueprintGrid)" />
+
+    <!-- 4. SPIGOLI DEL CUBO (Linee Guida di Progetto) -->
+    <g stroke="#38bdf8" stroke-width="1.5" opacity="0.4" stroke-dasharray="4 3">
+      <line x1="120" y1="25" x2="120" y2="117" />
+      <line x1="40" y1="71" x2="120" y2="117" />
+      <line x1="200" y1="71" x2="120" y2="117" />
+      <line x1="120" y1="117" x2="120" y2="209" />
+    </g>
+  </g>
+</svg>
