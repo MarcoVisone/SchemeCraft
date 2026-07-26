@@ -293,7 +293,22 @@ CREATE TABLE IF NOT EXISTS order_item (
 );
 
 -- =============================================================================
--- 6. BUSINESS LOGIC DATABASE TRIGGERS
+-- 6. REMEMBER ME TOKENS
+-- =============================================================================
+
+CREATE TABLE IF NOT EXISTS remember_token (
+    token_id VARCHAR(36) PRIMARY KEY,
+    account_id VARCHAR(36) NOT NULL,
+    token_hash VARCHAR(255) NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT fk_remember_token_account FOREIGN KEY (account_id) REFERENCES account(account_id)
+        ON DELETE CASCADE ON UPDATE CASCADE,
+    CONSTRAINT uq_remember_token_hash UNIQUE (token_hash),
+    INDEX idx_remember_token_account (account_id)
+);
+
+-- =============================================================================
+-- 7. BUSINESS LOGIC DATABASE TRIGGERS
 -- =============================================================================
 
 DELIMITER $$

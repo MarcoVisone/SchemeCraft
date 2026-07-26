@@ -9,6 +9,8 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import javax.servlet.http.HttpSession;
 
+import com.xyra.schemecraft.service.RememberTokenService;
+import com.xyra.schemecraft.util.CookieUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -31,13 +33,16 @@ public class AuthServlet extends HttpServlet {
     private static final Logger logger = LoggerFactory.getLogger(AuthServlet.class);
 
     private AccountService accountService;
+    private RememberTokenService rememberTokenService;
+
 
     public AuthServlet() {
         super();
     }
 
-    public AuthServlet(AccountService accountService) {
+    public AuthServlet(AccountService accountService, RememberTokenService rememberTokenService) {
         this.accountService = accountService;
+        this.rememberTokenService = rememberTokenService;
     }
 
     @Override
@@ -46,6 +51,11 @@ public class AuthServlet extends HttpServlet {
         if (this.accountService == null) {
             this.accountService = new AccountService();
         }
+
+        if (this.rememberTokenService == null) {
+            this.rememberTokenService = new RememberTokenService();
+        }
+
         logger.info("AuthServlet successfully initialized.");
     }
 
@@ -115,6 +125,11 @@ public class AuthServlet extends HttpServlet {
             HttpSession newSession = req.getSession(true);
             newSession.setAttribute("userSession", userSession);
             newSession.setAttribute("account", userSession.getAccount());
+
+            if ("true".equals(req.getParameter("rememberMe"))) {
+                String rawToken = rememberTokenService.createRememberToken(userSession.getAccount().getAccountId());
+                CookieUtils.setRememberMeCookie(resp, rawToken, req.getContextPath());
+            }
 
             logger.info("User successfully logged in. Account ID: {}", userSession.getAccount().getAccountId());
 

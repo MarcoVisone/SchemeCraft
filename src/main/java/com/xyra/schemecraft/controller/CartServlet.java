@@ -12,6 +12,7 @@ import javax.servlet.http.HttpServletResponse;
 import javax.servlet.http.HttpSession;
 
 import com.xyra.schemecraft.util.JsonUtils;
+import com.xyra.schemecraft.util.ServletUtils;
 import org.json.JSONArray;
 import org.json.JSONObject;
 import org.slf4j.Logger;
@@ -236,7 +237,6 @@ public class CartServlet extends HttpServlet {
     }
 
     private String getActionPath(HttpServletRequest req) {
-        String pathInfo = req.getPathInfo();
-        return (pathInfo == null) ? "" : pathInfo;
+        return ServletUtils.getActionPath(req);
     }
 }

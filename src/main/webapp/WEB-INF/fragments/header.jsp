@@ -13,8 +13,7 @@
         <a href="${pageContext.request.contextPath}/" class="site-header__link site-header__link--primary-nav">Home</a>
         <a href="${pageContext.request.contextPath}/products" class="site-header__link site-header__link--primary-nav">Catalog</a>
 
-        <a href="${pageContext.request.contextPath}/cart" class="site-header__link site-header__link--icon site-header__link--cart">
-            <img src="${pageContext.request.contextPath}/icons/cart.png" alt="Cart" width="28" height="28">
+        <a href="${pageContext.request.contextPath}/cart" class="site-header__link site-header__link--cart">
             <span>Cart</span>
         </a>
 
@@ -35,6 +34,7 @@
             </c:otherwise>
 
         </c:choose>
+
 
     </nav>
 
