@@ -1,0 +1,71 @@
+/* -----------------------------------------------------------------------
+   Divider above footer
+   -------------------------------------------------------------------- */
+
+hr {
+    border: none;
+    border-top: 1px solid var(--border-color);
+    margin: 0;
+}
+
+/* -----------------------------------------------------------------------
+   Site footer
+   -------------------------------------------------------------------- */
+
+.site-footer {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.5rem;
+
+    background: var(--bg-card);
+    padding: 2.5rem 1rem;
+    text-align: center;
+}
+
+.site-footer__brand {
+    font-family: var(--font-body), serif;
+    font-size: 1.25rem;
+    font-weight: var(--weight-bold);
+    color: var(--text-primary);
+    margin: 0 0 0.5rem 0;
+}
+
+.site-footer__brand img {
+    height: 50px;
+    width: auto;
+    display: block;
+}
+
+.site-footer__copyright {
+    font-family: var(--font-body), serif;
+    font-size: 0.85rem;
+    font-weight: var(--weight-regular);
+    color: var(--text-secondary);
+    margin: 0 0 1rem 0;
+}
+
+.site-footer__separator {
+    color: var(--border-color);
+    margin: 0 0.3rem;
+}
+
+.site-footer__disclaimer {
+    font-family: var(--font-body), serif;
+    font-size: 0.8rem;
+    font-weight: var(--weight-regular);
+    color: var(--text-secondary);
+    margin: 0 0 0.75rem 0;
+}
+
+.site-footer__legal {
+    font-family: var(--font-body), serif;
+    font-size: 0.7rem;
+    font-weight: var(--weight-regular);
+    color: var(--text-secondary);
+    opacity: 0.7;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    max-width: 500px;
+    margin: 0;
+}
