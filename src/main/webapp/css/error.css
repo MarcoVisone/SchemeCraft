@@ -1,0 +1,99 @@
+/* Shared stylesheet for Minecraft-inspired error pages */
+
+/* Contenitore principale */
+.error-main {
+    position: relative;
+    min-height: 100vh;
+    min-height: 100dvh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center; /* Centra sia il testo che il pulsante al centro dello schermo */
+    text-align: center;
+    padding: 2rem;
+    overflow: hidden;
+
+    /* Sfondo Dirt */
+    background-image: url("../images/dirt.png");
+    background-repeat: repeat;
+    background-size: 64px 64px;
+    image-rendering: pixelated;
+    image-rendering: -moz-crisp-edges;
+    image-rendering: crisp-edges;
+}
+
+/* Dark Overlay direttamente sulla dirt per far risaltare il testo */
+.error-main::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background-color: rgba(0, 0, 0, 0.6);
+    z-index: 0;
+}
+
+body:has(.error-main) header {
+    background-color: var(--bg-main);
+}
+
+
+.error-content {
+    position: relative;
+    z-index: 1;
+    max-width: 36rem;
+    margin-bottom: 2.5rem;
+}
+
+/* Titolo dell'errore (Bianco, font Inter, centrato) */
+.error-content h2 {
+    font-family: var(--font-body);
+    color: #FFFFFF;
+    font-size: 1.8rem;
+    font-weight: 600;
+    margin: 0 0 1rem 0;
+    text-align: center;
+    text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.8); /* Shadow per leggibilità */
+}
+
+/* Dettaglio dell'errore (Rosso Minecraft, font Inter, centrato) */
+.error-content p {
+    font-family: var(--font-body);
+    color: #FF5555; /* Rosso autentico di errore */
+    font-size: 1.1rem;
+    line-height: 1.5;
+    margin: 0;
+    text-align: center;
+    text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.8);
+}
+
+.error-actions {
+    position: relative;
+    z-index: 1;
+    display: flex;
+    justify-content: center;
+}
+
+.error-actions a {
+    font-family: var(--font-body);
+    font-weight: 600;
+    display: inline-block;
+    color: #FFFFFF;
+
+    /* Sfondo scuro opaco e bordo sottile pulito */
+    background-color: rgba(20, 20, 20, 0.75);
+    border: 1px solid rgba(255, 255, 255, 0.25);
+    border-radius: 4px; /* Un minimo di curvatura pulita, o 0px se preferisci squadrato */
+
+    padding: 0.8rem 2.2rem;
+    min-width: 14rem;
+    text-decoration: none;
+    text-align: center;
+    font-size: 1rem;
+    letter-spacing: 0.5px;
+
+    /* Transizione morbida e moderna */
+    transition: all 0.2s ease-in-out;
+}
+.error-actions a:hover {
+    background-color: #7B7B7B;
+    color: #FFFFFF;
+}

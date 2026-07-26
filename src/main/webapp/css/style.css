@@ -33,4 +33,13 @@ body {
     font-family: var(--font-body), serif;
     font-weight: var(--weight-regular);
     -webkit-font-smoothing: antialiased;
+<<<<<<< Updated upstream
+=======
+
+    /* Aggiungi queste righe per coprire il 100% dell'altezza dello schermo */
+    margin: 0;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+>>>>>>> Stashed changes
 }
