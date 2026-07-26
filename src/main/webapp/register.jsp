@@ -17,7 +17,8 @@
     <link rel="stylesheet" href="${pageContext.request.contextPath}/css/auth.css">
     <link rel="stylesheet" href="${pageContext.request.contextPath}/css/footer.css">
 
-    <script src="${pageContext.request.contextPath}/js/header.js"></script>
+    <script src="${pageContext.request.contextPath}/js/header.js" defer></script>
+    <script src="${pageContext.request.contextPath}/js/register.js" defer></script>
 </head>
 <body class="auth-body">
 
@@ -54,7 +55,12 @@
             </div>
         </c:if>
 
-        <form action="${pageContext.request.contextPath}/auth/register" method="POST" id="registrationForm" class="auth-form" enctype="multipart/form-data">
+        <form action="${pageContext.request.contextPath}/auth/register"
+              method="POST"
+              id="registrationForm"
+              class="auth-form"
+              enctype="multipart/form-data"
+              data-context-path="${pageContext.request.contextPath}">
 
             <div class="form-step" id="step-1">
                 <div class="form-group">
@@ -78,7 +84,7 @@
                     <span class="field-feedback" id="password-feedback"></span>
                 </div>
 
-                <button type="button" class="btn-primary btn-block" onclick="goToStep(2)">
+                <button type="button" class="btn-primary btn-block" data-step="2">
                     Next Step &rarr;
                 </button>
             </div>
@@ -91,7 +97,7 @@
                         <option value="" disabled ${empty param.countryId ? 'selected' : ''}>Select your country</option>
                         <c:forEach var="country" items="${countries}">
                             <option value="${country.countryId}" ${param.countryId == country.countryId ? 'selected' : ''}>
-                                    ${country.countryName} <!-- UPDATE QUI -->
+                                    ${country.countryName}
                             </option>
                         </c:forEach>
                     </select>
@@ -122,10 +128,10 @@
                 </div>
 
                 <div class="button-group">
-                    <button type="button" class="btn-secondary" onclick="goToStep(1)">
+                    <button type="button" class="btn-secondary" data-step="1">
                         &larr; Back
                     </button>
-                    <button type="button" class="btn-primary" onclick="goToStep(3)">
+                    <button type="button" class="btn-primary" data-step="3">
                         Next Step &rarr;
                     </button>
                 </div>
@@ -148,7 +154,7 @@
                 </div>
 
                 <div class="button-group">
-                    <button type="button" class="btn-secondary" onclick="goToStep(2)">
+                    <button type="button" class="btn-secondary" data-step="2">
                         &larr; Back
                     </button>
                     <button type="submit" class="btn-primary">
@@ -166,237 +172,6 @@
 </main>
 
 <%@ include file="/WEB-INF/fragments/footer.jsp" %>
-
-<script>
-    const CONTEXT_PATH = "${pageContext.request.contextPath}";
-
-    const USERNAME_REGEX = /^[a-zA-Z0-9_]{3,50}$/;
-    const EMAIL_REGEX = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
-    const PASSWORD_REGEX = /^(?=.*[0-9])(?=.*[a-z])(?=.*[A-Z]).{8,20}$/;
-
-    let isUsernameAvailable = true;
-    let isEmailAvailable = true;
-    let isPasswordValid = false;
-
-    function validatePasswordInput() {
-        const passwordInput = document.getElementById('password');
-        const passwordFeedback = document.getElementById('password-feedback');
-        const password = passwordInput.value;
-
-        if (!password) {
-            passwordFeedback.textContent = "Password is required.";
-            passwordFeedback.className = "field-feedback error";
-            isPasswordValid = false;
-            return false;
-        }
-
-        if (!PASSWORD_REGEX.test(password)) {
-            isPasswordValid = false;
-            passwordFeedback.textContent = "Password must be 8-20 characters long and contain at least one uppercase letter, one lowercase letter, and one number.";
-            passwordFeedback.className = "field-feedback error";
-            return false;
-        } else {
-            isPasswordValid = true;
-            passwordFeedback.textContent = "Strong password!";
-            passwordFeedback.className = "field-feedback success";
-            return true;
-        }
-    }
-
-    function goToStep(step) {
-        const step1 = document.getElementById('step-1');
-        const step2 = document.getElementById('step-2');
-        const step3 = document.getElementById('step-3');
-
-        const ind1 = document.getElementById('step-indicator-1');
-        const ind2 = document.getElementById('step-indicator-2');
-        const ind3 = document.getElementById('step-indicator-3');
-
-        if (step === 2) {
-            const isPassOk = validatePasswordInput();
-            const usernameInput = document.getElementById('username');
-            const emailInput = document.getElementById('email');
-
-            if (!usernameInput.value.trim()) {
-                document.getElementById('username-feedback').textContent = "Username is required.";
-                document.getElementById('username-feedback').className = "field-feedback error";
-            }
-
-            if (!emailInput.value.trim()) {
-                document.getElementById('email-feedback').textContent = "Email is required.";
-                document.getElementById('email-feedback').className = "field-feedback error";
-            }
-
-            if (!isPassOk || !isUsernameAvailable || !isEmailAvailable || !usernameInput.value.trim() || !emailInput.value.trim()) {
-                return;
-            }
-
-            step1.classList.add('hidden');
-            step2.classList.remove('hidden');
-            step3.classList.add('hidden');
-
-            ind1.classList.remove('active');
-            ind2.classList.add('active');
-            ind3.classList.remove('active');
-
-        } else if (step === 3) {
-            const country = document.getElementById('countryId');
-            const currency = document.getElementById('currencyId');
-            const language = document.getElementById('languageId');
-
-            let isStep2Valid = true;
-
-            if (!country.value) {
-                country.reportValidity();
-                isStep2Valid = false;
-            } else if (!currency.value) {
-                currency.reportValidity();
-                isStep2Valid = false;
-            } else if (!language.value) {
-                language.reportValidity();
-                isStep2Valid = false;
-            }
-
-            if (!isStep2Valid) return;
-
-            step1.classList.add('hidden');
-            step2.classList.add('hidden');
-            step3.classList.remove('hidden');
-
-            ind1.classList.remove('active');
-            ind2.classList.remove('active');
-            ind3.classList.add('active');
-
-        } else {
-            step1.classList.remove('hidden');
-            step2.classList.add('hidden');
-            step3.classList.add('hidden');
-
-            ind1.classList.add('active');
-            ind2.classList.remove('active');
-            ind3.classList.remove('active');
-        }
-    }
-
-    document.addEventListener('DOMContentLoaded', () => {
-        const form = document.getElementById('registrationForm');
-        const usernameInput = document.getElementById('username');
-        const emailInput = document.getElementById('email');
-        const passwordInput = document.getElementById('password');
-        const bioInput = document.getElementById('bio');
-        const bioCharCount = document.getElementById('bio-char-count');
-
-        const usernameFeedback = document.getElementById('username-feedback');
-        const emailFeedback = document.getElementById('email-feedback');
-
-        if (bioInput && bioCharCount) {
-            bioInput.addEventListener('input', () => {
-                bioCharCount.textContent = bioInput.value.length;
-            });
-            bioCharCount.textContent = bioInput.value.length;
-        }
-
-        passwordInput.addEventListener('input', validatePasswordInput);
-        passwordInput.addEventListener('blur', validatePasswordInput);
-
-        form.addEventListener('submit', (e) => {
-            const isPassOk = validatePasswordInput();
-
-            if (!isUsernameAvailable || !isEmailAvailable || !isPassOk) {
-                e.preventDefault();
-                goToStep(1);
-            }
-        });
-
-        usernameInput.addEventListener('blur', async () => {
-            const username = usernameInput.value.trim();
-            if (!username) {
-                usernameFeedback.textContent = "Username is required.";
-                usernameFeedback.className = "field-feedback error";
-                isUsernameAvailable = false;
-                return;
-            }
-
-            if (!USERNAME_REGEX.test(username)) {
-                isUsernameAvailable = false;
-                usernameFeedback.textContent = "Username must be 3-50 alphanumeric characters or underscores.";
-                usernameFeedback.className = "field-feedback error";
-                return;
-            }
-
-            try {
-                const url = CONTEXT_PATH + '/auth/check-username?username=' + encodeURIComponent(username);
-                const response = await fetch(url);
-                const result = await response.json();
-
-                if (!response.ok) {
-                    isUsernameAvailable = false;
-                    usernameFeedback.textContent = result.message || "Invalid username format.";
-                    usernameFeedback.className = "field-feedback error";
-                    return;
-                }
-
-                const exists = result.exists ?? result.data?.exists ?? false;
-
-                if (exists) {
-                    isUsernameAvailable = false;
-                    usernameFeedback.textContent = "Username is already taken.";
-                    usernameFeedback.className = "field-feedback error";
-                } else {
-                    isUsernameAvailable = true;
-                    usernameFeedback.textContent = "Username is available!";
-                    usernameFeedback.className = "field-feedback success";
-                }
-            } catch (error) {
-                console.error("Error during username check:", error);
-            }
-        });
-
-        emailInput.addEventListener('blur', async () => {
-            const email = emailInput.value.trim();
-            if (!email) {
-                emailFeedback.textContent = "Email is required.";
-                emailFeedback.className = "field-feedback error";
-                isEmailAvailable = false;
-                return;
-            }
-
-            if (!EMAIL_REGEX.test(email)) {
-                isEmailAvailable = false;
-                emailFeedback.textContent = "Please enter a valid email address.";
-                emailFeedback.className = "field-feedback error";
-                return;
-            }
-
-            try {
-                const url = CONTEXT_PATH + '/auth/check-email?email=' + encodeURIComponent(email);
-                const response = await fetch(url);
-                const result = await response.json();
-
-                if (!response.ok) {
-                    isEmailAvailable = false;
-                    emailFeedback.textContent = result.message || "Invalid email format.";
-                    emailFeedback.className = "field-feedback error";
-                    return;
-                }
-
-                const exists = result.exists ?? result.data?.exists ?? false;
-
-                if (exists) {
-                    isEmailAvailable = false;
-                    emailFeedback.textContent = "Email is already registered.";
-                    emailFeedback.className = "field-feedback error";
-                } else {
-                    isEmailAvailable = true;
-                    emailFeedback.textContent = "Email is valid and available!";
-                    emailFeedback.className = "field-feedback success";
-                }
-            } catch (error) {
-                console.error("Error during email check:", error);
-            }
-        });
-    });
-</script>
 
 </body>
 </html>
