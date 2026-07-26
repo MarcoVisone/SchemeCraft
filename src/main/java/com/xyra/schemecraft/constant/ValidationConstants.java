@@ -1,32 +1,29 @@
 package com.xyra.schemecraft.constant;
 
+import java.util.regex.Pattern;
+
 /**
- * Utility class containing field validation constraints, length boundaries, and regular expression patterns.
+ * Utility class containing field validation constraints, length boundaries,
+ * regular expression strings, and pre-compiled Pattern instances for high-performance matching.
  */
 public final class ValidationConstants {
 
-    /**
-     * Standard RFC 5322 compliant regular expression pattern for validating email addresses.
-     */
-    public static final String EMAIL_REGEXP = "^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$";
-
-    /**
-     * Regular expression pattern enforcing alphanumeric usernames with underscores allowed.
-     */
-    public static final String USERNAME_REGEXP = "^[a-zA-Z0-9_]+$";
-
-    /**
-     * Minimum allowed length for a username string.
-     */
     public static final int USERNAME_MIN_LENGTH = 3;
-
-    /**
-     * Maximum allowed length for a username string.
-     */
     public static final int USERNAME_MAX_LENGTH = 50;
 
+    public static final int PASSWORD_MIN_LENGTH = 8;
+    public static final int PASSWORD_MAX_LENGTH = 20;
+
+    public static final String USERNAME_REGEX = "^[a-zA-Z0-9_]{" + USERNAME_MIN_LENGTH + "," + USERNAME_MAX_LENGTH + "}$";
+    public static final String EMAIL_REGEX = "^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$";
+    public static final String PASSWORD_REGEX = "^(?=.*[0-9])(?=.*[a-z])(?=.*[A-Z]).{" + PASSWORD_MIN_LENGTH + "," + PASSWORD_MAX_LENGTH + "}$";
+
+    public static final Pattern USERNAME_PATTERN = Pattern.compile(USERNAME_REGEX);
+    public static final Pattern EMAIL_PATTERN = Pattern.compile(EMAIL_REGEX);
+    public static final Pattern PASSWORD_PATTERN = Pattern.compile(PASSWORD_REGEX);
+
     /**
-     * Private constructor to prevent instantiation of utility class.
+     * Private constructor to prevent instantiation.
      *
      * @throws AssertionError if instantiation is attempted
      */

@@ -3,14 +3,15 @@ package com.xyra.schemecraft.controller;
 import java.io.IOException;
 
 import javax.servlet.ServletException;
+import javax.servlet.annotation.MultipartConfig;
 import javax.servlet.annotation.WebServlet;
 import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import javax.servlet.http.HttpSession;
 
-import com.xyra.schemecraft.service.RememberTokenService;
-import com.xyra.schemecraft.util.CookieUtils;
+import com.xyra.schemecraft.constant.ValidationConstants;
+import com.xyra.schemecraft.util.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -23,26 +24,31 @@ import com.xyra.schemecraft.exception.InactiveEntityException;
 import com.xyra.schemecraft.exception.ServiceException;
 import com.xyra.schemecraft.model.UserSession;
 import com.xyra.schemecraft.service.AccountService;
-import com.xyra.schemecraft.util.JsonUtils;
-import com.xyra.schemecraft.util.ServletUtils;
-import com.xyra.schemecraft.util.Utils;
+import com.xyra.schemecraft.service.LookupService;
+import com.xyra.schemecraft.service.RememberTokenService;
 
 @WebServlet(name = "AuthServlet", urlPatterns = {"/auth/*"})
+@MultipartConfig(
+        fileSizeThreshold = 1024 * 1024 * 2, // 2MB
+        maxFileSize = 1024 * 1024 * 10,      // 10MB
+        maxRequestSize = 1024 * 1024 * 50    // 50MB
+)
 public class AuthServlet extends HttpServlet {
 
     private static final Logger logger = LoggerFactory.getLogger(AuthServlet.class);
 
     private AccountService accountService;
     private RememberTokenService rememberTokenService;
-
+    private LookupService lookupService;
 
     public AuthServlet() {
         super();
     }
 
-    public AuthServlet(AccountService accountService, RememberTokenService rememberTokenService) {
+    public AuthServlet(AccountService accountService, RememberTokenService rememberTokenService, LookupService lookupService) {
         this.accountService = accountService;
         this.rememberTokenService = rememberTokenService;
+        this.lookupService = lookupService;
     }
 
     @Override
@@ -51,21 +57,26 @@ public class AuthServlet extends HttpServlet {
         if (this.accountService == null) {
             this.accountService = new AccountService();
         }
-
         if (this.rememberTokenService == null) {
             this.rememberTokenService = new RememberTokenService();
         }
+        if (this.lookupService == null) {
+            this.lookupService = new LookupService();
+        }
 
-        logger.info("AuthServlet successfully initialized.");
+        logger.info("AuthServlet successfully initialized with LookupService and RememberTokenService.");
     }
 
     @Override
     protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
         String action = ServletUtils.getActionPath(req);
+        if (action.isEmpty() || "/".equals(action)) {
+            action = "/login";
+        }
 
         switch (action) {
             case "/login" -> showLoginForm(req, resp);
-            case "/register" -> req.getRequestDispatcher("/register.jsp").forward(req, resp);
+            case "/register" -> showRegisterForm(req, resp);
             case "/logout" -> handleLogout(req, resp);
             case "/check-username" -> handleCheckUsername(req, resp);
             case "/check-email" -> handleCheckEmail(req, resp);
@@ -76,6 +87,9 @@ public class AuthServlet extends HttpServlet {
     @Override
     protected void doPost(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
         String action = ServletUtils.getActionPath(req);
+        if (action.isEmpty() || "/".equals(action)) {
+            action = "/login";
+        }
 
         switch (action) {
             case "/login" -> handleLogin(req, resp);
@@ -98,6 +112,11 @@ public class AuthServlet extends HttpServlet {
         }
 
         req.getRequestDispatcher("/login.jsp").forward(req, resp);
+    }
+
+    private void showRegisterForm(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
+        populateLookupAttributes(req);
+        req.getRequestDispatcher("/register.jsp").forward(req, resp);
     }
 
     // =========================================================================
@@ -152,6 +171,7 @@ public class AuthServlet extends HttpServlet {
 
         try {
             registrationRequest = buildRegistrationRequest(req);
+            logger.info("Received registration request: {}", registrationRequest);
             AccountRegistrationResponse response = accountService.registerAccount(registrationRequest);
 
             logger.info("New account successfully registered. Account ID: {}", response.accountId());
@@ -160,13 +180,11 @@ public class AuthServlet extends HttpServlet {
 
         } catch (IllegalArgumentException e) {
             logger.warn("Registration failed - Invalid input: {}", e.getMessage());
-            req.setAttribute("errorMessage", "Internal error occurred. Please try again later.");
-            req.getRequestDispatcher("/register.jsp").forward(req, resp);
+            forwardToRegisterWithError(req, resp, "Invalid input data provided. Please try again.");
 
         } catch (DuplicateEntityException e) {
             logger.warn("Registration failed - Duplicate entity constraint: {}", e.getMessage());
-            req.setAttribute("errorMessage", "An account with this username or email already exists.");
-            req.getRequestDispatcher("/register.jsp").forward(req, resp);
+            forwardToRegisterWithError(req, resp, "An account with this username or email already exists.");
 
         } catch (EntityNotFoundException e) {
             logger.warn("Registration failed - Missing entity: {} (type: {})", e.getMessage(), e.getEntityType());
@@ -178,13 +196,11 @@ public class AuthServlet extends HttpServlet {
                 default -> "One of the selected options is invalid or no longer available.";
             };
 
-            req.setAttribute("errorMessage", userFriendlyMessage);
-            req.getRequestDispatcher("/register.jsp").forward(req, resp);
+            forwardToRegisterWithError(req, resp, userFriendlyMessage);
 
         } catch (InactiveEntityException e) {
             logger.warn("Registration failed - Inactive entity: {}", e.getMessage());
-            req.setAttribute("errorMessage", "The selected country or currency is currently inactive.");
-            req.getRequestDispatcher("/register.jsp").forward(req, resp);
+            forwardToRegisterWithError(req, resp, "The selected country or currency is currently inactive.");
 
         } catch (ServiceException e) {
             String username = (registrationRequest != null) ? registrationRequest.username() : "unknown";
@@ -217,11 +233,23 @@ public class AuthServlet extends HttpServlet {
             return;
         }
 
+        username = username.trim();
+
+        if (!ValidationConstants.USERNAME_PATTERN.matcher(username).matches()) {
+            String errorMessage = String.format(
+                    "Invalid username format (%d-%d characters, letters, numbers, and underscores allowed)",
+                    ValidationConstants.USERNAME_MIN_LENGTH,
+                    ValidationConstants.USERNAME_MAX_LENGTH
+            );
+            JsonUtils.sendError(resp, errorMessage, HttpServletResponse.SC_BAD_REQUEST);
+            return;
+        }
+
         try {
             boolean exists = accountService.checkUsernameExists(username);
             JsonUtils.sendSuccess(resp, null, "exists", exists);
-        } catch (ServiceException e) {
-            logger.error("Failed to execute AJAX username availability check", e);
+        } catch (Exception e) {
+            logger.error("Failed to execute AJAX username availability check for input: {}", username, e);
             JsonUtils.sendError(resp, "Unable to process username validation check", HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
         }
     }
@@ -234,11 +262,18 @@ public class AuthServlet extends HttpServlet {
             return;
         }
 
+        email = email.trim();
+
+        if (!ValidationConstants.EMAIL_PATTERN.matcher(email).matches()) {
+            JsonUtils.sendError(resp, "Invalid email format provided", HttpServletResponse.SC_BAD_REQUEST);
+            return;
+        }
+
         try {
             boolean exists = accountService.checkEmailExists(email);
             JsonUtils.sendSuccess(resp, null, "exists", exists);
-        } catch (ServiceException e) {
-            logger.error("Failed to execute AJAX email availability check", e);
+        } catch (Exception e) {
+            logger.error("Failed to execute AJAX email availability check for input: {}", email, e);
             JsonUtils.sendError(resp, "Unable to process email validation check", HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
         }
     }
@@ -247,14 +282,47 @@ public class AuthServlet extends HttpServlet {
     // UTILITY / HELPER METHODS
     // =========================================================================
 
+    private void populateLookupAttributes(HttpServletRequest req) {
+        try {
+            if (lookupService != null) {
+                req.setAttribute("countries", lookupService.listActiveCountries());
+                req.setAttribute("currencies", lookupService.listActiveCurrencies());
+                req.setAttribute("languages", lookupService.listAllLanguages());
+            }
+        } catch (Exception e) {
+            logger.error("Failed to populate lookup attributes for registration form", e);
+            req.setAttribute("errorMessage", "Unable to load country and language choices from server.");
+        }
+    }
+
+    private void forwardToRegisterWithError(HttpServletRequest req, HttpServletResponse resp, String errorMessage)
+            throws ServletException, IOException {
+        req.setAttribute("errorMessage", errorMessage);
+        populateLookupAttributes(req);
+        req.getRequestDispatcher("/register.jsp").forward(req, resp);
+    }
+
     private AccountRegistrationRequest buildRegistrationRequest(HttpServletRequest req) {
+        String rawPassword = req.getParameter("password");
+        if (Utils.isNullOrBlank(rawPassword)) {
+            rawPassword = req.getParameter("plainTextPassword");
+        }
+
+        logger.info("Building AccountRegistrationRequest with username: {}, email: {}, countryId: {}, languageId: {}, currencyId: {}",
+                req.getParameter("username"),
+                req.getParameter("email"),
+                req.getParameter("countryId"),
+                req.getParameter("languageId"),
+                req.getParameter("currencyId")
+        );
+
         return new AccountRegistrationRequest(
                 req.getParameter("username"),
                 req.getParameter("email"),
-                req.getParameter("password"),
+                rawPassword,
                 req.getParameter("countryId"),
-                req.getParameter("languageId"),
                 req.getParameter("currencyId"),
+                req.getParameter("languageId"),
                 req.getParameter("bio"),
                 req.getParameter("bannerPath"),
                 req.getParameter("profileImagePath")

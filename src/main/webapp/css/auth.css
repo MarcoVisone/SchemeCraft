@@ -1,0 +1,292 @@
+/* =========================================================================
+   CLEAN & SOFT REGISTRATION UI (Auth System)
+   ========================================================================= */
+
+.auth-body {
+    background-color: var(--bg-main);
+    font-family: var(--font-body);
+    color: var(--text-primary);
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    margin: 0;
+}
+
+/* =========================================================================
+   LAYOUT CONTAINER
+   ========================================================================= */
+
+.auth-container {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+
+    padding-top: calc(80px + 2rem);
+    padding-bottom: 2rem;
+    padding-left: 1.5rem;
+    padding-right: 1.5rem;
+
+    box-sizing: border-box;
+    width: 100%;
+}
+
+.auth-card {
+    margin-top: auto;
+    margin-bottom: auto;
+
+    background: var(--bg-card);
+    backdrop-filter: blur(12px);
+    border: 1px solid var(--border-color);
+    border-radius: 16px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.35);
+    padding: 2.5rem;
+    width: 100%;
+    max-width: 480px;
+    box-sizing: border-box;
+    transition: all 0.3s ease;
+}
+
+.auth-header {
+    text-align: center;
+    margin-bottom: 2rem;
+}
+
+.auth-title {
+    font-family: var(--font-body);
+    font-size: 1.6rem;
+    font-weight: var(--weight-bold);
+    margin: 0 0 0.5rem 0;
+    color: var(--text-primary);
+}
+
+.auth-subtitle {
+    font-size: 0.875rem;
+    color: var(--text-secondary);
+    margin: 0 0 1.5rem 0;
+}
+
+/* Wizard Indicator */
+.step-wizard {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 1rem;
+    margin-top: 1rem;
+}
+
+.step-item {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    opacity: 0.4;
+    transition: opacity 0.3s ease;
+}
+
+.step-item.active {
+    opacity: 1;
+}
+
+.step-number {
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    background-color: var(--btn-green);
+    color: #ffffff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.85rem;
+    font-weight: var(--weight-medium);
+}
+
+.step-label {
+    font-size: 0.85rem;
+    font-weight: var(--weight-medium);
+}
+
+.step-line {
+    width: 40px;
+    height: 2px;
+    background-color: var(--border-color);
+}
+
+.auth-error-alert {
+    background-color: rgba(239, 68, 68, 0.15);
+    border: 1px solid #ef4444;
+    color: #fca5a5;
+    padding: 0.875rem 1rem;
+    border-radius: 8px;
+    font-size: 0.85rem;
+    margin-bottom: 1.5rem;
+    text-align: center;
+}
+
+/* Form & Inputs */
+.auth-form {
+    display: flex;
+    flex-direction: column;
+}
+
+.form-step {
+    display: flex;
+    flex-direction: column;
+    gap: 1.25rem;
+}
+
+.form-step.hidden {
+    display: none;
+}
+
+.form-group {
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+    text-align: left;
+}
+
+.form-row {
+    display: flex;
+    gap: 1rem;
+}
+
+.form-group.half {
+    flex: 1;
+}
+
+.form-group label {
+    font-size: 0.85rem;
+    font-weight: var(--weight-medium);
+    color: var(--text-primary);
+}
+
+.required {
+    color: #ef4444;
+}
+
+.optional {
+    font-size: 0.75rem;
+    color: var(--text-secondary);
+}
+
+.auth-input,
+.auth-select,
+.auth-textarea {
+    font-family: var(--font-body);
+    font-size: 0.95rem;
+    padding: 0.8rem 1rem;
+    background-color: rgba(0, 0, 0, 0.2);
+    color: var(--text-primary);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    outline: none;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+    box-sizing: border-box;
+    width: 100%;
+}
+
+.auth-select option {
+    background-color: var(--bg-card);
+    color: var(--text-primary);
+}
+
+.auth-input:focus,
+.auth-select:focus,
+.auth-textarea:focus {
+    border-color: var(--btn-green);
+    box-shadow: 0 0 0 3px rgba(60, 133, 39, 0.25);
+}
+
+.btn-primary {
+    font-family: var(--font-body);
+    font-size: 0.95rem;
+    font-weight: var(--weight-medium);
+    color: #ffffff;
+    background-color: var(--btn-green);
+    border: none;
+    border-radius: 8px;
+    padding: 0.9rem 1.5rem;
+    cursor: pointer;
+    transition: background-color 0.2s ease, transform 0.1s ease;
+}
+
+.btn-primary:hover {
+    background-color: var(--btn-green-hover);
+}
+
+.btn-secondary {
+    font-family: var(--font-body);
+    font-size: 0.95rem;
+    font-weight: var(--weight-medium);
+    color: var(--text-primary);
+    background-color: rgba(255, 255, 255, 0.1);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    padding: 0.9rem 1.25rem;
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+}
+
+.btn-secondary:hover {
+    background-color: rgba(255, 255, 255, 0.15);
+}
+
+.btn-block {
+    width: 100%;
+}
+
+.button-group {
+    display: flex;
+    gap: 1rem;
+    margin-top: 0.5rem;
+}
+
+.button-group .btn-primary {
+    flex: 1;
+}
+
+/* Footer Link */
+.auth-footer {
+    margin-top: 2rem;
+    text-align: center;
+    font-size: 0.85rem;
+    color: var(--text-secondary);
+}
+
+.auth-footer a {
+    color: var(--btn-green-hover);
+    text-decoration: none;
+    font-weight: var(--weight-medium);
+}
+
+.auth-footer a:hover {
+    text-decoration: underline;
+}
+
+.field-feedback {
+    font-size: 0.78rem;
+    margin-top: 0.25rem;
+    display: block;
+}
+
+.field-feedback.error {
+    color: #ef4444;
+}
+
+.field-feedback.success {
+    color: #10b981;
+}
+
+@media (max-width: 480px) {
+    .form-row {
+        flex-direction: column;
+        gap: 1.25rem;
+    }
+    .step-label {
+        display: none;
+    }
+    .auth-card {
+        padding: 1.5rem;
+    }
+}

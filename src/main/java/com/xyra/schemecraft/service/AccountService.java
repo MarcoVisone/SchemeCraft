@@ -53,7 +53,7 @@ public class AccountService {
             return false;
         }
 
-        return input.matches(ValidationConstants.EMAIL_REGEXP);
+        return input.matches(ValidationConstants.EMAIL_REGEX);
     }
 
     public UserSession login(String usernameOrEmail, String password) throws BadCredentialsException {
@@ -106,22 +106,39 @@ public class AccountService {
     }
 
     public AccountRegistrationResponse registerAccount(AccountRegistrationRequest request)
-            throws DuplicateEntityException, EntityNotFoundException, ServiceException {
+            throws DuplicateEntityException, EntityNotFoundException, InactiveEntityException, ServiceException {
 
         if (request == null) {
             throw new IllegalArgumentException("Registration request cannot be null");
         }
-        if (Utils.isNullOrBlank(request.plainTextPassword())) {
+
+        String username = request.username() != null ? request.username().trim() : "";
+        if (Utils.isNullOrBlank(username) || !ValidationConstants.USERNAME_PATTERN.matcher(username).matches()) {
+            throw new IllegalArgumentException(String.format(
+                    "Username must be between %d and %d characters (only letters, numbers, and underscores allowed)",
+                    ValidationConstants.USERNAME_MIN_LENGTH,
+                    ValidationConstants.USERNAME_MAX_LENGTH
+            ));
+        }
+
+        String email = request.email() != null ? request.email().trim() : "";
+        if (Utils.isNullOrBlank(email) || !ValidationConstants.EMAIL_PATTERN.matcher(email).matches()) {
+            throw new IllegalArgumentException("Invalid email format provided");
+        }
+
+        String rawPassword = request.plainTextPassword();
+        if (Utils.isNullOrBlank(rawPassword)) {
             throw new IllegalArgumentException("Password cannot be null or empty");
         }
-        if (request.plainTextPassword().getBytes(java.nio.charset.StandardCharsets.UTF_8).length > 72) {
+        if (!ValidationConstants.PASSWORD_PATTERN.matcher(rawPassword).matches()) {
+            throw new IllegalArgumentException(String.format(
+                    "Password must be %d-%d characters long and contain at least one uppercase letter, one lowercase letter, and one digit",
+                    ValidationConstants.PASSWORD_MIN_LENGTH,
+                    ValidationConstants.PASSWORD_MAX_LENGTH
+            ));
+        }
+        if (rawPassword.getBytes(java.nio.charset.StandardCharsets.UTF_8).length > 72) {
             throw new IllegalArgumentException("Password exceeds maximum length of 72 bytes");
-        }
-        if (Utils.isNullOrBlank(request.username())) {
-            throw new IllegalArgumentException("Username cannot be null or blank");
-        }
-        if (Utils.isNullOrBlank(request.email())) {
-            throw new IllegalArgumentException("Email cannot be null or blank");
         }
 
         try (Connection conn = ConnectionPool.getConnection()) {
@@ -129,12 +146,12 @@ public class AccountService {
             entityValidator.validateActiveCurrency(conn, request.currencyId());
             entityValidator.validateLanguage(conn, request.languageId());
 
-            String passwordHash = BCrypt.hashpw(request.plainTextPassword(), BCrypt.gensalt(BCRYPT_WORKLOAD));
+            String passwordHash = BCrypt.hashpw(rawPassword, BCrypt.gensalt(BCRYPT_WORKLOAD));
 
             AccountBean account = new AccountBean();
             account.setAccountId(java.util.UUID.randomUUID().toString());
-            account.setUsername(request.username().trim());
-            account.setEmail(request.email().trim().toLowerCase());
+            account.setUsername(username);
+            account.setEmail(email.toLowerCase());
             account.setPasswordHash(passwordHash);
             account.setCountryId(request.countryId());
             account.setLanguageId(request.languageId());

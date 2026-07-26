@@ -25,12 +25,12 @@ public record AccountRegistrationRequest(
         @NotBlank(message = "Username cannot be blank")
         @Size(min = ValidationConstants.USERNAME_MIN_LENGTH, max = ValidationConstants.USERNAME_MAX_LENGTH,
                 message = "Username must be between {min} and {max} characters")
-        @Pattern(regexp = ValidationConstants.USERNAME_REGEXP,
+        @Pattern(regexp = ValidationConstants.USERNAME_REGEX,
                 message = "Username can only contain letters, numbers, and underscores")
         String username,
 
         @NotBlank(message = "Email address cannot be blank")
-        @Email(regexp = ValidationConstants.EMAIL_REGEXP,
+        @Email(regexp = ValidationConstants.EMAIL_REGEX,
                 message = "Email address must be syntactically valid")
         String email,
 
