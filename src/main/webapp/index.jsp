@@ -41,6 +41,7 @@
                 <a href="${pageContext.request.contextPath}/catalog" class="btn-mc">EXPLORE</a>
             </div>
         </div>
+
     </section>
 
 </main>

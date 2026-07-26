@@ -11,37 +11,35 @@ html, body {
     height: 100vh;
     min-height: 450px;
     overflow: hidden;
-    font-family: var(--font-game);
+    font-family: var(--font-game), monospace;
     background-color: var(--bg-main);
     box-sizing: border-box;
 }
 
 .hero-video {
     position: absolute;
-    inset: 0;
+    top: 0;
+    left: 0;
     width: 100%;
     height: 100%;
     object-fit: cover;
-    will-change: transform;
-}
-
-.hero-video-mobile {
-    z-index: -1;
-    display: none;
 }
 
 .hero-video-desktop {
     display: block;
 }
 
+.hero-video-mobile {
+    display: none;
+}
+
 .hero-content-wrapper {
     position: relative;
-    z-index: 2;
+    height: 100%;
     display: flex;
     flex-direction: column;
     justify-content: center;
     align-items: flex-start;
-    height: 100%;
     padding-left: clamp(1.25rem, 8vw, 6rem);
     padding-right: 1.25rem;
     box-sizing: border-box;
@@ -55,7 +53,7 @@ html, body {
 }
 
 .hero-title {
-    font-family: var(--font-game);
+    font-family: var(--font-game), monospace;
     font-size: clamp(1.6rem, 4.5vw + 0.5rem, 4.25rem);
     color: var(--text-primary);
     text-shadow: 0.05em 0.05em 0 #3f3f3f, 0.1em 0.1em 0 rgba(0, 0, 0, 0.4);
@@ -68,7 +66,7 @@ html, body {
 
 .btn-mc {
     display: inline-block;
-    font-family: var(--font-game);
+    font-family: var(--font-game), monospace;
     font-size: clamp(1.1rem, 1.8vw, 1.6rem);
     font-weight: var(--weight-bold);
     color: var(--text-primary);
@@ -100,15 +98,33 @@ html, body {
 }
 
 @media (max-width: 768px) {
+
     .hero-video-desktop {
         display: none;
     }
+
     .hero-video-mobile {
-        z-index: 1;
         display: block;
     }
 
     .hero-content-wrapper {
-        display: none !important;
+        justify-content: flex-end;
+        align-items: center;
+        padding-left: 1rem;
+        padding-right: 1rem;
+        padding-bottom: 4rem;
+    }
+
+    .hero-content-inner {
+        align-items: center;
+    }
+
+    .hero-title {
+        display: none;
+    }
+
+    .btn-mc {
+        font-size: 1.1rem;
+        padding: 0.8em 2em;
     }
 }
