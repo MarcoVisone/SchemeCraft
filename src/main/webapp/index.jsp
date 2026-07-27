@@ -42,7 +42,7 @@
         <div class="hero-content-wrapper">
             <div class="hero-content-inner">
                 <h1 class="hero-title">Build<br>your world</h1>
-                <a href="${pageContext.request.contextPath}/catalog" class="btn-mc">EXPLORE</a>
+                <a href="${pageContext.request.contextPath}/product" class="btn-mc">EXPLORE</a>
             </div>
         </div>
 

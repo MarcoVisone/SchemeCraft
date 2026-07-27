@@ -9,6 +9,8 @@ import javax.servlet.annotation.MultipartConfig;
 import javax.servlet.annotation.WebServlet;
 import javax.servlet.http.*;
 
+import com.xyra.schemecraft.model.*;
+import com.xyra.schemecraft.service.CategoryService;
 import com.xyra.schemecraft.util.FileUploadUtils;
 import com.xyra.schemecraft.util.JsonUtils;
 import org.json.JSONArray;
@@ -23,11 +25,6 @@ import com.xyra.schemecraft.dto.ProductVersionRequest;
 import com.xyra.schemecraft.exception.EntityNotFoundException;
 import com.xyra.schemecraft.exception.ServiceException;
 import com.xyra.schemecraft.exception.UnauthorizedActionException;
-import com.xyra.schemecraft.model.AccountBean;
-import com.xyra.schemecraft.model.ProductBean;
-import com.xyra.schemecraft.model.ProductImageBean;
-import com.xyra.schemecraft.model.ProductVersionBean;
-import com.xyra.schemecraft.model.UserSession;
 import com.xyra.schemecraft.service.ProductService;
 
 @WebServlet(name = "ProductServlet", urlPatterns = {"/product/*"})
@@ -41,13 +38,15 @@ public class ProductServlet extends HttpServlet {
     private static final Logger logger = LoggerFactory.getLogger(ProductServlet.class);
 
     private ProductService productService;
+    private CategoryService categoryService;
 
     public ProductServlet() {
         super();
     }
 
-    public ProductServlet(ProductService productService) {
+    public ProductServlet(ProductService productService, CategoryService categoryService) {
         this.productService = productService;
+        this.categoryService = categoryService;
     }
 
     @Override
@@ -55,6 +54,9 @@ public class ProductServlet extends HttpServlet {
         super.init();
         if (this.productService == null) {
             this.productService = new ProductService();
+        }
+        if (this.categoryService == null) {
+            this.categoryService = new CategoryService();
         }
         logger.info("ProductServlet successfully initialized.");
     }
@@ -66,7 +68,8 @@ public class ProductServlet extends HttpServlet {
         String action = getActionPath(req);
 
         switch (action) {
-            case "", "/", "/search" -> handleSearchProducts(req, resp);
+            case "", "/", "/catalog" -> showCatalog(req, resp);
+            case "/search" -> handleSearchProducts(req, resp);
             case "/detail", "/get" -> handleGetProductDetail(req, resp);
             case "/images" -> handleListImages(req, resp);
             case "/versions" -> handleListVersions(req, resp);
@@ -75,6 +78,19 @@ public class ProductServlet extends HttpServlet {
             case "/owned" -> handleListOwnedProducts(req, resp);
             default -> resp.sendError(HttpServletResponse.SC_NOT_FOUND, "The requested resource was not found.");
         }
+    }
+
+    private void showCatalog(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
+        try {
+            List<CategoryBean> categories = categoryService.listAllCategories();
+
+            req.setAttribute("categories", categories);
+
+        } catch (ServiceException e) {
+            logger.error("Unable to load categories for the catalog.", e);
+        }
+
+        req.getRequestDispatcher("/WEB-INF/catalog/catalog.jsp").forward(req, resp);
     }
 
     @Override
@@ -717,6 +733,11 @@ public class ProductServlet extends HttpServlet {
         Integer pageSize = parseInteger(req.getParameter("pageSize"));
         if (pageSize != null) {
             criteria.setPageSize(pageSize);
+        }
+
+        String categoryId = req.getParameter("categoryId");
+        if (categoryId != null && !categoryId.isBlank()) {
+            criteria.setCategoryId(categoryId.trim());
         }
 
         return criteria;

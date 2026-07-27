@@ -11,7 +11,7 @@
     <nav class="site-header__nav">
 
         <a href="${pageContext.request.contextPath}/" class="site-header__link site-header__link--primary-nav">Home</a>
-        <a href="${pageContext.request.contextPath}/products" class="site-header__link">Catalog</a>
+        <a href="${pageContext.request.contextPath}/product" class="site-header__link">Catalog</a>
 
         <c:choose>
 

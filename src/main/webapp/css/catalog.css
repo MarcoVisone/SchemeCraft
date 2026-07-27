@@ -1,0 +1,390 @@
+/* =========================================================================
+   CATALOG BASE LAYOUT
+   ========================================================================= */
+
+.catalog-body {
+    background-color: var(--bg-main);
+    color: var(--text-primary);
+    font-family: var(--font-body);
+}
+
+.catalog-container {
+    max-width: 1600px;
+    width: 100%;
+    margin: 0 auto;
+    padding: calc(var(--header-height, 100px) + 1.5rem) 1.5rem 5rem 1.5rem;
+    box-sizing: border-box;
+}
+
+/* Header / Banner */
+.catalog-hero {
+    text-align: center;
+    margin-bottom: 2rem;
+}
+
+.catalog-title {
+    font-size: 2.25rem;
+    font-weight: var(--weight-bold);
+    color: var(--text-primary);
+    letter-spacing: -0.02em;
+    margin-bottom: 0.5rem;
+}
+
+.catalog-subtitle {
+    font-size: 1rem;
+    color: var(--text-secondary);
+    font-weight: var(--weight-regular);
+}
+
+.catalog-layout {
+    display: grid;
+    grid-template-columns: 270px 1fr;
+    gap: 1.5rem;
+    align-items: start;
+}
+
+@media (max-width: 920px) {
+    .catalog-layout {
+        grid-template-columns: 1fr;
+    }
+}
+
+/* =========================================================================
+   FILTERS SIDEBAR
+   ========================================================================= */
+
+.filter-card {
+    background-color: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    padding: 1.25rem;
+}
+
+.filter-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1.25rem;
+    padding-bottom: 0.75rem;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.filter-title {
+    font-size: 1.1rem;
+    font-weight: var(--weight-medium);
+    color: var(--text-primary);
+    margin: 0;
+}
+
+.btn-reset-link {
+    background: none;
+    border: none;
+    color: var(--text-secondary);
+    font-size: 0.85rem;
+    font-family: var(--font-body);
+    font-weight: var(--weight-medium);
+    cursor: pointer;
+    padding: 0;
+    transition: color 0.2s ease;
+}
+
+.btn-reset-link:hover {
+    color: var(--text-primary);
+    text-decoration: underline;
+}
+
+.filter-group {
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+    margin-bottom: 1.25rem;
+}
+
+.filter-group label {
+    font-size: 0.85rem;
+    font-weight: var(--weight-medium);
+    color: var(--text-secondary);
+}
+
+.filter-input, .filter-select {
+    width: 100%;
+    padding: 0.65rem 1.8rem 0.65rem 0.85rem;
+    background-color: var(--bg-main);
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    color: var(--text-primary);
+    font-size: 0.875rem;
+    font-family: var(--font-body);
+    box-sizing: border-box;
+    transition: border-color 0.2s ease;
+}
+
+.filter-input:focus, .filter-select:focus {
+    border-color: var(--btn-green);
+    outline: none;
+}
+
+.range-inputs {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.range-separator {
+    color: var(--text-secondary);
+    font-weight: var(--weight-bold);
+}
+
+.filter-checkbox-group {
+    margin-top: 0.5rem;
+}
+
+.catalog-checkbox-container {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    cursor: pointer;
+}
+
+.catalog-checkbox-container input[type="checkbox"] {
+    width: 18px;
+    height: 18px;
+    accent-color: var(--btn-green);
+    cursor: pointer;
+}
+
+.checkbox-label {
+    font-size: 0.9rem;
+    color: var(--text-primary);
+    font-weight: var(--weight-regular);
+}
+
+.filter-divider {
+    border: 0;
+    border-top: 1px solid var(--border-color);
+    margin: 1.25rem 0;
+}
+
+/* =========================================================================
+   PRODUCTS GRID & CARDS
+   ========================================================================= */
+
+.catalog-toolbar {
+    margin-bottom: 1.25rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.results-count {
+    font-size: 0.95rem;
+    color: var(--text-secondary);
+    font-weight: var(--weight-medium);
+}
+
+.products-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
+    gap: 1.25rem;
+    transition: opacity 0.2s ease;
+}
+
+.product-card {
+    background-color: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    transition: transform 0.2s ease, border-color 0.2s ease;
+}
+
+.product-card:hover {
+    transform: translateY(-4px);
+    border-color: var(--btn-green);
+}
+
+.product-image-wrap {
+    position: relative;
+    width: 100%;
+    height: 165px;
+    background-color: var(--bg-main);
+    overflow: hidden;
+}
+
+.product-image {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.discount-badge {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    background-color: #d97706; /* Amber / Warning Accent */
+    color: #ffffff;
+    font-weight: var(--weight-bold);
+    font-size: 0.75rem;
+    padding: 0.25rem 0.5rem;
+    border-radius: 4px;
+}
+
+.product-info {
+    padding: 1.1rem;
+    display: flex;
+    flex-direction: column;
+    flex-grow: 1;
+}
+
+.product-header-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 0.5rem;
+    margin-bottom: 0.5rem;
+}
+
+.product-name {
+    font-size: 1rem;
+    font-weight: var(--weight-medium);
+    color: var(--text-primary);
+    line-height: 1.3;
+    margin: 0;
+}
+
+.product-rating {
+    font-size: 0.85rem;
+    color: #eab308;
+    font-weight: var(--weight-bold);
+    white-space: nowrap;
+}
+
+.product-rating span {
+    color: var(--text-secondary);
+}
+
+.product-description {
+    font-size: 0.85rem;
+    color: var(--text-secondary);
+    margin-bottom: 1.25rem;
+    line-height: 1.4;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+/* =========================================================================
+   PRODUCT CARD FOOTER
+   ========================================================================= */
+
+.product-footer {
+    margin-top: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 0.85rem;
+    padding-top: 0.85rem;
+    border-top: 1px solid var(--border-color);
+}
+
+.product-price-box {
+    display: flex;
+    align-items: baseline;
+    gap: 0.5rem;
+    min-height: 1.5rem;
+}
+
+.original-price {
+    font-size: 0.85rem;
+    text-decoration: line-through;
+    color: var(--text-secondary);
+}
+
+.final-price {
+    font-size: 1.25rem;
+    font-weight: var(--weight-bold);
+    color: var(--text-primary);
+}
+
+.btn-view-product {
+    width: 100%;
+    display: block;
+    text-align: center;
+    padding: 0.65rem 0.85rem;
+    background-color: var(--btn-green);
+    color: #ffffff;
+    font-weight: var(--weight-medium);
+    font-size: 0.875rem;
+    border-radius: 6px;
+    text-decoration: none;
+    box-sizing: border-box;
+    transition: background-color 0.2s ease;
+}
+
+.btn-view-product:hover {
+    background-color: var(--btn-green-hover);
+}
+
+/* States */
+.empty-state, .error-state {
+    grid-column: 1 / -1;
+    text-align: center;
+    padding: 3.5rem 1rem;
+    background-color: var(--bg-card);
+    border: 1px dashed var(--border-color);
+    border-radius: 8px;
+}
+
+.empty-state h3 {
+    font-size: 1.2rem;
+    margin-bottom: 0.5rem;
+    color: var(--text-primary);
+}
+
+.empty-state p {
+    color: var(--text-secondary);
+}
+
+/* =========================================================================
+   PAGINATION
+   ========================================================================= */
+
+.catalog-pagination {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 1.25rem;
+    margin-top: 3rem;
+}
+
+.btn-pagination {
+    padding: 0.6rem 1.2rem;
+    background-color: var(--bg-card);
+    border: 1px solid var(--border-color);
+    color: var(--text-primary);
+    border-radius: 6px;
+    cursor: pointer;
+    font-family: var(--font-body);
+    font-weight: var(--weight-medium);
+    font-size: 0.875rem;
+    transition: background-color 0.2s ease, border-color 0.2s ease;
+}
+
+.btn-pagination:hover:not(:disabled) {
+    border-color: var(--btn-green);
+}
+
+.btn-pagination:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+}
+
+.page-indicator {
+    font-size: 0.9rem;
+    font-weight: var(--weight-medium);
+    color: var(--text-secondary);
+}
+
+.hidden {
+    display: none !important;
+}

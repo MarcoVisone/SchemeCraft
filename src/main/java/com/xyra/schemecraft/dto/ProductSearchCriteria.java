@@ -24,6 +24,8 @@ public class ProductSearchCriteria {
     private Boolean ascending = true;
     private String minecraftVersion;
 
+    private String categoryId;
+
     private int pageNumber = MIN_PAGE_NUMBER;
     private int pageSize = DEFAULT_PAGE_SIZE;
 
@@ -148,6 +150,14 @@ public class ProductSearchCriteria {
         } else this.pageSize = Math.min(pageSize, MAX_PAGE_SIZE);
     }
 
+    public String getCategoryId() {
+        return categoryId;
+    }
+
+    public void setCategoryId(String categoryId) {
+        this.categoryId = (categoryId != null) ? categoryId.trim() : null;
+    }
+
     @Override
     public String toString() {
         return "ProductSearchCriteria{" +
@@ -162,6 +172,7 @@ public class ProductSearchCriteria {
                 ", minecraftVersion='" + minecraftVersion + '\'' +
                 ", pageNumber=" + pageNumber +
                 ", pageSize=" + pageSize +
+                ", categoryId='" + categoryId + '\'' +
                 '}';
     }
 }

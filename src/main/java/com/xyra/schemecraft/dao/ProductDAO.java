@@ -160,14 +160,23 @@ public class ProductDAO extends BaseDAO {
 
         StringBuilder sql = new StringBuilder();
 
-        if (criteria.getMinecraftVersion() != null && !criteria.getMinecraftVersion().trim().isEmpty()) {
+        boolean hasVersionFilter = criteria.getMinecraftVersion() != null && !criteria.getMinecraftVersion().trim().isEmpty();
+        boolean hasCategoryFilter = criteria.getCategoryId() != null && !criteria.getCategoryId().trim().isEmpty();
+
+        if (hasVersionFilter || hasCategoryFilter) {
             sql.append("SELECT DISTINCT p.product_id, p.account_id, p.currency_id, p.average_rating, ");
             sql.append("p.created_at, p.discount, p.description, p.is_active, p.latest_update, p.price, ");
             sql.append("p.product_name, p.stock_quantity, p.total_downloads, p.total_reviews FROM product p ");
-            sql.append("JOIN product_version pv ON p.product_id = pv.product_id ");
+
+            if (hasVersionFilter) {
+                sql.append("JOIN product_version pv ON p.product_id = pv.product_id ");
+            }
+            if (hasCategoryFilter) {
+                sql.append("JOIN product_category pc ON p.product_id = pc.product_id ");
+            }
             sql.append("WHERE p.is_active = TRUE");
         } else {
-            sql.append(SELECT_BASE).append("WHERE is_active = TRUE");
+            sql.append("SELECT p.* FROM product p WHERE p.is_active = TRUE");
         }
 
         List<Object> queryParams = new ArrayList<>();
@@ -175,6 +184,11 @@ public class ProductDAO extends BaseDAO {
         if (criteria.getKeywords() != null && !criteria.getKeywords().trim().isEmpty()) {
             sql.append(" AND MATCH(p.product_name, p.description) AGAINST(? IN NATURAL LANGUAGE MODE)");
             queryParams.add(criteria.getKeywords().trim());
+        }
+
+        if (hasCategoryFilter) {
+            sql.append(" AND pc.category_id = ?");
+            queryParams.add(criteria.getCategoryId().trim());
         }
 
         if (criteria.getMinPrice() != null) {
@@ -199,17 +213,19 @@ public class ProductDAO extends BaseDAO {
             sql.append(" AND p.discount > 0");
         }
 
-        if (criteria.getMinecraftVersion() != null && !criteria.getMinecraftVersion().trim().isEmpty()) {
-            sql.append(" AND pv.minecraft_version = ?");
-            queryParams.add(criteria.getMinecraftVersion().trim());
+        if (hasVersionFilter) {
+            sql.append(" AND pv.minecraft_version LIKE ?");
+            queryParams.add("%" + criteria.getMinecraftVersion().trim() + "%");
         }
 
-        if (criteria.getOrderByColumn() != null) {
+        if (criteria.getOrderByColumn() != null && !criteria.getOrderByColumn().trim().isEmpty()) {
             String safeOrderBy = switch (criteria.getOrderByColumn().toLowerCase().trim()) {
                 case "price" -> "price";
                 case "average_rating" -> "average_rating";
                 case "total_reviews" -> "total_reviews";
                 case "total_downloads" -> "total_downloads";
+                case "created_at" -> "created_at";
+                case "product_name" -> "product_name";
                 default -> throw new IllegalArgumentException("Invalid sort column: " + criteria.getOrderByColumn());
             };
             String direction = (criteria.getAscending() != null && !criteria.getAscending()) ? "DESC" : "ASC";
