@@ -43,6 +43,8 @@ function goToStep(step) {
     const ind2 = document.getElementById('step-indicator-2');
     const ind3 = document.getElementById('step-indicator-3');
 
+    const authCard = document.querySelector('.auth-card');
+
     if (step === 2) {
         const isPassOk = validatePasswordInput();
         const usernameInput = document.getElementById('username');
@@ -69,6 +71,11 @@ function goToStep(step) {
         ind1.classList.remove('active');
         ind2.classList.add('active');
         ind3.classList.remove('active');
+
+        if (authCard) {
+            authCard.classList.remove('theme-step-1', 'theme-step-3');
+            authCard.classList.add('theme-step-2');
+        }
 
     } else if (step === 3) {
         const country = document.getElementById('countryId');
@@ -98,6 +105,11 @@ function goToStep(step) {
         ind2.classList.remove('active');
         ind3.classList.add('active');
 
+        if (authCard) {
+            authCard.classList.remove('theme-step-1', 'theme-step-2');
+            authCard.classList.add('theme-step-3');
+        }
+
     } else {
         step1.classList.remove('hidden');
         step2.classList.add('hidden');
@@ -106,8 +118,39 @@ function goToStep(step) {
         ind1.classList.add('active');
         ind2.classList.remove('active');
         ind3.classList.remove('active');
+
+        if (authCard) {
+            authCard.classList.remove('theme-step-2', 'theme-step-3');
+            authCard.classList.add('theme-step-1');
+        }
     }
 }
+
+document.addEventListener('DOMContentLoaded', () => {
+    const profileFileInput = document.getElementById('profileImage');
+    const previewContainer = document.getElementById('image-preview-container');
+    const imagePreview = document.getElementById('image-preview');
+    const fileNameDisplay = document.getElementById('file-name-display');
+
+    if (profileFileInput && previewContainer && imagePreview) {
+        profileFileInput.addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = (event) => {
+                    imagePreview.src = event.target.result;
+                    fileNameDisplay.textContent = file.name;
+                    previewContainer.classList.remove('hidden');
+                };
+                reader.readAsDataURL(file);
+            } else {
+                previewContainer.classList.add('hidden');
+                imagePreview.src = "";
+                fileNameDisplay.textContent = "";
+            }
+        });
+    }
+});
 
 document.addEventListener('DOMContentLoaded', () => {
     const form = document.getElementById('registrationForm');

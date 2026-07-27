@@ -25,7 +25,7 @@
 <%@ include file="/WEB-INF/fragments/header.jsp" %>
 
 <main class="auth-container">
-    <div class="auth-card">
+    <div class="auth-card theme-step-1">
 
         <div class="auth-header">
             <h1 class="auth-title">Create Your Account</h1>
@@ -85,7 +85,7 @@
                 </div>
 
                 <button type="button" class="btn-primary btn-block" data-step="2">
-                    Next Step &rarr;
+                    We Need to Go Deeper &rarr;
                 </button>
             </div>
 
@@ -132,7 +132,7 @@
                         &larr; Back
                     </button>
                     <button type="button" class="btn-primary" data-step="3">
-                        Next Step &rarr;
+                        The End? &rarr;
                     </button>
                 </div>
             </div>
@@ -140,8 +140,17 @@
             <div class="form-step hidden" id="step-3">
 
                 <div class="form-group">
-                    <label for="profileImage">Profile Picture <span class="optional">(Optional)</span></label>
-                    <input type="file" id="profileImage" name="profileImage" class="auth-input" accept="image/png, image/jpeg, image/webp">
+                    <label>Profile Picture <span class="optional">(Optional)</span></label>
+                    <div class="custom-file-upload">
+                        <div id="image-preview-container" class="image-preview-container hidden">
+                            <img id="image-preview" src="" alt="Profile Preview" class="image-preview">
+                            <span id="file-name-display" class="file-name-display"></span>
+                        </div>
+                        <input type="file" id="profileImage" name="profileImage" accept="image/png, image/jpeg, image/webp" class="file-input-hidden">
+                        <label for="profileImage" class="btn-file-custom">
+                            📷 Select Image
+                        </label>
+                    </div>
                 </div>
 
                 <div class="form-group">

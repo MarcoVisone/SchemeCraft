@@ -170,8 +170,11 @@ public class AuthServlet extends HttpServlet {
         AccountRegistrationRequest registrationRequest = null;
 
         try {
-            registrationRequest = buildRegistrationRequest(req);
+            String uploadedProfileImagePath = FileUploadUtils.saveUploadedFile(req, "profileImage", "avatars");
+
+            registrationRequest = buildRegistrationRequest(req, uploadedProfileImagePath);
             logger.info("Received registration request: {}", registrationRequest);
+
             AccountRegistrationResponse response = accountService.registerAccount(registrationRequest);
 
             logger.info("New account successfully registered. Account ID: {}", response.accountId());
@@ -302,18 +305,19 @@ public class AuthServlet extends HttpServlet {
         req.getRequestDispatcher("/register.jsp").forward(req, resp);
     }
 
-    private AccountRegistrationRequest buildRegistrationRequest(HttpServletRequest req) {
+    private AccountRegistrationRequest buildRegistrationRequest(HttpServletRequest req, String profileImagePath) {
         String rawPassword = req.getParameter("password");
         if (Utils.isNullOrBlank(rawPassword)) {
             rawPassword = req.getParameter("plainTextPassword");
         }
 
-        logger.info("Building AccountRegistrationRequest with username: {}, email: {}, countryId: {}, languageId: {}, currencyId: {}",
+        logger.info("Building AccountRegistrationRequest with username: {}, email: {}, countryId: {}, languageId: {}, currencyId: {}, profileImagePath: {}",
                 req.getParameter("username"),
                 req.getParameter("email"),
                 req.getParameter("countryId"),
                 req.getParameter("languageId"),
-                req.getParameter("currencyId")
+                req.getParameter("currencyId"),
+                profileImagePath
         );
 
         return new AccountRegistrationRequest(
@@ -325,7 +329,7 @@ public class AuthServlet extends HttpServlet {
                 req.getParameter("languageId"),
                 req.getParameter("bio"),
                 req.getParameter("bannerPath"),
-                req.getParameter("profileImagePath")
+                profileImagePath
         );
     }
 }
