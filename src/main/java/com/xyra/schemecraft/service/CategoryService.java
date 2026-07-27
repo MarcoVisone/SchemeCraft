@@ -6,6 +6,8 @@ import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
+import com.xyra.schemecraft.dao.ProductCategoryDAO;
+import com.xyra.schemecraft.model.ProductCategoryBean;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -22,12 +24,14 @@ public class CategoryService {
 
     private static final int MAX_HIERARCHY_DEPTH = 50;
 
+    private final ProductCategoryDAO productCategoryDAO;
     private final CategoryDAO categoryDAO;
     private final EntityValidator entityValidator;
 
     public CategoryService() {
         this.categoryDAO = new CategoryDAO();
         this.entityValidator = new EntityValidator();
+        this.productCategoryDAO = new ProductCategoryDAO();
     }
 
     public CategoryBean createCategory(CategoryRequest request) {
@@ -152,6 +156,20 @@ public class CategoryService {
             return categoryDAO.findRootCategories(conn);
         } catch (DAOException | SQLException e) {
             logger.error("Database connection error while listing root categories", e);
+            throw new ServiceException("Internal database error occurred", e);
+        }
+    }
+
+    public List<ProductCategoryBean> listAllCategoriesAssociated(String rawProductId) {
+        String productId = rawProductId == null ? null : rawProductId.trim();
+        if (productId == null || productId.isBlank()) {
+            throw new IllegalArgumentException("productId cannot be null or blank");
+        }
+        try (Connection conn = ConnectionPool.getConnection()) {
+            entityValidator.validateProduct(conn, productId);
+            return productCategoryDAO.findAllByProductId(conn, productId);
+        } catch (DAOException | SQLException e) {
+            logger.error("Database connection error while listing categories for product {}", productId, e);
             throw new ServiceException("Internal database error occurred", e);
         }
     }

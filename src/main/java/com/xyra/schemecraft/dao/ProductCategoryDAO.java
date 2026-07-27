@@ -39,23 +39,42 @@ public class ProductCategoryDAO extends BaseDAO {
             throw new IllegalArgumentException("Product ID and Category ID must be valid and populated");
         }
 
-        String sql = "INSERT INTO product_category (product_id, category_id) VALUES (?, ?)";
+        String productId = association.getProductId().trim();
+        String categoryId = association.getCategoryId().trim();
+
+        String sql = "WITH RECURSIVE category_tree AS (" +
+                "    SELECT category_id, parent_category_id FROM category WHERE category_id = ? " +
+                "    UNION ALL " +
+                "    SELECT c.category_id, c.parent_category_id " +
+                "    FROM category c " +
+                "    JOIN category_tree ct ON c.category_id = ct.parent_category_id " +
+                ") " +
+                "INSERT IGNORE INTO product_category (product_id, category_id) " +
+                "SELECT ?, category_id FROM category_tree";
 
         try (PreparedStatement ps = conn.prepareStatement(sql)) {
-            ps.setString(1, association.getProductId().trim());
-            ps.setString(2, association.getCategoryId().trim());
+            ps.setString(1, categoryId);
+            ps.setString(2, productId);
 
-            ps.executeUpdate();
-            logger.info("Product ID: {} successfully linked to Category ID: {}",
-                    association.getProductId(), association.getCategoryId());
+            int rowsAffected = ps.executeUpdate();
+
+            if (rowsAffected == 0) {
+                if (findById(conn, productId, categoryId).isPresent()) {
+                    throw new DuplicateEntityException("Product is already assigned to this category");
+                }
+                throw new DAOException("Failed to link product to category: Specified Category ID does not exist");
+            }
+
+            logger.info("Product ID: {} successfully linked to Category ID: {} and its parent chain (Total links inserted: {})",
+                    productId, categoryId, rowsAffected);
+
         } catch (SQLException e) {
-            logger.error("Failed to link Product ID: {} with Category ID: {}", association.getProductId(),
-                    association.getCategoryId(), e);
+            logger.error("Failed to link Product ID: {} with Category ID: {}", productId, categoryId, e);
             if (SQLSTATE_INTEGRITY_CONSTRAINT_VIOLATION.equals(e.getSQLState()) ||
                     e.getErrorCode() == MYSQL_ERR_DUPLICATE_KEY) {
                 throw new DuplicateEntityException("Product is already assigned to this category", e);
             }
-            throw new DAOException("Error occurred while linking product to category", e);
+            throw new DAOException("Error occurred while linking product to category hierarchy", e);
         }
     }
 
