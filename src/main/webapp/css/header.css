@@ -1,7 +1,10 @@
+:root {
+    --header-height: 100px;
+}
+
 /* =======================================================================
    Site Header
    ======================================================================= */
-
 .site-header {
     position: fixed;
     top: 0;
@@ -132,6 +135,10 @@
 
 
 @media (max-width: 48rem) {
+    :root {
+        --header-height: 140px;
+    }
+
     .site-header {
         flex-direction: column;
         align-items: center;

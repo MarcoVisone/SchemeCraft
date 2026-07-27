@@ -3,19 +3,17 @@
 .error-main {
     position: relative;
     min-height: 100vh;
-    min-height: 100dvh;
     display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: center;
     text-align: center;
-    padding: 2rem;
+    padding: 2rem 2rem 8rem;
     overflow: hidden;
 
     background-image: url("../images/textures/dirt.png");
     background-repeat: repeat;
     background-size: 64px 64px;
-    image-rendering: pixelated;
     image-rendering: crisp-edges;
 }
 
@@ -36,7 +34,7 @@
 }
 
 .error-content h2 {
-    font-family: var(--font-body);
+    font-family: var(--font-body), serif;
     color: #FFFFFF;
     font-size: 1.8rem;
     font-weight: 600;
@@ -45,7 +43,7 @@
 }
 
 .error-content p {
-    font-family: var(--font-body);
+    font-family: var(--font-body), serif;
     color: #FF5555;
     font-size: 1.1rem;
     line-height: 1.5;
@@ -63,7 +61,7 @@
 }
 
 .error-actions a {
-    font-family: var(--font-body);
+    font-family: var(--font-body), serif;
     font-weight: 600;
     color: #FFFFFF;
     background-color: rgba(20, 20, 20, 0.75);
@@ -74,7 +72,7 @@
     text-decoration: none;
     text-align: center;
     font-size: 1rem;
-    letter-spacing: 0.5px;
+    letter-spacing: 1px;
     transition: all 0.2s ease-in-out;
 }
 
@@ -87,8 +85,8 @@
 /* Tablet (max-width: 48rem / 768px) */
 @media (max-width: 48rem) {
     .error-main {
-        padding: 1.5rem 1rem;
-        padding-top: 7rem; /* Offset for stacked mobile header */
+        /* Offset for stacked mobile header */
+        padding: 7rem 1rem 1.5rem;
     }
 
     .error-content {
@@ -114,8 +112,7 @@
 /* Mobile (max-width: 30rem / 480px) */
 @media (max-width: 30rem) {
     .error-main {
-        padding: 1rem 0.75rem;
-        padding-top: 6.5rem;
+        padding: 6.5rem 0.75rem 1rem;
     }
 
     .error-content {
