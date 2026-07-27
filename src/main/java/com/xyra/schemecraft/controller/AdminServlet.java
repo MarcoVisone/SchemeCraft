@@ -14,18 +14,20 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import javax.servlet.http.HttpSession;
 
-import com.xyra.schemecraft.dto.OrderAdminView;
+import com.xyra.schemecraft.dto.*;
+import com.xyra.schemecraft.util.ServletUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.xyra.schemecraft.dto.OrderSearchCriteria;
-import com.xyra.schemecraft.dto.ProductRequest;
-import com.xyra.schemecraft.dto.ProductSearchCriteria;
 import com.xyra.schemecraft.exception.EntityNotFoundException;
 import com.xyra.schemecraft.exception.ServiceException;
 import com.xyra.schemecraft.exception.UnauthorizedActionException;
 import com.xyra.schemecraft.model.AccountBean;
+import com.xyra.schemecraft.model.CategoryBean;
 import com.xyra.schemecraft.model.ProductBean;
+import com.xyra.schemecraft.model.UserSession;
+import com.xyra.schemecraft.service.AccountService;
+import com.xyra.schemecraft.service.CategoryService;
 import com.xyra.schemecraft.service.OrderService;
 import com.xyra.schemecraft.service.ProductService;
 import com.xyra.schemecraft.util.JsonUtils;
@@ -35,16 +37,23 @@ public class AdminServlet extends HttpServlet {
 
     private static final Logger logger = LoggerFactory.getLogger(AdminServlet.class);
 
+    private static final String SESSION_ATTRIBUTE = "userSession";
+
     private ProductService productService;
     private OrderService orderService;
+    private AccountService accountService;
+    private CategoryService categoryService;
 
     public AdminServlet() {
         super();
     }
 
-    public AdminServlet(ProductService productService, OrderService orderService) {
+    public AdminServlet(ProductService productService, OrderService orderService,
+                        AccountService accountService, CategoryService categoryService) {
         this.productService = productService;
         this.orderService = orderService;
+        this.accountService = accountService;
+        this.categoryService = categoryService;
     }
 
     @Override
@@ -56,6 +65,12 @@ public class AdminServlet extends HttpServlet {
         if (this.orderService == null) {
             this.orderService = new OrderService();
         }
+        if (this.accountService == null) {
+            this.accountService = new AccountService();
+        }
+        if (this.categoryService == null) {
+            this.categoryService = new CategoryService();
+        }
         logger.info("AdminServlet successfully initialized.");
     }
 
@@ -64,22 +79,34 @@ public class AdminServlet extends HttpServlet {
     // =========================================================================
 
     @Override
-    protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
+    protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws IOException, ServletException {
         if (checkAdminAccess(req, resp)) {
             return;
         }
 
         String action = getActionPath(req);
 
+        logger.info("AdminServlet received GET request for action: {}", action);
+
         switch (action) {
+            case "", "/", "/products" ->
+                    req.getRequestDispatcher("/WEB-INF/admin/products.jsp").forward(req, resp);
+            case "/orders" ->
+                    req.getRequestDispatcher("/WEB-INF/admin/orders.jsp").forward(req, resp);
+            case "/users" ->
+                    req.getRequestDispatcher("/WEB-INF/admin/users.jsp").forward(req, resp);
+
             case "/products/list" -> handleListProducts(req, resp);
             case "/orders/list" -> handleListOrders(req, resp);
-            default -> resp.sendError(HttpServletResponse.SC_NOT_FOUND, "The requested admin endpoint was not found.");
+            case "/users/list" -> handleListUsers(req, resp);
+            case "/categories/list" -> handleListCategories(req, resp);
+
+            default -> resp.sendError(HttpServletResponse.SC_NOT_FOUND, "Endpoint non trovato.");
         }
     }
 
     @Override
-    protected void doPost(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
+    protected void doPost(HttpServletRequest req, HttpServletResponse resp) throws IOException, ServletException {
         if (checkAdminAccess(req, resp)) {
             return;
         }
@@ -90,6 +117,12 @@ public class AdminServlet extends HttpServlet {
             case "/products/create" -> handleCreateProduct(req, resp);
             case "/products/update" -> handleUpdateProduct(req, resp);
             case "/products/delete" -> handleDeleteProduct(req, resp);
+            case "/products/activate" -> handleActivateProduct(req, resp);
+            case "/users/deactivate" -> handleDeactivateUser(req, resp);
+            case "/users/reactivate" -> handleReactivateUser(req, resp);
+            case "/categories/create" -> handleCreateCategory(req, resp);
+            case "/categories/update" -> handleUpdateCategory(req, resp);
+            case "/categories/delete" -> handleDeleteCategory(req, resp);
             default -> resp.sendError(HttpServletResponse.SC_METHOD_NOT_ALLOWED, "HTTP method not allowed for this admin endpoint.");
         }
     }
@@ -107,7 +140,7 @@ public class AdminServlet extends HttpServlet {
 
         try {
             List<ProductBean> products = productService.searchProducts(criteria);
-            JsonUtils.sendSuccess(resp, "Products retrieved successfully.", "products", products);
+            JsonUtils.sendSuccessWithData(resp, "Products retrieved successfully.", "products", products);
         } catch (ServiceException e) {
             logger.error("Error retrieving products list for admin", e);
             JsonUtils.sendError(resp, "Unable to retrieve products list.", HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
@@ -154,7 +187,7 @@ public class AdminServlet extends HttpServlet {
             ProductRequest productRequest = extractProductRequest(req, adminAccount.getAccountId());
             ProductBean createdProduct = productService.createProduct(productRequest);
 
-            JsonUtils.sendSuccess(resp, "Product created successfully.", "product", createdProduct);
+            JsonUtils.sendSuccessWithData(resp, "Product created successfully.", "product", createdProduct);
 
         } catch (NumberFormatException e) {
             JsonUtils.sendError(resp, "Invalid numerical format for price, discount, or stock quantity.", HttpServletResponse.SC_BAD_REQUEST);
@@ -183,7 +216,7 @@ public class AdminServlet extends HttpServlet {
             ProductRequest productRequest = extractProductRequest(req, adminAccount.getAccountId());
             productService.updateProduct(productId, productRequest);
 
-            JsonUtils.sendSuccess(resp, "Product updated successfully.", null, null);
+            JsonUtils.sendSuccess(resp, "Product updated successfully.");
 
         } catch (NumberFormatException e) {
             JsonUtils.sendError(resp, "Invalid numerical format for price, discount, or stock quantity.", HttpServletResponse.SC_BAD_REQUEST);
@@ -198,10 +231,6 @@ public class AdminServlet extends HttpServlet {
             JsonUtils.sendError(resp, "Unable to update product.", HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
         }
     }
-
-// =========================================================================
-// PRIVATE HELPER FOR DTO EXTRACTION
-// =========================================================================
 
     private ProductRequest extractProductRequest(HttpServletRequest req, String accountId) throws NumberFormatException {
         String productName = req.getParameter("productName");
@@ -238,7 +267,7 @@ public class AdminServlet extends HttpServlet {
 
         try {
             productService.deactivateProduct(productId);
-            JsonUtils.sendSuccess(resp, "Product deactivated/deleted successfully.", null, null);
+            JsonUtils.sendSuccess(resp, "Product deactivated/deleted successfully.");
         } catch (IllegalArgumentException e) {
             JsonUtils.sendError(resp, e.getMessage(), HttpServletResponse.SC_BAD_REQUEST);
         } catch (EntityNotFoundException e) {
@@ -246,6 +275,27 @@ public class AdminServlet extends HttpServlet {
         } catch (ServiceException e) {
             logger.error("Error deactivating product {}", productId, e);
             JsonUtils.sendError(resp, "Unable to deactivate product.", HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
+        }
+    }
+
+    private void handleActivateProduct(HttpServletRequest req, HttpServletResponse resp) throws IOException {
+        String productId = req.getParameter("productId");
+
+        if (isNullOrBlank(productId)) {
+            JsonUtils.sendError(resp, "Parameter productId is required.", HttpServletResponse.SC_BAD_REQUEST);
+            return;
+        }
+
+        try {
+            productService.activateProduct(productId);
+            JsonUtils.sendSuccess(resp, "Product activated successfully.");
+        } catch (IllegalArgumentException e) {
+            JsonUtils.sendError(resp, e.getMessage(), HttpServletResponse.SC_BAD_REQUEST);
+        } catch (EntityNotFoundException e) {
+            JsonUtils.sendError(resp, e.getMessage(), HttpServletResponse.SC_NOT_FOUND);
+        } catch (ServiceException e) {
+            logger.error("Error activating product {}", productId, e);
+            JsonUtils.sendError(resp, "Unable to activate product.", HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
         }
     }
 
@@ -298,7 +348,7 @@ public class AdminServlet extends HttpServlet {
 
         try {
             List<OrderAdminView> orders = orderService.searchOrders(criteria);
-            JsonUtils.sendSuccess(resp, "Orders retrieved successfully.", "orders", orders);
+            JsonUtils.sendSuccessWithData(resp, "Orders retrieved successfully.", "orders", orders);
         } catch (IllegalArgumentException e) {
             JsonUtils.sendError(resp, e.getMessage(), HttpServletResponse.SC_BAD_REQUEST);
         } catch (ServiceException e) {
@@ -308,19 +358,146 @@ public class AdminServlet extends HttpServlet {
     }
 
     // =========================================================================
+    // USER HANDLERS
+    // =========================================================================
+
+    private void handleListUsers(HttpServletRequest req, HttpServletResponse resp) throws IOException {
+        try {
+            List<AccountAdminView> accounts = accountService.listAllAccountsForAdmin();
+            JsonUtils.sendSuccessWithData(resp, "Accounts retrieved successfully.", "accounts", accounts);
+        } catch (ServiceException e) {
+            logger.error("Error retrieving accounts list for admin", e);
+            JsonUtils.sendError(resp, "Unable to retrieve accounts list.", HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
+        }
+    }
+
+    private void handleDeactivateUser(HttpServletRequest req, HttpServletResponse resp) throws IOException {
+        String accountId = req.getParameter("accountId");
+
+        try {
+            accountService.deactivateAccount(accountId);
+            JsonUtils.sendSuccess(resp, "Account deactivated successfully.");
+        } catch (IllegalArgumentException e) {
+            JsonUtils.sendError(resp, e.getMessage(), HttpServletResponse.SC_BAD_REQUEST);
+        } catch (EntityNotFoundException e) {
+            JsonUtils.sendError(resp, e.getMessage(), HttpServletResponse.SC_NOT_FOUND);
+        } catch (ServiceException e) {
+            logger.error("Error deactivating account {}", accountId, e);
+            JsonUtils.sendError(resp, "Unable to deactivate account.", HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
+        }
+    }
+
+    private void handleReactivateUser(HttpServletRequest req, HttpServletResponse resp) throws IOException {
+        String accountId = req.getParameter("accountId");
+
+        try {
+            accountService.reactivateAccount(accountId);
+            JsonUtils.sendSuccess(resp, "Account reactivated successfully.");
+        } catch (IllegalArgumentException e) {
+            JsonUtils.sendError(resp, e.getMessage(), HttpServletResponse.SC_BAD_REQUEST);
+        } catch (EntityNotFoundException e) {
+            JsonUtils.sendError(resp, e.getMessage(), HttpServletResponse.SC_NOT_FOUND);
+        } catch (ServiceException e) {
+            logger.error("Error reactivating account {}", accountId, e);
+            JsonUtils.sendError(resp, "Unable to reactivate account.", HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
+        }
+    }
+
+    // =========================================================================
+    // CATEGORY HANDLERS
+    // =========================================================================
+
+    private void handleListCategories(HttpServletRequest req, HttpServletResponse resp) throws IOException {
+        try {
+            List<CategoryBean> categories = categoryService.listAllCategories();
+            JsonUtils.sendSuccessWithData(resp, "Categories retrieved successfully.", "categories", categories);
+        } catch (ServiceException e) {
+            logger.error("Error retrieving categories list for admin", e);
+            JsonUtils.sendError(resp, "Unable to retrieve categories list.", HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
+        }
+    }
+
+    private void handleCreateCategory(HttpServletRequest req, HttpServletResponse resp) throws IOException {
+        try {
+            CategoryRequest categoryRequest = extractCategoryRequest(req, null);
+            CategoryBean createdCategory = categoryService.createCategory(categoryRequest);
+            JsonUtils.sendSuccessWithData(resp, "Category created successfully.", "category", createdCategory);
+        } catch (IllegalArgumentException e) {
+            JsonUtils.sendError(resp, e.getMessage(), HttpServletResponse.SC_BAD_REQUEST);
+        } catch (EntityNotFoundException e) {
+            JsonUtils.sendError(resp, e.getMessage(), HttpServletResponse.SC_NOT_FOUND);
+        } catch (ServiceException e) {
+            logger.error("Error creating category", e);
+            JsonUtils.sendError(resp, "Unable to create category.", HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
+        }
+    }
+
+    private void handleUpdateCategory(HttpServletRequest req, HttpServletResponse resp) throws IOException {
+        String categoryId = req.getParameter("categoryId");
+
+        if (isNullOrBlank(categoryId)) {
+            JsonUtils.sendError(resp, "Parameter categoryId is required.", HttpServletResponse.SC_BAD_REQUEST);
+            return;
+        }
+
+        try {
+            CategoryRequest categoryRequest = extractCategoryRequest(req, categoryId);
+            categoryService.updateCategory(categoryRequest);
+            JsonUtils.sendSuccess(resp, "Category updated successfully.");
+        } catch (IllegalArgumentException e) {
+            JsonUtils.sendError(resp, e.getMessage(), HttpServletResponse.SC_BAD_REQUEST);
+        } catch (EntityNotFoundException e) {
+            JsonUtils.sendError(resp, e.getMessage(), HttpServletResponse.SC_NOT_FOUND);
+        } catch (ServiceException e) {
+            logger.error("Error updating category {}", categoryId, e);
+            JsonUtils.sendError(resp, "Unable to update category.", HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
+        }
+    }
+
+    private CategoryRequest extractCategoryRequest(HttpServletRequest req, String categoryId) {
+        String categoryName = req.getParameter("categoryName");
+        String parentCategoryId = req.getParameter("parentCategoryId");
+        String description = req.getParameter("description");
+
+        return new CategoryRequest(categoryId, categoryName, parentCategoryId, description);
+    }
+
+    private void handleDeleteCategory(HttpServletRequest req, HttpServletResponse resp) throws IOException {
+        String categoryId = req.getParameter("categoryId");
+
+        if (isNullOrBlank(categoryId)) {
+            JsonUtils.sendError(resp, "Parameter categoryId is required.", HttpServletResponse.SC_BAD_REQUEST);
+            return;
+        }
+
+        try {
+            categoryService.deleteCategory(categoryId);
+            JsonUtils.sendSuccess(resp, "Category deactivated/deleted successfully.");
+        } catch (IllegalArgumentException e) {
+            JsonUtils.sendError(resp, e.getMessage(), HttpServletResponse.SC_BAD_REQUEST);
+        } catch (EntityNotFoundException e) {
+            JsonUtils.sendError(resp, e.getMessage(), HttpServletResponse.SC_NOT_FOUND);
+        } catch (ServiceException e) {
+            logger.error("Error deleting category {}", categoryId, e);
+            JsonUtils.sendError(resp, "Unable to delete category.", HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
+        }
+    }
+
+    // =========================================================================
     // SECURITY & UTILITY HELPER METHODS
     // =========================================================================
 
     private boolean checkAdminAccess(HttpServletRequest req, HttpServletResponse resp) throws IOException {
-        AccountBean account = getAuthenticatedAccount(req);
+        UserSession userSession = getAuthenticatedUserSession(req);
 
-        if (account == null) {
+        if (userSession == null) {
             JsonUtils.sendError(resp, "Authentication required.", HttpServletResponse.SC_UNAUTHORIZED);
             return true;
         }
 
-        if (!account.isAdmin()) {
-            logger.warn("Unauthorized admin access attempt by user: {}", account.getAccountId());
+        if (!userSession.isAdmin()) {
+            logger.warn("Unauthorized admin access attempt by user: {}",
+                    userSession.getAccount() != null ? userSession.getAccount().getAccountId() : "unknown");
             JsonUtils.sendError(resp, "Forbidden: Admin privileges required.", HttpServletResponse.SC_FORBIDDEN);
             return true;
         }
@@ -329,12 +506,19 @@ public class AdminServlet extends HttpServlet {
     }
 
     private String getActionPath(HttpServletRequest req) {
-        String pathInfo = req.getPathInfo();
-        return (pathInfo == null) ? "" : pathInfo;
+        return ServletUtils.getActionPath(req);
     }
 
     private boolean isNullOrBlank(String str) {
         return str == null || str.isBlank();
+    }
+
+    private UserSession getAuthenticatedUserSession(HttpServletRequest req) {
+        HttpSession session = req.getSession(false);
+        if (session == null) {
+            return null;
+        }
+        return (UserSession) session.getAttribute(SESSION_ATTRIBUTE);
     }
 
     private AccountBean getAuthenticatedAccount(HttpServletRequest req) {

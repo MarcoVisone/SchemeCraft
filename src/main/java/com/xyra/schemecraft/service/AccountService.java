@@ -4,10 +4,7 @@ import com.xyra.schemecraft.connection.ConnectionPool;
 import com.xyra.schemecraft.constant.ValidationConstants;
 import com.xyra.schemecraft.dao.AddressDAO;
 import com.xyra.schemecraft.dao.PaymentMethodDAO;
-import com.xyra.schemecraft.dto.AccountRegistrationRequest;
-import com.xyra.schemecraft.dto.AccountRegistrationResponse;
-import com.xyra.schemecraft.dto.PaymentMethodRequest;
-import com.xyra.schemecraft.dto.ProfileUpdateRequest;
+import com.xyra.schemecraft.dto.*;
 import com.xyra.schemecraft.exception.*;
 import com.xyra.schemecraft.model.*;
 
@@ -406,9 +403,29 @@ public class AccountService {
         }
     }
 
+    public List<AccountAdminView> listAllAccountsForAdmin() {
+        try (Connection conn = ConnectionPool.getConnection()) {
+            List<AccountBean> accounts = accountDAO.findAllAdmin(conn);
+
+            return accounts.stream()
+                    .map(account -> new AccountAdminView(
+                            account.getAccountId(),
+                            account.getUsername(),
+                            account.getEmail(),
+                            account.getCreatedAt(),
+                            account.isActive(),
+                            account.isAdmin()
+                    ))
+                    .toList();
+        } catch (SQLException | DAOException e) {
+            logger.error("Database connection error while listing accounts for admin", e);
+            throw new ServiceException("Internal database error occurred", e);
+        }
+    }
+
     public List<AddressBean> listAddresses(String accountId) {
         if (accountId == null || accountId.isBlank()) {
-            throw new ServiceException("Invalid account ID.");
+            throw new IllegalArgumentException("Account ID cannot be null or blank");
         }
 
         try (Connection conn = ConnectionPool.getConnection()) {

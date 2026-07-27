@@ -8,9 +8,11 @@ import javax.servlet.http.HttpServletResponse;
 import org.json.JSONArray;
 import org.json.JSONObject;
 
+import com.xyra.schemecraft.dto.AccountAdminView;
 import com.xyra.schemecraft.dto.OrderAdminView;
 import com.xyra.schemecraft.dto.OwnedProductItem;
 import com.xyra.schemecraft.model.AddressBean;
+import com.xyra.schemecraft.model.CategoryBean;
 import com.xyra.schemecraft.model.OrderBean;
 import com.xyra.schemecraft.model.PaymentMethodBean;
 import com.xyra.schemecraft.model.ProductBean;
@@ -66,6 +68,22 @@ public final class JsonUtils {
             json.put(dataKey, array);
         } else {
             json.put(dataKey, data);
+        }
+
+        sendJson(resp, json, HttpServletResponse.SC_OK);
+    }
+
+    public static void sendSuccessWithData(HttpServletResponse resp, String message, String dataKey, Object data) throws IOException {
+        JSONObject json = new JSONObject();
+        json.put("success", true);
+        if (message != null) {
+            json.put("message", message);
+        }
+
+        if (data instanceof List<?> list) {
+            json.put(dataKey, serializeList(list));
+        } else {
+            json.put(dataKey, serializeSingle(data));
         }
 
         sendJson(resp, json, HttpServletResponse.SC_OK);
@@ -200,22 +218,64 @@ public final class JsonUtils {
         return obj;
     }
 
+    public static JSONObject serializeCategory(CategoryBean category) {
+        if (category == null) {
+            return new JSONObject();
+        }
+        JSONObject obj = new JSONObject();
+        obj.put("categoryId", category.getCategoryId());
+        obj.put("categoryName", category.getCategoryName());
+        obj.put("parentCategoryId", category.getParentCategoryId());
+        obj.put("description", category.getDescription());
+        return obj;
+    }
+
+    public static JSONObject serializeAccountAdminView(AccountAdminView account) {
+        if (account == null) {
+            return new JSONObject();
+        }
+        JSONObject obj = new JSONObject();
+        obj.put("accountId", account.accountId());
+        obj.put("username", account.username());
+        obj.put("email", account.email());
+        obj.put("createdAt", account.createdAt() != null ? account.createdAt().toString() : null);
+        obj.put("isActive", account.isActive());
+        obj.put("isAdmin", account.isAdmin());
+        return obj;
+    }
+
+    // Dispatches a single (non-list) model object to its dedicated serializer, so
+    // sendSuccessWithData never relies on org.json's uncontrolled reflection fallback.
+    private static Object serializeSingle(Object item) {
+        if (item instanceof AddressBean addr) {
+            return serializeAddress(addr);
+        } else if (item instanceof PaymentMethodBean pm) {
+            return serializePaymentMethod(pm);
+        } else if (item instanceof OrderBean ord) {
+            return serializeOrder(ord);
+        } else if (item instanceof OrderAdminView oav) {
+            return serializeOrderAdminView(oav);
+        } else if (item instanceof ProductBean prod) {
+            return serializeProduct(prod);
+        } else if (item instanceof CategoryBean cat) {
+            return serializeCategory(cat);
+        } else if (item instanceof AccountAdminView acc) {
+            return serializeAccountAdminView(acc);
+        } else if (item instanceof ProductImageBean img) {
+            return serializeImage(img);
+        } else if (item instanceof ProductVersionBean ver) {
+            return serializeVersion(ver);
+        } else if (item instanceof OwnedProductItem opi) {
+            return serializeOwnedProductItem(opi);
+        } else {
+            return item;
+        }
+    }
+
     private static JSONArray serializeList(List<?> list) {
         JSONArray array = new JSONArray();
         for (Object item : list) {
-            if (item instanceof AddressBean addr) {
-                array.put(serializeAddress(addr));
-            } else if (item instanceof PaymentMethodBean pm) {
-                array.put(serializePaymentMethod(pm));
-            } else if (item instanceof OrderBean ord) {
-                array.put(serializeOrder(ord));
-            } else if (item instanceof OrderAdminView oav) {
-                array.put(serializeOrderAdminView(oav));
-            } else if (item instanceof ProductBean prod) {
-                array.put(serializeProduct(prod));
-            } else {
-                array.put(item);
-            }
+            array.put(serializeSingle(item));
         }
         return array;
     }

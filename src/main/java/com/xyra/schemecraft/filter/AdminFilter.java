@@ -36,10 +36,10 @@ public class AdminFilter implements Filter {
         HttpServletResponse httpResp = (HttpServletResponse) resp;
 
         HttpSession session = httpReq.getSession(false);
-        UserSession userSession = (UserSession) session.getAttribute(SESSION_ATTRIBUTE);
+        UserSession userSession = (session != null) ? (UserSession) session.getAttribute(SESSION_ATTRIBUTE) : null;
 
-        if (!userSession.isAdmin()) {
-            logger.warn("Non-admin user attempted to access admin resource: {}", httpReq.getRequestURI());
+        if (userSession == null || !userSession.isAdmin()) {
+            logger.warn("Non-admin or unauthenticated access attempt to admin resource: {}", httpReq.getRequestURI());
             httpResp.sendError(HttpServletResponse.SC_FORBIDDEN, "Admin privileges required.");
             return;
         }

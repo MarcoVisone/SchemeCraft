@@ -222,6 +222,29 @@ public class ProductService {
         }
     }
 
+    public void activateProduct(String rawProductId) {
+        String id = rawProductId == null ? null : rawProductId.trim();
+        if (id == null || id.isBlank()) {
+            throw new IllegalArgumentException("Product ID cannot be null or blank");
+        }
+
+        try (Connection conn = ConnectionPool.getConnection()) {
+            boolean activated = productDAO.activate(conn, id);
+
+            if (!activated) {
+                logger.warn("Activation issued for non-existent Product ID: {}", id);
+                throw new EntityNotFoundException("Product not found for ID: " + id,
+                        EntityNotFoundException.EntityType.PRODUCT);
+            }
+
+            logger.info("Product {} successfully activated", id);
+
+        } catch (SQLException | DAOException e) {
+            logger.error("Database error while activating Product: {}", id, e);
+            throw new ServiceException("Error while activating product", e);
+        }
+    }
+
     public List<ProductImageBean> listImages(String rawProductId) {
         String productId = rawProductId == null ? null : rawProductId.trim();
         if (productId == null || productId.isBlank()) {
