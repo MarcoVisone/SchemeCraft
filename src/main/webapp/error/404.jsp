@@ -4,6 +4,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>404 - Page Not Found</title>
     <!-- Keep existing fonts: Inter for body, Press Start 2P for Game UI -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -14,6 +15,8 @@
     <link rel="stylesheet" href="${pageContext.request.contextPath}/css/header.css">
     <link rel="stylesheet" href="${pageContext.request.contextPath}/css/footer.css">
     <link rel="stylesheet" href="${pageContext.request.contextPath}/css/error.css">
+
+    <script src="${pageContext.request.contextPath}/js/header.js"></script>
 </head>
 <body>
 

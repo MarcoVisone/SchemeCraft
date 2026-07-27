@@ -1,6 +1,5 @@
-/* Shared stylesheet for Minecraft-inspired error pages */
+/* Minecraft-inspired error pages */
 
-/* Contenitore principale */
 .error-main {
     position: relative;
     min-height: 100vh;
@@ -8,21 +7,18 @@
     display: flex;
     flex-direction: column;
     align-items: center;
-    justify-content: center; /* Centra sia il testo che il pulsante al centro dello schermo */
+    justify-content: center;
     text-align: center;
     padding: 2rem;
     overflow: hidden;
 
-    /* Sfondo Dirt */
     background-image: url("../images/textures/dirt.png");
     background-repeat: repeat;
     background-size: 64px 64px;
     image-rendering: pixelated;
-    image-rendering: -moz-crisp-edges;
     image-rendering: crisp-edges;
 }
 
-/* Dark Overlay direttamente sulla dirt per far risaltare il testo */
 .error-main::before {
     content: "";
     position: absolute;
@@ -31,37 +27,28 @@
     z-index: 0;
 }
 
-body:has(.error-main) header {
-    background-color: var(--bg-main);
-}
-
-
 .error-content {
     position: relative;
     z-index: 1;
     max-width: 36rem;
     margin-bottom: 2.5rem;
+    padding: 0 1rem;
 }
 
-/* Titolo dell'errore (Bianco, font Inter, centrato) */
 .error-content h2 {
     font-family: var(--font-body);
     color: #FFFFFF;
     font-size: 1.8rem;
     font-weight: 600;
     margin: 0 0 1rem 0;
-    text-align: center;
-    text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.8); /* Shadow per leggibilità */
+    text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.8);
 }
 
-/* Dettaglio dell'errore (Rosso Minecraft, font Inter, centrato) */
 .error-content p {
     font-family: var(--font-body);
-    color: #FF5555; /* Rosso autentico di errore */
+    color: #FF5555;
     font-size: 1.1rem;
     line-height: 1.5;
-    margin: 0;
-    text-align: center;
     text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.8);
 }
 
@@ -70,30 +57,109 @@ body:has(.error-main) header {
     z-index: 1;
     display: flex;
     justify-content: center;
+    padding: 0 1rem;
+    width: 100%;
+    box-sizing: border-box;
 }
 
 .error-actions a {
     font-family: var(--font-body);
     font-weight: 600;
-    display: inline-block;
     color: #FFFFFF;
-
-    /* Sfondo scuro opaco e bordo sottile pulito */
     background-color: rgba(20, 20, 20, 0.75);
     border: 1px solid rgba(255, 255, 255, 0.25);
-    border-radius: 4px; /* Un minimo di curvatura pulita, o 0px se preferisci squadrato */
-
+    border-radius: 4px;
     padding: 0.8rem 2.2rem;
     min-width: 14rem;
     text-decoration: none;
     text-align: center;
     font-size: 1rem;
     letter-spacing: 0.5px;
-
-    /* Transizione morbida e moderna */
     transition: all 0.2s ease-in-out;
 }
+
 .error-actions a:hover {
     background-color: #7B7B7B;
-    color: #FFFFFF;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+
+/* Tablet (max-width: 48rem / 768px) */
+@media (max-width: 48rem) {
+    .error-main {
+        padding: 1.5rem 1rem;
+        padding-top: 7rem; /* Offset for stacked mobile header */
+    }
+
+    .error-content {
+        max-width: 90%;
+        margin-bottom: 2rem;
+    }
+
+    .error-content h2 {
+        font-size: 1.5rem;
+    }
+
+    .error-content p {
+        font-size: 1rem;
+    }
+
+    .error-actions a {
+        min-width: 12rem;
+        padding: 0.7rem 1.8rem;
+        font-size: 0.95rem;
+    }
+}
+
+/* Mobile (max-width: 30rem / 480px) */
+@media (max-width: 30rem) {
+    .error-main {
+        padding: 1rem 0.75rem;
+        padding-top: 6.5rem;
+    }
+
+    .error-content {
+        max-width: 100%;
+        margin-bottom: 1.75rem;
+    }
+
+    .error-content h2 {
+        font-size: 1.25rem;
+        margin-bottom: 0.75rem;
+    }
+
+    .error-content p {
+        font-size: 0.9rem;
+    }
+
+    .error-actions a {
+        width: 100%;
+        max-width: 18rem;
+        min-width: unset;
+        padding: 0.75rem 1.25rem;
+        font-size: 0.9rem;
+    }
+}
+
+/* Short screens / Landscape mobile */
+@media (max-height: 30rem) and (orientation: landscape) {
+    .error-main {
+        padding-top: 5rem;
+        padding-bottom: 1.5rem;
+        justify-content: flex-start;
+        overflow-y: auto;
+    }
+
+    .error-content {
+        margin-bottom: 1rem;
+    }
+
+    .error-content h2 {
+        font-size: 1.2rem;
+        margin-bottom: 0.5rem;
+    }
+
+    .error-content p {
+        font-size: 0.85rem;
+    }
 }
