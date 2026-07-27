@@ -111,12 +111,12 @@ public class AuthServlet extends HttpServlet {
             req.setAttribute("infoMessage", "You have been logged out successfully.");
         }
 
-        req.getRequestDispatcher("/login.jsp").forward(req, resp);
+        req.getRequestDispatcher("/WEB-INF/auth/login.jsp").forward(req, resp);
     }
 
     private void showRegisterForm(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
         populateLookupAttributes(req);
-        req.getRequestDispatcher("/register.jsp").forward(req, resp);
+        req.getRequestDispatcher("/WEB-INF/auth/register.jsp").forward(req, resp);
     }
 
     // =========================================================================
@@ -129,7 +129,7 @@ public class AuthServlet extends HttpServlet {
 
         if (Utils.isNullOrBlank(usernameOrEmail) || Utils.isNullOrBlank(password)) {
             req.setAttribute("errorMessage", "Username/Email and Password are required.");
-            req.getRequestDispatcher("/login.jsp").forward(req, resp);
+            req.getRequestDispatcher("/WEB-INF/auth/login.jsp").forward(req, resp);
             return;
         }
 
@@ -157,7 +157,7 @@ public class AuthServlet extends HttpServlet {
         } catch (BadCredentialsException e) {
             logger.warn("Authentication failed for user input: {}", usernameOrEmail);
             req.setAttribute("errorMessage", "Invalid credentials.");
-            req.getRequestDispatcher("/login.jsp").forward(req, resp);
+            req.getRequestDispatcher("/WEB-INF/auth/login.jsp").forward(req, resp);
 
         } catch (ServiceException e) {
             logger.error("Internal service error during login process for user: {}", usernameOrEmail, e);
@@ -302,7 +302,7 @@ public class AuthServlet extends HttpServlet {
             throws ServletException, IOException {
         req.setAttribute("errorMessage", errorMessage);
         populateLookupAttributes(req);
-        req.getRequestDispatcher("/register.jsp").forward(req, resp);
+        req.getRequestDispatcher("/WEB-INF/auth/register.jsp").forward(req, resp);
     }
 
     private AccountRegistrationRequest buildRegistrationRequest(HttpServletRequest req, String profileImagePath) {
