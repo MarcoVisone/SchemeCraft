@@ -239,7 +239,7 @@ document.addEventListener('DOMContentLoaded', () => {
                             <span class="current-price">${finalPrice === 0 ? 'FREE' : '$' + finalPrice.toFixed(2)}</span>
                         </div>
                         <a href="${contextPath}/product/detail?id=${product.productId}" class="btn-view">View</a>
-                    </div>
+                        </div>
                 </div>
             </div>
         `;

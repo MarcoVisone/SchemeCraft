@@ -31,21 +31,27 @@ public class CartService {
         String accountId = rawAccountId == null ? null : rawAccountId.trim();
         String productId = rawProductId == null ? null : rawProductId.trim();
 
-        if(accountId == null || accountId.isBlank()) {
+        if (accountId == null || accountId.isBlank()) {
             throw new IllegalArgumentException("accountId cannot be null or blank");
         }
-        if(productId == null || productId.isBlank()) {
+        if (productId == null || productId.isBlank()) {
             throw new IllegalArgumentException("productId cannot be null or blank");
         }
 
-        try(Connection conn = ConnectionPool.getConnection()) {
+        try (Connection conn = ConnectionPool.getConnection()) {
             entityValidator.validateActiveAccount(conn, accountId);
             entityValidator.validateProduct(conn, productId);
             entityValidator.validateProductNotAlreadyOwned(conn, accountId, productId);
+
+            entityValidator.validateProductNotInCart(conn, accountId, productId);
+
             CartBean cart = new CartBean(accountId, productId);
             cartDAO.insert(conn, cart);
             logger.info("Product {} added to cart for account {}", productId, accountId);
-        } catch(DAOException | SQLException e) {
+
+        } catch (DuplicateEntityException e) {
+            throw e;
+        } catch (DAOException | SQLException e) {
             logger.error("Database connection error while adding product to cart", e);
             throw new ServiceException("Internal database error occurred", e);
         }

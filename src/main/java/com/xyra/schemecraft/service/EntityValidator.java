@@ -26,6 +26,7 @@ public class EntityValidator {
     private final AccountDAO accountDAO;
     private final CategoryDAO categoryDAO;
     private final AccountProductDAO accountProductDAO;
+    private final CartDAO cartDAO;
 
     public EntityValidator() {
         this.countryDAO = new CountryDAO();
@@ -38,6 +39,16 @@ public class EntityValidator {
         this.productDAO = new ProductDAO();
         this.accountProductDAO = new AccountProductDAO();
         this.categoryDAO = new CategoryDAO();
+        this.cartDAO = new CartDAO();
+    }
+
+    public void validateProductNotInCart(Connection connection, String accountId, String productId)
+            throws SQLException {
+        boolean isInCart = cartDAO.findById(connection, accountId, productId).isPresent();
+        if (isInCart) {
+            logger.error("Account: {} already has Product: {} in cart", accountId, productId);
+            throw new DuplicateEntityException("Product is already in the cart");
+        }
     }
 
     public CountryBean validateActiveCountry(Connection connection, String countryId) throws SQLException {

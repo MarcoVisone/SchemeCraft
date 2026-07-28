@@ -17,6 +17,7 @@ import com.xyra.schemecraft.exception.EntityNotFoundException;
 import com.xyra.schemecraft.exception.ServiceException;
 import com.xyra.schemecraft.model.AccountBean;
 import com.xyra.schemecraft.model.ProductBean;
+import com.xyra.schemecraft.model.UserSession;
 import com.xyra.schemecraft.service.FavoriteService;
 import com.xyra.schemecraft.util.JsonUtils;
 
@@ -67,10 +68,6 @@ public class FavoriteServlet extends HttpServlet {
         }
     }
 
-    // =========================================================================
-    // ACTION HANDLERS
-    // =========================================================================
-
     private void handleListFavorites(HttpServletRequest req, HttpServletResponse resp) throws IOException {
         AccountBean authenticatedAccount = getAuthenticatedAccount(req);
         if (authenticatedAccount == null) {
@@ -92,7 +89,6 @@ public class FavoriteServlet extends HttpServlet {
     private void handleCheckFavorite(HttpServletRequest req, HttpServletResponse resp) throws IOException {
         AccountBean authenticatedAccount = getAuthenticatedAccount(req);
         if (authenticatedAccount == null) {
-            // Se l'utente non è loggato, per la UI il prodotto non è tra i preferiti
             JsonUtils.sendSuccess(resp, null, "isFavorite", false);
             return;
         }
@@ -132,7 +128,7 @@ public class FavoriteServlet extends HttpServlet {
 
         try {
             favoriteService.addFavorite(authenticatedAccount.getAccountId(), productId);
-            JsonUtils.sendSuccess(resp, "Product added to favorites.", null, null);
+            JsonUtils.sendSuccess(resp, "Product added to favorites.");
         } catch (IllegalArgumentException e) {
             JsonUtils.sendError(resp, e.getMessage(), HttpServletResponse.SC_BAD_REQUEST);
         } catch (EntityNotFoundException e) {
@@ -159,7 +155,7 @@ public class FavoriteServlet extends HttpServlet {
 
         try {
             favoriteService.removeFavorite(authenticatedAccount.getAccountId(), productId);
-            JsonUtils.sendSuccess(resp, "Product removed from favorites.", null, null);
+            JsonUtils.sendSuccess(resp, "Product removed from favorites.");
         } catch (IllegalArgumentException e) {
             JsonUtils.sendError(resp, e.getMessage(), HttpServletResponse.SC_BAD_REQUEST);
         } catch (EntityNotFoundException e) {
@@ -170,10 +166,6 @@ public class FavoriteServlet extends HttpServlet {
             JsonUtils.sendError(resp, "Unable to remove product from favorites.", HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
         }
     }
-
-    // =========================================================================
-    // UTILITY / HELPER METHODS
-    // =========================================================================
 
     private String getActionPath(HttpServletRequest req) {
         String pathInfo = req.getPathInfo();
@@ -189,6 +181,7 @@ public class FavoriteServlet extends HttpServlet {
         if (session == null) {
             return null;
         }
-        return (AccountBean) session.getAttribute("account");
+        UserSession userSession = (UserSession) session.getAttribute("userSession");
+        return (userSession != null) ? userSession.getAccount() : null;
     }
 }

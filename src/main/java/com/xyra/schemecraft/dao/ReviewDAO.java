@@ -144,6 +144,42 @@ public class ReviewDAO extends BaseDAO {
     }
 
     /**
+     * Checks if an account has already written a review for a specific product.
+     *
+     * @param conn      Active database connection
+     * @param accountId Unique identifier of the account
+     * @param productId Unique identifier of the product
+     * @return true if a review exists, false otherwise
+     * @throws DAOException             if a database error occurs
+     * @throws IllegalArgumentException if Account ID or Product ID is null or empty
+     */
+    public boolean existsByAccountAndProduct(Connection conn, String accountId, String productId) throws DAOException {
+        if (accountId == null || accountId.trim().isEmpty()) {
+            throw new IllegalArgumentException("Account ID cannot be null or empty for review lookup");
+        }
+        if (productId == null || productId.trim().isEmpty()) {
+            throw new IllegalArgumentException("Product ID cannot be null or empty for review lookup");
+        }
+
+        String sql = "SELECT COUNT(*) FROM review WHERE account_id = ? AND product_id = ?";
+
+        try (PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setString(1, accountId.trim());
+            ps.setString(2, productId.trim());
+
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    return rs.getInt(1) > 0;
+                }
+            }
+        } catch (SQLException e) {
+            logger.error("Database error while checking existing review for Account ID: {} and Product ID: {}", accountId, productId, e);
+            throw new DAOException("Error checking existing review by account and product", e);
+        }
+        return false;
+    }
+
+    /**
      * Retrieves all reviews authored by a specific user account.
      *
      * @param conn      Active database connection
@@ -289,6 +325,38 @@ public class ReviewDAO extends BaseDAO {
                     "a review with missing composite keys");
         }
         return update(conn, review.getProductId(), review.getAccountId(), review);
+    }
+
+    /**
+     * Saves a new review or updates it if it already exists for the same product and account.
+     *
+     * @param conn   Active database connection
+     * @param review Review bean to save or update
+     * @throws DAOException if a database error occurs
+     * @throws IllegalArgumentException if the review object is null
+     */
+    public void saveOrUpdate(Connection conn, ReviewBean review) throws DAOException {
+        if (review == null || review.getProductId() == null || review.getAccountId() == null) {
+            throw new IllegalArgumentException("Review and its keys cannot be null for saveOrUpdate");
+        }
+
+        String sql = "INSERT INTO review (product_id, account_id, rating, comment, is_verified_purchase) " +
+                "VALUES (?, ?, ?, ?, ?) " +
+                "ON DUPLICATE KEY UPDATE rating = VALUES(rating), comment = VALUES(comment), is_verified_purchase = VALUES(is_verified_purchase)";
+
+        try (PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setString(1, review.getProductId().trim());
+            ps.setString(2, review.getAccountId().trim());
+            ps.setInt(3, review.getRating());
+            ps.setString(4, review.getComment());
+            ps.setBoolean(5, review.isVerifiedPurchase());
+
+            ps.executeUpdate();
+        } catch (SQLException e) {
+            logger.error("Database error while saving/updating review for Product ID: {} and Account ID: {}",
+                    review.getProductId(), review.getAccountId(), e);
+            throw new DAOException("Error saving or updating review", e);
+        }
     }
 
     /**

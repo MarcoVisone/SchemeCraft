@@ -11,6 +11,7 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import javax.servlet.http.HttpSession;
 
+import com.xyra.schemecraft.exception.DuplicateEntityException;
 import com.xyra.schemecraft.util.JsonUtils;
 import com.xyra.schemecraft.util.ServletUtils;
 import org.json.JSONArray;
@@ -142,11 +143,11 @@ public class CartServlet extends HttpServlet {
             jsonResponse.put("message", "Product added to cart successfully.");
             out.print(jsonResponse.toString());
 
-        } catch (IllegalArgumentException | EntityNotFoundException e) {
+        } catch (IllegalArgumentException | EntityNotFoundException | DuplicateEntityException e) {
             sendErrorResponse(resp, HttpServletResponse.SC_BAD_REQUEST, e.getMessage());
         } catch (ServiceException e) {
             logger.error("Error adding product {} to cart for account: {}", productId, accountId, e);
-            sendErrorResponse(resp, HttpServletResponse.SC_BAD_REQUEST, e.getMessage());
+            sendErrorResponse(resp, HttpServletResponse.SC_INTERNAL_SERVER_ERROR, "Unable to add product to cart.");
         }
     }
 

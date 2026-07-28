@@ -2,6 +2,7 @@ package com.xyra.schemecraft.controller;
 
 import java.io.*;
 import java.math.BigDecimal;
+import java.util.ArrayList;
 import java.util.List;
 
 import javax.servlet.ServletException;
@@ -9,9 +10,9 @@ import javax.servlet.annotation.MultipartConfig;
 import javax.servlet.annotation.WebServlet;
 import javax.servlet.http.*;
 
+import com.xyra.schemecraft.dto.*;
 import com.xyra.schemecraft.model.*;
-import com.xyra.schemecraft.service.AccountService;
-import com.xyra.schemecraft.service.CategoryService;
+import com.xyra.schemecraft.service.*;
 import com.xyra.schemecraft.util.FileUploadUtils;
 import com.xyra.schemecraft.util.JsonUtils;
 import com.xyra.schemecraft.util.ServletUtils;
@@ -20,14 +21,9 @@ import org.json.JSONObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.xyra.schemecraft.dto.OwnedProductItem;
-import com.xyra.schemecraft.dto.ProductRequest;
-import com.xyra.schemecraft.dto.ProductSearchCriteria;
-import com.xyra.schemecraft.dto.ProductVersionRequest;
 import com.xyra.schemecraft.exception.EntityNotFoundException;
 import com.xyra.schemecraft.exception.ServiceException;
 import com.xyra.schemecraft.exception.UnauthorizedActionException;
-import com.xyra.schemecraft.service.ProductService;
 
 @WebServlet(name = "ProductServlet", urlPatterns = {"/product/*"})
 @MultipartConfig(
@@ -78,6 +74,7 @@ public class ProductServlet extends HttpServlet {
             case "/version" -> handleGetVersion(req, resp);
             case "/check-ownership" -> handleCheckOwnership(req, resp);
             case "/owned" -> handleListOwnedProducts(req, resp);
+            case "/download" -> handleDownloadVersion(req, resp);
             default -> resp.sendError(HttpServletResponse.SC_NOT_FOUND, "The requested resource was not found.");
         }
     }
@@ -117,16 +114,165 @@ public class ProductServlet extends HttpServlet {
         try {
             ProductBean product = productService.getProductById(productId);
 
+            if (product == null || !product.isActive()) {
+                throw new EntityNotFoundException("Product not found or inactive.");
+            }
+
+            List<ProductImageBean> images = new ArrayList<>();
+            try {
+                images = productService.listImages(productId);
+            } catch (Exception e) {
+                logger.warn("Unable to fetch images for product ID: {}", productId, e);
+            }
+
+            AccountBean creator = null;
+            try {
+                AccountService accountService = new AccountService();
+                creator = accountService.getAccountById(product.getAccountId());
+                if (creator != null) {
+                    creator.applyDefaultsIfMissing();
+                }
+            } catch (Exception e) {
+                logger.warn("Unable to fetch creator for account ID: {}", product.getAccountId(), e);
+            }
+
+            List<CategoryBean> categories = new ArrayList<>();
+            JSONArray categoriesJsonArray = new JSONArray();
+            try {
+                List<ProductCategoryBean> associations = categoryService.listAllCategoriesAssociated(productId);
+                if (associations != null) {
+                    for (ProductCategoryBean assoc : associations) {
+                        CategoryBean cat = categoryService.getCategoryById(assoc.getCategoryId());
+                        if (cat != null) {
+                            categories.add(cat);
+                            categoriesJsonArray.put(cat.getCategoryName());
+                        }
+                    }
+                }
+            } catch (Exception e) {
+                logger.warn("Unable to fetch categories for product ID: {}", productId, e);
+            }
+
+            List<ProductVersionBean> versions = new ArrayList<>();
+            try {
+                ProductService productService = new ProductService();
+                versions = productService.listVersions(productId);
+            } catch (Exception e) {
+                logger.warn("Unable to fetch versions for product ID: {}", productId, e);
+            }
+
+            List<ReviewView> reviews = new ArrayList<>();
+            ReviewBean userReview = null;
+
+            try {
+                ReviewService reviewService = new ReviewService();
+                AccountService accountService = new AccountService();
+
+                List<ReviewBean> rawReviews = reviewService.listProductReviews(productId, 1);
+                if (rawReviews != null) {
+                    for (ReviewBean rev : rawReviews) {
+                        AccountBean author = null;
+                        try {
+                            author = accountService.getAccountById(rev.getAccountId());
+                            if (author != null) {
+                                author.applyDefaultsIfMissing();
+                            }
+                        } catch (Exception ex) {
+                            logger.warn("Unable to fetch author for account ID: {}", rev.getAccountId(), ex);
+                        }
+
+                        reviews.add(new ReviewView(rev, author));
+                    }
+                }
+            } catch (Exception e) {
+                logger.warn("Unable to fetch reviews for product ID: {}", productId, e);
+            }
+
+            boolean isPurchased = false;
+            boolean isWishlisted = false;
+
+            AccountBean sessionUser = getAuthenticatedAccount(req);
+            if (sessionUser != null) {
+                try {
+                    boolean isCreator = sessionUser.getAccountId().equals(product.getAccountId());
+                    boolean hasPurchased = productService.ownsProduct(sessionUser.getAccountId(), productId);
+
+                    isPurchased = isCreator || hasPurchased;
+                    FavoriteService favoriteService = new FavoriteService();
+                    isWishlisted = favoriteService.isFavorite(sessionUser.getAccountId(), productId);
+
+                    if (reviews != null && !reviews.isEmpty()) {
+                        userReview = reviews.stream()
+                                .map(ReviewView::getReview)
+                                .filter(r -> sessionUser.getAccountId().equals(r.getAccountId()))
+                                .findFirst()
+                                .orElse(null);
+                    }
+                } catch (Exception e) {
+                    logger.warn("Unable to check purchase/wishlist/review status for user: {}", sessionUser.getAccountId(), e);
+                }
+            }
+
             if ("json".equalsIgnoreCase(format) || isAjaxRequest(req)) {
                 resp.setContentType("application/json");
                 JSONObject jsonResponse = new JSONObject();
+
+                JSONObject productJson = JsonUtils.serializeProduct(product);
+                productJson.put("categories", categoriesJsonArray);
+
+                JSONArray imagesJsonArray = new JSONArray();
+                if (images != null) {
+                    for (ProductImageBean img : images) {
+                        JSONObject imgObj = new JSONObject();
+                        imgObj.put("imageId", img.getImageId());
+                        imgObj.put("imagePath", img.getImagePath());
+                        imagesJsonArray.put(imgObj);
+                    }
+                }
+                productJson.put("images", imagesJsonArray);
+                if (!images.isEmpty()) {
+                    productJson.put("coverImagePath", images.get(0).getImagePath());
+                }
+
+                if (creator != null) {
+                    productJson.put("creatorName", creator.getUsername());
+                    productJson.put("creatorAvatarPath", creator.getProfileImagePath());
+                }
+
+                JSONArray reviewsJsonArray = new JSONArray();
+                for (ReviewView revView : reviews) {
+                    ReviewBean rev = revView.getReview();
+                    JSONObject revObj = new JSONObject();
+                    revObj.put("accountId", rev.getAccountId());
+                    revObj.put("rating", rev.getRating());
+                    revObj.put("comment", rev.getComment());
+                    revObj.put("isVerifiedPurchase", rev.isVerifiedPurchase());
+                    revObj.put("createdAt", rev.getCreatedAt() != null ? rev.getCreatedAt().toString() : null);
+                    revObj.put("authorUsername", revView.getAuthorUsername());
+                    revObj.put("authorAvatar", revView.getAuthorAvatar());
+                    reviewsJsonArray.put(revObj);
+                }
+
                 jsonResponse.put("success", true);
-                // Uso di JsonUtils qui
-                jsonResponse.put("product", JsonUtils.serializeProduct(product));
+                jsonResponse.put("isPurchased", isPurchased);
+                jsonResponse.put("isWishlisted", isWishlisted);
+                jsonResponse.put("reviews", reviewsJsonArray);
+                jsonResponse.put("product", productJson);
                 resp.getWriter().print(jsonResponse.toString());
+
             } else {
                 req.setAttribute("product", product);
-                req.getRequestDispatcher("/product-detail.jsp").forward(req, resp);
+                req.setAttribute("images", images);
+                req.setAttribute("creator", creator);
+                req.setAttribute("categories", categories);
+                req.setAttribute("versions", versions);
+                req.setAttribute("isPurchased", isPurchased);
+                req.setAttribute("isWishlisted", isWishlisted);
+
+                req.setAttribute("reviews", reviews);
+                req.setAttribute("userReview", userReview);
+
+                req.getRequestDispatcher("/WEB-INF/views/product-detail.jsp").forward(req, resp);
             }
 
         } catch (EntityNotFoundException e) {
@@ -343,7 +489,6 @@ public class ProductServlet extends HttpServlet {
     private void handleDownloadVersion(HttpServletRequest req, HttpServletResponse resp)
             throws ServletException, IOException {
 
-        // 1. Authenticate user
         AccountBean currentAccount = getAuthenticatedAccount(req);
         if (currentAccount == null) {
             resp.sendError(HttpServletResponse.SC_UNAUTHORIZED, "You must be logged in to download files.");
@@ -359,8 +504,17 @@ public class ProductServlet extends HttpServlet {
         }
 
         try {
-            boolean owns = productService.ownsProduct(currentAccount.getAccountId(), productId);
-            if (!owns) {
+            ProductBean product = productService.getProductById(productId);
+            if (product == null) {
+                resp.sendError(HttpServletResponse.SC_NOT_FOUND, "Product not found.");
+                return;
+            }
+
+            boolean isCreator = currentAccount.getAccountId().equals(product.getAccountId());
+            boolean isFree = product.getPrice() == null || product.getPrice().compareTo(BigDecimal.ZERO) == 0;
+            boolean hasPurchased = productService.ownsProduct(currentAccount.getAccountId(), productId);
+
+            if (!isCreator && !isFree && !hasPurchased) {
                 resp.sendError(HttpServletResponse.SC_FORBIDDEN, "You do not own this product.");
                 return;
             }

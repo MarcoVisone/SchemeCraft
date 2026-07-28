@@ -42,6 +42,7 @@ public class ReviewService {
         try(Connection conn = ConnectionPool.getConnection()) {
             entityValidator.validateActiveAccount(conn, review.accountId());
             entityValidator.validateActiveProduct(conn, review.productId());
+
             ReviewBean reviewBean = new ReviewBean();
             reviewBean.setAccountId(review.accountId());
             reviewBean.setProductId(review.productId());
@@ -49,14 +50,16 @@ public class ReviewService {
             reviewBean.setComment(review.comment().isBlank() ? null : review.comment());
             reviewBean.setVerifiedPurchase(accountProductDAO.findById(conn, review.accountId(), review.productId())
                     .isPresent());
-            reviewDAO.insert(conn, reviewBean);
-            logger.info("Review added for product {} by account {}", review.productId(), review.accountId());
+
+            reviewDAO.saveOrUpdate(conn, reviewBean);
+
+            logger.info("Review saved/updated for product {} by account {}", review.productId(), review.accountId());
         } catch (SQLException e) {
-            logger.info("Database connection error while adding review for accountId: {} and productId: {}", review.accountId(), review.productId(), e);
-            throw new ServiceException("Database connection error while adding review", e);
+            logger.info("Database connection error while saving review for accountId: {} and productId: {}", review.accountId(), review.productId(), e);
+            throw new ServiceException("Database connection error while saving review", e);
         } catch (DAOException e) {
-            logger.info("DAO error while adding review for accountId: {} and productId: {}", review.accountId(), review.productId(), e);
-            throw new ServiceException("DAO error while adding review", e);
+            logger.info("DAO error while saving review for accountId: {} and productId: {}", review.accountId(), review.productId(), e);
+            throw new ServiceException("DAO error while saving review", e);
         }
     }
 
@@ -72,14 +75,15 @@ public class ReviewService {
         }
 
         try(Connection conn = ConnectionPool.getConnection()) {
-            reviewDAO.delete(conn, accountId, productId);
+            reviewDAO.delete(conn, productId, accountId);
+
             logger.info("Review deleted for product {} by account {}", productId, accountId);
         } catch (SQLException e) {
             logger.info("Database connection error while deleting review for accountId: {} and productId: {}", accountId, productId, e);
             throw new ServiceException("Database connection error while deleting review", e);
         } catch (DAOException e) {
             logger.info("DAO error while deleting review for accountId: {} and productId: {}", accountId, productId, e);
-            throw new ServiceException("DAO error while deleting review", e);
+            throw new ServiceException("Service error while deleting review", e);
         }
     }
 

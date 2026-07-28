@@ -10,6 +10,7 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import javax.servlet.http.HttpSession;
 
+import com.xyra.schemecraft.model.UserSession;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -146,7 +147,8 @@ public class ReviewServlet extends HttpServlet {
 
         try {
             reviewService.addReview(reviewRequest);
-            JsonUtils.sendSuccess(resp, "Review added successfully.", null, null);
+            reviewService.addReview(reviewRequest);
+            JsonUtils.sendSuccess(resp, "Review added successfully.");
         } catch (IllegalArgumentException e) {
             JsonUtils.sendError(resp, e.getMessage(), HttpServletResponse.SC_BAD_REQUEST);
         } catch (EntityNotFoundException e) {
@@ -174,7 +176,7 @@ public class ReviewServlet extends HttpServlet {
 
         try {
             reviewService.deleteReview(authenticatedAccount.getAccountId(), productId);
-            JsonUtils.sendSuccess(resp, "Review deleted successfully.", null, null);
+            JsonUtils.sendSuccess(resp, "Review deleted successfully.");
         } catch (IllegalArgumentException e) {
             JsonUtils.sendError(resp, e.getMessage(), HttpServletResponse.SC_BAD_REQUEST);
         } catch (EntityNotFoundException e) {
@@ -204,6 +206,7 @@ public class ReviewServlet extends HttpServlet {
         if (session == null) {
             return null;
         }
-        return (AccountBean) session.getAttribute("account");
+        UserSession userSession = (UserSession) session.getAttribute("userSession");
+        return (userSession != null) ? userSession.getAccount() : null;
     }
 }
