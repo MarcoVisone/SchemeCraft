@@ -33,28 +33,28 @@
 
       <div class="stepper-item active" id="step-node-1">
         <div class="stepper-icon">
-          <img src="${pageContext.request.contextPath}/icons/book_and_quill.webp" alt="Details" width="24" height="24">
+          <img src="${pageContext.request.contextPath}/icons/book_and_quill.webp" alt="Details"">
         </div>
         <span class="stepper-label">Details</span>
       </div>
 
       <div class="stepper-item" id="step-node-2">
         <div class="stepper-icon">
-          <img src="${pageContext.request.contextPath}/icons/chest.png" alt="Categories" width="24" height="24">
+          <img src="${pageContext.request.contextPath}/icons/chest.png" alt="Categories">
         </div>
         <span class="stepper-label">Categories</span>
       </div>
 
       <div class="stepper-item" id="step-node-3">
         <div class="stepper-icon">
-          <img src="${pageContext.request.contextPath}/icons/painting.webp" alt="Gallery" width="24" height="24">
+          <img src="${pageContext.request.contextPath}/icons/painting.webp" alt="Gallery">
         </div>
         <span class="stepper-label">Gallery</span>
       </div>
 
       <div class="stepper-item" id="step-node-4">
         <div class="stepper-icon">
-          <img src="${pageContext.request.contextPath}/icons/lapis_lazuli.png" alt="Schematic" width="24" height="24">
+          <img src="${pageContext.request.contextPath}/icons/lapis_lazuli.png" alt="Schematic">
         </div>
         <span class="stepper-label">Schematic</span>
       </div>
@@ -136,7 +136,7 @@
 
         <div class="upload-zone" id="upload-zone">
           <div class="icon-container">
-            <img src="${pageContext.request.contextPath}/icons/hopper.webp" alt="Upload" width="32" height="32">
+            <img src="${pageContext.request.contextPath}/icons/hopper.webp" alt="Upload">
           </div>
           <div>
             <strong>Drop your images here</strong>
@@ -158,8 +158,39 @@
         </div>
 
         <div class="form-group">
-          <label for="schematicFile">Schematic File (.schematic, .schem, .litematic) *</label>
-          <input type="file" id="schematicFile" accept=".schematic,.schem,.litematic" required>
+          <label>Schematic File (.schematic, .schem, .litematic) *</label>
+
+          <!-- Upload zone personalizzata per schematico -->
+          <div class="schematic-upload-zone" id="schematic-upload-zone">
+            <div class="upload-zone-empty" id="schematic-empty-state">
+              <div class="icon-container">
+                <img src="${pageContext.request.contextPath}/icons/hopper.webp" alt="Schematic">
+              </div>
+              <div>
+                <strong>Drop your schematic file here</strong>
+                <span>.schematic, .schem or .litematic up to 50MB</span>
+              </div>
+              <label for="schematicFile" class="btn btn-secondary browse-btn">
+                Browse Files
+              </label>
+            </div>
+
+            <!-- Stato file selezionato (nascosto di default) -->
+            <div class="upload-zone-selected" id="schematic-selected-state" style="display: none;">
+              <div class="selected-file-card">
+                <div class="file-info">
+                  <img src="${pageContext.request.contextPath}/icons/lapis_lazuli.png" alt="File">
+                  <span class="file-name" id="schematic-file-name"></span>
+                  <span class="file-size" id="schematic-file-size"></span>
+                </div>
+                <button type="button" class="remove-file-btn" id="remove-schematic" title="Remove file">
+                  <img src="${pageContext.request.contextPath}/icons/barrier.png" alt="Remove">
+                </button>
+              </div>
+            </div>
+
+            <input type="file" id="schematicFile" accept=".schematic,.schem,.litematic" hidden>
+          </div>
         </div>
 
         <div class="form-grid">

@@ -41,16 +41,17 @@ public class ProductImageDAO extends BaseDAO {
             throw new IllegalArgumentException("Image ID, Product ID, and Image Path must be valid and populated");
         }
 
-        String sql = "INSERT INTO product_image (image_id, product_id, image_path) VALUES (?, ?, ?)";
+        String sql = "INSERT INTO product_image (image_id, product_id, image_path, display_order) VALUES (?, ?, ?, ?)";
 
         try (PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setString(1, image.getImageId().trim());
             ps.setString(2, image.getProductId().trim());
             ps.setString(3, image.getImagePath().trim());
+            ps.setInt(4, image.getDisplayOrder());
 
             ps.executeUpdate();
-            logger.info("Product image successfully registered with Image ID: {} for Product ID: {}",
-                    image.getImageId(), image.getProductId());
+            logger.info("Product image successfully registered with Image ID: {} for Product ID: {} at display order: {}",
+                    image.getImageId(), image.getProductId(), image.getDisplayOrder());
         } catch (SQLException e) {
             logger.error("Failed to insert product image for Product ID: {}", image.getProductId(), e);
             if (SQLSTATE_INTEGRITY_CONSTRAINT_VIOLATION.equals(e.getSQLState()) ||

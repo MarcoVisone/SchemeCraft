@@ -26,6 +26,45 @@
     box-sizing: border-box;
 }
 
+/* ==========================================================================
+   Icon Sizing (Global)
+   ========================================================================== */
+
+/* 1. Stepper icons (tutti i 4 step) */
+.stepper-icon img {
+    width: 24px;
+    height: 24px;
+    object-fit: contain;
+}
+
+/* 2. Icon container (galleria e schematico vuoto) */
+.icon-container img {
+    width: 32px;
+    height: 32px;
+    object-fit: contain;
+}
+
+/* 3. Icona del file selezionato (lapis nella card) */
+.upload-zone-selected .file-info img {
+    width: 24px;
+    height: 24px;
+    object-fit: contain;
+    flex-shrink: 0;
+}
+
+/* 4. Icona di rimozione file (barrier) - schematico e galleria */
+.remove-file-btn img,
+.gallery-delete img {
+    width: 16px;
+    height: 16px;
+    object-fit: contain;
+    display: block;
+}
+
+/* ==========================================================================
+   Layout
+   ========================================================================== */
+
 .wizard-wrapper {
     max-width: 820px;
     margin: 2.5rem auto;
@@ -52,7 +91,10 @@
     margin: 0;
 }
 
-/* Stepper */
+/* ==========================================================================
+   Stepper
+   ========================================================================== */
+
 .stepper {
     display: flex;
     align-items: center;
@@ -127,7 +169,10 @@
     transition: width 0.3s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
-/* Card container */
+/* ==========================================================================
+   Card Container & Steps
+   ========================================================================== */
+
 .card-container {
     background-color: var(--bg-card);
     border: 1px solid var(--border-color);
@@ -173,7 +218,10 @@
     margin: 0;
 }
 
-/* Forms */
+/* ==========================================================================
+   Forms
+   ========================================================================== */
+
 .form-grid {
     display: grid;
     grid-template-columns: repeat(2, 1fr);
@@ -226,7 +274,17 @@ textarea {
     min-height: 100px;
 }
 
-/* Switch */
+input[type="number"]:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    background-color: var(--bg-card);
+    border-color: var(--border-color);
+}
+
+/* ==========================================================================
+   Toggle Switch
+   ========================================================================== */
+
 .toggle-wrapper {
     display: flex;
     align-items: center;
@@ -280,7 +338,10 @@ input:checked + .slider:before {
     background-color: #FFFFFF;
 }
 
-/* Categories */
+/* ==========================================================================
+   Categories
+   ========================================================================== */
+
 .category-list {
     display: flex;
     flex-direction: column;
@@ -324,7 +385,10 @@ input:checked + .slider:before {
     margin-top: 0.5rem;
 }
 
-/* Upload */
+/* ==========================================================================
+   Upload Zone (Gallery - Step 3)
+   ========================================================================== */
+
 .upload-zone {
     border: 2px dashed var(--border-color);
     background-color: var(--bg-input);
@@ -339,7 +403,8 @@ input:checked + .slider:before {
     gap: 0.75rem;
 }
 
-.upload-zone:hover, .upload-zone.dragover {
+.upload-zone:hover,
+.upload-zone.dragover {
     border-color: var(--btn-green-hover);
     background-color: rgba(82, 177, 53, 0.04);
 }
@@ -355,6 +420,10 @@ input:checked + .slider:before {
     color: var(--btn-green-hover);
     border: 1px solid var(--border-color);
 }
+
+/* ==========================================================================
+   Gallery Grid
+   ========================================================================== */
 
 .gallery-grid {
     display: grid;
@@ -397,7 +466,7 @@ input:checked + .slider:before {
     right: 6px;
     background: rgba(0, 0, 0, 0.7);
     color: #fff;
-    border: none;
+    border: 1px solid transparent;
     border-radius: 4px;
     width: 24px;
     height: 24px;
@@ -406,21 +475,179 @@ input:checked + .slider:before {
     justify-content: center;
     cursor: pointer;
     transition: var(--transition-smooth);
-    padding: 0;  /* Assicurati che non ci sia padding extra */
-}
-
-.gallery-delete img {
-    width: 100%;
-    height: 100%;
-    object-fit: contain;
-    display: block;
+    padding: 0;
 }
 
 .gallery-delete:hover {
-    background: #e53935;
+    background: rgba(0, 0, 0, 0.7);
+    border-color: #e53935;
+    box-shadow: 0 0 0 1px #e53935;
 }
 
-/* Buttons */
+/* ==========================================================================
+   Schematic Upload Zone (Step 4)
+   ========================================================================== */
+
+.schematic-upload-zone {
+    border: 2px dashed var(--border-color);
+    background-color: var(--bg-input);
+    border-radius: var(--radius-md);
+    padding: 2rem 1.5rem;
+    text-align: center;
+    cursor: pointer;
+    transition: var(--transition-smooth);
+    margin-top: 0.25rem;
+}
+
+.schematic-upload-zone:hover {
+    border-color: var(--btn-green-hover);
+    background-color: rgba(82, 177, 53, 0.04);
+}
+
+.schematic-upload-zone.dragover {
+    border-color: var(--btn-green-hover);
+    background-color: rgba(82, 177, 53, 0.04);
+    transform: scale(1.01);
+}
+
+/* Stato vuoto */
+.upload-zone-empty {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 1rem;
+}
+
+.upload-zone-empty .icon-container {
+    width: 56px;
+    height: 56px;
+    border-radius: 50%;
+    background-color: var(--bg-card);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--btn-green-hover);
+    border: 1px solid var(--border-color);
+}
+
+.upload-zone-empty strong {
+    display: block;
+    color: var(--text-primary);
+    font-size: 0.95rem;
+    font-weight: 600;
+    margin-bottom: 0.25rem;
+}
+
+.upload-zone-empty span {
+    display: block;
+    color: var(--text-secondary);
+    font-size: 0.8rem;
+    margin-bottom: 0.25rem;
+}
+
+/* Pulsante Browse */
+.browse-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.6rem 1.5rem;
+    background-color: var(--btn-green);
+    border: 1px solid var(--btn-green);
+    color: #FFFFFF;
+    border-radius: var(--radius-sm);
+    font-size: 0.85rem;
+    font-weight: var(--weight-medium);
+    cursor: pointer;
+    transition: var(--transition-smooth);
+    margin-top: 0.5rem;
+}
+
+.browse-btn:hover {
+    background-color: var(--btn-green-hover);
+    border-color: var(--btn-green-hover);
+    box-shadow: 0 4px 12px rgba(82, 177, 53, 0.3);
+    transform: translateY(-1px);
+}
+
+/* Stato file selezionato */
+.upload-zone-selected {
+    width: 100%;
+}
+
+.selected-file-card {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background-color: var(--bg-card);
+    border: 1px solid var(--border-focus);
+    border-radius: var(--radius-sm);
+    padding: 1rem 1.25rem;
+    transition: var(--transition-smooth);
+}
+
+.file-info {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    flex: 1;
+    min-width: 0;
+}
+
+.file-name {
+    color: var(--text-primary);
+    font-size: 0.9rem;
+    font-weight: 500;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    max-width: 300px;
+}
+
+.file-size {
+    color: var(--text-secondary);
+    font-size: 0.75rem;
+    background-color: var(--bg-input);
+    padding: 0.2rem 0.5rem;
+    border-radius: 4px;
+    flex-shrink: 0;
+}
+
+.remove-file-btn {
+    background: none;
+    border: 1px solid transparent;
+    border-radius: var(--radius-sm);
+    padding: 0.5rem;
+    cursor: pointer;
+    transition: var(--transition-smooth);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    margin-left: 0.75rem;
+}
+
+.remove-file-btn:hover {
+    border-color: #e53935;
+    background-color: rgba(229, 57, 53, 0.08);
+}
+
+.remove-file-btn:active {
+    transform: scale(0.95);
+}
+
+.remove-file-btn img {
+    opacity: 0.7;
+    transition: opacity 0.2s;
+}
+
+.remove-file-btn:hover img {
+    opacity: 1;
+}
+
+/* ==========================================================================
+   Buttons
+   ========================================================================== */
+
 .actions-footer {
     display: flex;
     justify-content: space-between;
@@ -471,6 +698,20 @@ input:checked + .slider:before {
     box-shadow: 0 4px 12px rgba(82, 177, 53, 0.3);
 }
 
+.btn-secondary {
+    background-color: transparent;
+    border-color: var(--btn-green);
+    color: var(--btn-green);
+}
+
+.btn-secondary:hover {
+    background-color: rgba(82, 177, 53, 0.08);
+}
+
+/* ==========================================================================
+   JSON Output (debug)
+   ========================================================================== */
+
 #json-output {
     background-color: #141414;
     color: #38ef7d;
@@ -485,21 +726,15 @@ input:checked + .slider:before {
     font-size: 0.85rem;
 }
 
-input[type="number"]:disabled {
-    opacity: 0.5;
-    cursor: not-allowed;
-    background-color: var(--bg-card);
-    border-color: var(--border-color);
-}
-
 /* ==========================================================================
    RESPONSIVE – Schermi piccoli (max-width: 640px)
    ========================================================================== */
+
 @media screen and (max-width: 640px) {
 
     .wizard-wrapper {
         margin: 1.5rem auto;
-        padding: var(--admin-header-height) 1rem 0;  /* ripristinato il top‑padding */
+        padding: var(--admin-header-height) 1rem 0;
     }
 
     .card-container {
@@ -507,96 +742,132 @@ input[type="number"]:disabled {
         border-radius: var(--radius-md);
     }
 
-    /* Stepper: icone compatte e nasconde le etichette per risparmiare spazio */
+    /* Stepper */
     .stepper {
         gap: 0.25rem;
         margin-bottom: 1.5rem;
     }
+
     .stepper-item {
         flex: 1 0 auto;
         gap: 0.25rem;
     }
+
     .stepper-icon {
         width: 32px;
         height: 32px;
         font-size: 0.8rem;
     }
+
     .stepper-label {
-        display: none; /* nascondi testo, rimangono solo le icone */
+        display: none;
     }
+
     .stepper-track {
-        top: 16px; /* centrato sull'icona più piccola */
+        top: 16px;
         left: 5%;
         right: 5%;
     }
 
-    /* Griglia form: tutto a colonna singola */
+    /* Griglia form */
     .form-grid {
         grid-template-columns: 1fr;
         gap: 0.75rem;
     }
+
     .form-group.full-width {
         grid-column: span 1;
     }
 
-    /* Intestazione step */
+    /* Step header */
     .step-header h2 {
         font-size: 1rem;
     }
+
     .step-header p {
         font-size: 0.8rem;
     }
 
     /* Upload zone */
-    .upload-zone {
+    .upload-zone,
+    .schematic-upload-zone {
         padding: 1.5rem 1rem;
     }
-    .upload-zone .icon-container {
+
+    .upload-zone .icon-container,
+    .upload-zone-empty .icon-container {
         width: 40px;
         height: 40px;
     }
-    .upload-zone strong {
+
+    .upload-zone strong,
+    .upload-zone-empty strong {
         font-size: 0.9rem;
     }
-    .upload-zone span {
+
+    .upload-zone span,
+    .upload-zone-empty span {
         font-size: 0.75rem;
     }
 
-    /* Galleria immagini: celle più piccole */
+    /* File selezionato */
+    .selected-file-card {
+        padding: 0.75rem 1rem;
+    }
+
+    .file-name {
+        max-width: 150px;
+        font-size: 0.8rem;
+    }
+
+    .file-size {
+        font-size: 0.7rem;
+    }
+
+    /* Galleria */
     .gallery-grid {
         grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
         gap: 0.75rem;
     }
 
-    /* Categorie: riduci padding e rientro */
+    /* Categorie */
     .category-card {
         padding: 0.6rem 0.8rem;
     }
+
     .category-children {
         margin-left: 1rem;
         padding-left: 0.75rem;
     }
 
-    /* Footer azioni: pulsanti a tutta larghezza, colonna */
+    /* Footer */
     .actions-footer {
         flex-direction: column;
         gap: 0.75rem;
     }
+
     .actions-footer .btn {
         width: 100%;
         justify-content: center;
     }
 
-    /* Introduzione */
+    /* Intro */
     .wizard-intro h1 {
         font-size: 1.3rem;
     }
+
     .wizard-intro p {
         font-size: 0.85rem;
     }
 
-    /* Switch e testo */
+    /* Toggle */
     .toggle-wrapper {
         font-size: 0.85rem;
+    }
+
+    /* Browse btn */
+    .browse-btn {
+        padding: 0.5rem 1.25rem;
+        font-size: 0.8rem;
     }
 }

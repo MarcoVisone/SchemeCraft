@@ -18,12 +18,11 @@
        State
        ---------------------------------------------------------------------- */
     let currentStep = 1;
-    let allCategories = [];          // Flat list fetched from the server
+    let allCategories = [];
     let selectedCategoryIds = new Set();
 
-    // Files kept in memory until the final submit; nothing is uploaded
-    // to the server until the user clicks "Create Product".
-    let selectedImageFiles = [];     // Array of { file: File, previewUrl: string }
+    // Files kept in memory until the final submit
+    let selectedImageFiles = [];
     let selectedSchematicFile = null;
 
     /* ----------------------------------------------------------------------
@@ -52,8 +51,14 @@
         imageInput: document.getElementById('image-input'),
         galleryGrid: document.getElementById('gallery-grid'),
 
-        // Step 4 — Schematic & Version
-        schematicFile: document.getElementById('schematicFile'),
+        // Step 4 — Schematic & Version (aggiornato con i nuovi ID)
+        schematicUploadZone: document.getElementById('schematic-upload-zone'),
+        schematicEmptyState: document.getElementById('schematic-empty-state'),
+        schematicSelectedState: document.getElementById('schematic-selected-state'),
+        schematicFileName: document.getElementById('schematic-file-name'),
+        schematicFileSize: document.getElementById('schematic-file-size'),
+        removeSchematicBtn: document.getElementById('remove-schematic'),
+        schematicFile: document.getElementById('schematicFile'),   // input file nascosto
         version: document.getElementById('version'),
         minecraftVersion: document.getElementById('minecraftVersion'),
         changelog: document.getElementById('changelog'),
@@ -71,6 +76,14 @@
         const div = document.createElement('div');
         div.textContent = String(text);
         return div.innerHTML;
+    }
+
+    function formatFileSize(bytes) {
+        if (bytes === 0) return '0 Bytes';
+        const k = 1024;
+        const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+        const i = Math.floor(Math.log(bytes) / Math.log(k));
+        return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
     }
 
     /* ----------------------------------------------------------------------
@@ -95,7 +108,6 @@
         els.trackProgress.style.width = progressPercent + '%';
 
         els.btnBack.textContent = stepNumber === 1 ? 'Cancel' : 'Back';
-
         updateNextButtonLabel();
     }
 
@@ -104,8 +116,6 @@
             els.btnNext.textContent = 'Next Step';
             els.btnNext.disabled = false;
         } else {
-            // Final step: label and enabled state depend on whether every
-            // required field across all steps has been filled in.
             const complete = isFormComplete();
             els.btnNext.textContent = complete ? 'Create Product' : 'Complete all steps';
             els.btnNext.disabled = !complete;
@@ -130,7 +140,6 @@
 
     els.stepNodes.forEach((node, idx) => {
         node.addEventListener('click', function () {
-            // Free navigation between steps, as confirmed: no per-step validation gate.
             goToStep(idx + 1);
         });
         node.style.cursor = 'pointer';
@@ -147,8 +156,6 @@
         updateNextButtonLabel();
     });
 
-    // Re-check completeness on every relevant input change so the final
-    // button state stays accurate without requiring a click to discover it.
     [els.productName, els.price, els.discount, els.currencyId, els.stockQuantity,
         els.description, els.version, els.minecraftVersion, els.changelog].forEach(input => {
         input.addEventListener('input', updateNextButtonLabel);
@@ -249,12 +256,16 @@
 
     els.imageInput.addEventListener('change', function () {
         addImageFiles(els.imageInput.files);
-        els.imageInput.value = ''; // allow re-selecting the same file later
+        els.imageInput.value = '';
     });
 
     function addImageFiles(fileList) {
         for (const file of fileList) {
             if (!file.type.startsWith('image/')) continue;
+            const isDuplicate = selectedImageFiles.some(
+                item => item.file.name === file.name && item.file.size === file.size
+            );
+            if (isDuplicate) continue;
             selectedImageFiles.push({
                 file: file,
                 previewUrl: URL.createObjectURL(file),
@@ -279,7 +290,7 @@
                 <img src="${item.previewUrl}" alt="Preview ${idx + 1}" />
                 ${idx === 0 ? '<span class="gallery-badge">Cover</span>' : ''}
                 <button type="button" class="gallery-delete" data-index="${idx}" title="Remove image">
-                    <img src="${CTX}/icons/deactive.png" alt="Remove" width="16" height="16">
+                    <img src="${CTX}/icons/barrier.png" alt="Remove" width="16" height="16">
                 </button>
             </div>
         `).join('');
@@ -292,12 +303,94 @@
     });
 
     /* ----------------------------------------------------------------------
-       Step 4 — Schematic File Selection
+       Step 4 — Schematic File Upload Zone (NUOVA GESTIONE)
        ---------------------------------------------------------------------- */
-    els.schematicFile.addEventListener('change', function () {
-        selectedSchematicFile = els.schematicFile.files[0] || null;
+
+    // Mostra la card con i dati del file selezionato
+    function showSchematicSelectedState(file) {
+        if (els.schematicEmptyState) els.schematicEmptyState.style.display = 'none';
+        if (els.schematicSelectedState) els.schematicSelectedState.style.display = 'block';
+        if (els.schematicFileName) els.schematicFileName.textContent = file.name;
+        if (els.schematicFileSize) els.schematicFileSize.textContent = formatFileSize(file.size);
+    }
+
+    // Torna allo stato vuoto (nessun file)
+    function showSchematicEmptyState() {
+        if (els.schematicEmptyState) els.schematicEmptyState.style.display = 'flex';
+        if (els.schematicSelectedState) els.schematicSelectedState.style.display = 'none';
+        if (els.schematicFileName) els.schematicFileName.textContent = '';
+        if (els.schematicFileSize) els.schematicFileSize.textContent = '';
+    }
+
+    // Gestisce il file selezionato (da input o drag & drop)
+    function handleSchematicFile(file) {
+        if (!file) return;
+
+        // Validazione estensione
+        const validExtensions = ['.schematic', '.schem', '.litematic'];
+        const fileName = file.name.toLowerCase();
+        const valid = validExtensions.some(ext => fileName.endsWith(ext));
+        if (!valid) {
+            console.warn('Tipo file non valido:', file.name);
+            return;
+        }
+
+        selectedSchematicFile = file;
+        showSchematicSelectedState(file);
         updateNextButtonLabel();
+    }
+
+    // Click sulla zona di upload → apre il file picker
+    if (els.schematicUploadZone) {
+        els.schematicUploadZone.addEventListener('click', function (e) {
+            // Evita di aprire il picker se l'utente clicca sul pulsante "Rimuovi"
+            if (e.target.closest('#remove-schematic')) return;
+            els.schematicFile.click();
+        });
+    }
+
+    // Drag & drop sulla zona
+    if (els.schematicUploadZone) {
+        els.schematicUploadZone.addEventListener('dragover', function (e) {
+            e.preventDefault();
+            els.schematicUploadZone.classList.add('dragover');
+        });
+
+        els.schematicUploadZone.addEventListener('dragleave', function () {
+            els.schematicUploadZone.classList.remove('dragover');
+        });
+
+        els.schematicUploadZone.addEventListener('drop', function (e) {
+            e.preventDefault();
+            els.schematicUploadZone.classList.remove('dragover');
+            const files = e.dataTransfer.files;
+            if (files.length > 0) {
+                handleSchematicFile(files[0]);
+            }
+        });
+    }
+
+    // Input file change (quando si usa "Browse Files")
+    els.schematicFile.addEventListener('change', function () {
+        const file = els.schematicFile.files[0] || null;
+        if (file) {
+            handleSchematicFile(file);
+        }
+        els.schematicFile.value = ''; // consente di riselezionare lo stesso file
     });
+
+    // Rimozione del file schematico
+    if (els.removeSchematicBtn) {
+        els.removeSchematicBtn.addEventListener('click', function (e) {
+            e.stopPropagation();
+            selectedSchematicFile = null;
+            showSchematicEmptyState();
+            updateNextButtonLabel();
+        });
+    }
+
+    // Inizializzazione stato vuoto
+    showSchematicEmptyState();
 
     /* ----------------------------------------------------------------------
        Form Completeness Check
@@ -317,12 +410,6 @@
     /* ----------------------------------------------------------------------
        Final Submission: Sequential Upload + Create-Full Request
        ---------------------------------------------------------------------- */
-
-    /**
-     * Uploads a single file to the given admin upload endpoint and returns
-     * the server-assigned path. Throws on any failure so the caller can stop
-     * the whole submission immediately (no partial/orphaned product state).
-     */
     async function uploadFile(endpoint, file) {
         const formData = new FormData();
         formData.append('file', file);
@@ -351,17 +438,17 @@
         els.btnNext.textContent = 'Uploading...';
 
         try {
-            // Step 1: sequentially upload all gallery images.
+            // Upload immagini
             const imagePaths = [];
             for (const item of selectedImageFiles) {
                 const path = await uploadFile('/upload/image', item.file);
                 imagePaths.push(path);
             }
 
-            // Step 2: upload the schematic file.
+            // Upload schematico
             const schematicPath = await uploadFile('/upload/schematic', selectedSchematicFile);
 
-            // Step 3: build and send the final create-full payload.
+            // Payload finale
             const unlimitedStock = els.unlimitedStock.checked;
             const payload = {
                 product: {
@@ -398,13 +485,10 @@
                 throw new Error(json.message || 'Failed to create product.');
             }
 
-            // Success: return to the product list.
+            // Successo: torna alla lista prodotti
             window.location.href = API_ADMIN + '/products';
 
         } catch (err) {
-            // Stop entirely on any failure, as confirmed: no partial submission.
-            // Non-blocking: logged only, no alert(). Re-enable the button so
-            // the user can retry once the underlying issue is fixed.
             console.error('Product creation failed:', err);
             els.btnNext.disabled = false;
             updateNextButtonLabel();
@@ -451,11 +535,14 @@
             return;
         }
 
-        // Initialize unlimited stock toggle state
+        // Unlimited stock toggle iniziale
         if (els.unlimitedStock.checked) {
             els.stockQuantity.disabled = true;
             els.stockQuantity.value = '';
         }
+
+        // Inizializza stato schematico (già chiamato sopra, ma lo ripeto per sicurezza)
+        showSchematicEmptyState();
 
         loadCategories();
         loadCurrencies();

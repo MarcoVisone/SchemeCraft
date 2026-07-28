@@ -96,8 +96,10 @@ public class AdminServlet extends HttpServlet {
         switch (action) {
             case "", "/", "/products" ->
                     req.getRequestDispatcher("/WEB-INF/admin/products.jsp").forward(req, resp);
-            case "/products/new" -> // <-- NUOVA ROTTA WIZARD
+            case "/products/new" ->
                     req.getRequestDispatcher("/WEB-INF/admin/product_new.jsp").forward(req, resp);
+            case "/products/categories" ->
+                    req.getRequestDispatcher("/WEB-INF/admin/product_categories.jsp").forward(req, resp);
             case "/orders" ->
                     req.getRequestDispatcher("/WEB-INF/admin/orders.jsp").forward(req, resp);
             case "/users" ->
@@ -377,7 +379,7 @@ public class AdminServlet extends HttpServlet {
 
             JSONObject versionJson = body.getJSONObject("version");
             ProductVersionRequest versionRequest = new ProductVersionRequest(
-                    null, // productId is resolved internally by the service, since the product doesn't exist yet
+                    null,
                     versionJson.optString("changelog", null),
                     versionJson.getString("filePath"),
                     versionJson.optString("minecraftVersion", null),
