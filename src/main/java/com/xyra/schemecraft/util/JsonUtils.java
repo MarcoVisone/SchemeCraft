@@ -128,7 +128,12 @@ public final class JsonUtils {
         obj.put("averageRating", product.getAverageRating());
         obj.put("totalReviews", product.getTotalReviews());
         obj.put("totalDownloads", product.getTotalDownloads());
-        obj.put("createdAt", product.getCreatedAt().toString());
+        obj.put(
+                "createdAt",
+                product.getCreatedAt() != null
+                        ? product.getCreatedAt().toString()
+                        : null
+        );
         obj.put("stockQuantity", product.getStockQuantity());
         obj.put("isActive", product.isActive());
 
