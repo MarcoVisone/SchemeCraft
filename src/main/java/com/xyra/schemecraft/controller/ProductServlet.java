@@ -11,6 +11,7 @@ import javax.servlet.annotation.WebServlet;
 import javax.servlet.http.*;
 
 import com.xyra.schemecraft.dto.*;
+import com.xyra.schemecraft.exception.*;
 import com.xyra.schemecraft.model.*;
 import com.xyra.schemecraft.service.*;
 import com.xyra.schemecraft.util.FileUploadUtils;
@@ -20,10 +21,6 @@ import org.json.JSONArray;
 import org.json.JSONObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import com.xyra.schemecraft.exception.EntityNotFoundException;
-import com.xyra.schemecraft.exception.ServiceException;
-import com.xyra.schemecraft.exception.UnauthorizedActionException;
 
 @WebServlet(name = "ProductServlet", urlPatterns = {"/product/*"})
 @MultipartConfig(
@@ -37,14 +34,16 @@ public class ProductServlet extends HttpServlet {
 
     private ProductService productService;
     private CategoryService categoryService;
+    private OrderService orderService;
 
     public ProductServlet() {
         super();
     }
 
-    public ProductServlet(ProductService productService, CategoryService categoryService) {
+    public ProductServlet(ProductService productService, CategoryService categoryService, OrderService orderService) {
         this.productService = productService;
         this.categoryService = categoryService;
+        this.orderService = orderService;
     }
 
     @Override
@@ -55,6 +54,9 @@ public class ProductServlet extends HttpServlet {
         }
         if (this.categoryService == null) {
             this.categoryService = new CategoryService();
+        }
+        if (this.orderService == null) {
+            this.orderService = new OrderService();
         }
         logger.info("ProductServlet successfully initialized.");
     }
@@ -98,8 +100,10 @@ public class ProductServlet extends HttpServlet {
 
         String action = getActionPath(req);
 
-        if ("/register-download".equals(action)) {
-            handleRegisterDownload(req, resp);
+        switch (action) {
+            case "/register-download" -> handleRegisterDownload(req, resp);
+            case "/buy" -> handleBuyNow(req, resp);
+            default -> resp.sendError(HttpServletResponse.SC_NOT_FOUND, "The requested resource was not found.");
         }
     }
 
@@ -591,6 +595,44 @@ public class ProductServlet extends HttpServlet {
         } catch (ServiceException e) {
             logger.error("Error registering download for version: {}", versionId, e);
             sendErrorResponse(resp, HttpServletResponse.SC_INTERNAL_SERVER_ERROR, "Unable to register download.");
+        }
+    }
+
+    private void handleBuyNow(HttpServletRequest req, HttpServletResponse resp) throws IOException {
+        AccountBean currentAccount = getAuthenticatedAccount(req);
+        if (currentAccount == null) {
+            handleUnauthorized(req, resp);
+            return;
+        }
+
+        resp.setContentType("application/json");
+        PrintWriter out = resp.getWriter();
+        JSONObject jsonResponse = new JSONObject();
+
+        String productId = req.getParameter("productId");
+
+        try {
+            String transactionId = orderService.placeOrderDirect(currentAccount.getAccountId(), productId);
+
+            jsonResponse.put("success", true);
+            jsonResponse.put("message", "Order placed successfully.");
+            jsonResponse.put("transactionId", transactionId);
+            out.print(jsonResponse.toString());
+
+        } catch (EntityNotFoundException e) {
+            // Missing default address, payment method, or invalid product
+            sendErrorResponse(resp, HttpServletResponse.SC_BAD_REQUEST, e.getMessage());
+        } catch (DuplicateEntityException e) {
+            // Already owned, or an order for this product is already being processed
+            sendErrorResponse(resp, HttpServletResponse.SC_CONFLICT, e.getMessage());
+        } catch (InsufficientStockException e) {
+            sendErrorResponse(resp, HttpServletResponse.SC_CONFLICT, e.getMessage());
+        } catch (PaymentDeclinedException e) {
+            sendErrorResponse(resp, HttpServletResponse.SC_PAYMENT_REQUIRED, e.getMessage());
+        } catch (ServiceException e) {
+            logger.error("Error processing direct purchase for account: {}, product: {}",
+                    currentAccount.getAccountId(), productId, e);
+            sendErrorResponse(resp, HttpServletResponse.SC_INTERNAL_SERVER_ERROR, "Unable to complete purchase.");
         }
     }
 

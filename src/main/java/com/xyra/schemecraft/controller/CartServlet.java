@@ -11,7 +11,9 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import javax.servlet.http.HttpSession;
 
-import com.xyra.schemecraft.exception.DuplicateEntityException;
+import com.xyra.schemecraft.dto.CartLineItem;
+import com.xyra.schemecraft.exception.*;
+import com.xyra.schemecraft.util.CookieUtils;
 import com.xyra.schemecraft.util.JsonUtils;
 import com.xyra.schemecraft.util.ServletUtils;
 import org.json.JSONArray;
@@ -19,12 +21,11 @@ import org.json.JSONObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.xyra.schemecraft.exception.EntityNotFoundException;
-import com.xyra.schemecraft.exception.ServiceException;
 import com.xyra.schemecraft.model.AccountBean;
 import com.xyra.schemecraft.model.ProductBean;
 import com.xyra.schemecraft.model.UserSession;
 import com.xyra.schemecraft.service.CartService;
+import com.xyra.schemecraft.service.OrderService;
 
 @WebServlet(name = "CartServlet", urlPatterns = {"/cart/*"})
 public class CartServlet extends HttpServlet {
@@ -32,13 +33,15 @@ public class CartServlet extends HttpServlet {
     private static final Logger logger = LoggerFactory.getLogger(CartServlet.class);
 
     private CartService cartService;
+    private OrderService orderService;
 
     public CartServlet() {
         super();
     }
 
-    public CartServlet(CartService cartService) {
+    public CartServlet(CartService cartService, OrderService orderService) {
         this.cartService = cartService;
+        this.orderService = orderService;
     }
 
     @Override
@@ -47,6 +50,9 @@ public class CartServlet extends HttpServlet {
         if (this.cartService == null) {
             this.cartService = new CartService();
         }
+        if (this.orderService == null) {
+            this.orderService = new OrderService();
+        }
         logger.info("CartServlet successfully initialized.");
     }
 
@@ -54,16 +60,10 @@ public class CartServlet extends HttpServlet {
     protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
         configureEncoding(req, resp);
 
-        AccountBean currentAccount = getAuthenticatedAccount(req);
-        if (currentAccount == null) {
-            handleUnauthorized(req, resp);
-            return;
-        }
-
         String action = getActionPath(req);
 
         switch (action) {
-            case "", "/", "/view", "/items" -> handleViewCart(req, resp, currentAccount.getAccountId());
+            case "", "/", "/view", "/items" -> handleViewCart(req, resp);
             default -> resp.sendError(HttpServletResponse.SC_NOT_FOUND, "The requested resource was not found.");
         }
     }
@@ -72,18 +72,13 @@ public class CartServlet extends HttpServlet {
     protected void doPost(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
         configureEncoding(req, resp);
 
-        AccountBean currentAccount = getAuthenticatedAccount(req);
-        if (currentAccount == null) {
-            handleUnauthorized(req, resp);
-            return;
-        }
-
         String action = getActionPath(req);
 
         switch (action) {
-            case "/add" -> handleAddToCart(req, resp, currentAccount.getAccountId());
-            case "/remove" -> handleRemoveFromCart(req, resp, currentAccount.getAccountId());
-            case "/clear" -> handleClearCart(req, resp, currentAccount.getAccountId());
+            case "/add" -> handleAddToCart(req, resp);
+            case "/remove" -> handleRemoveFromCart(req, resp);
+            case "/clear" -> handleClearCart(req, resp);
+            case "/checkout" -> handleCheckout(req, resp);
             default -> resp.sendError(HttpServletResponse.SC_METHOD_NOT_ALLOWED, "HTTP method not allowed for this endpoint.");
         }
     }
@@ -92,35 +87,41 @@ public class CartServlet extends HttpServlet {
     // GET HANDLERS
     // =========================================================================
 
-    private void handleViewCart(HttpServletRequest req, HttpServletResponse resp, String accountId)
+
+    private void handleViewCart(HttpServletRequest req, HttpServletResponse resp)
             throws ServletException, IOException {
         String format = req.getParameter("format");
+        AccountBean currentAccount = getAuthenticatedAccount(req);
 
         try {
-            List<ProductBean> productsInCart = cartService.viewCart(accountId);
+            List<CartLineItem> cartItems = (currentAccount != null)
+                    ? cartService.viewCart(currentAccount.getAccountId())
+                    : cartService.resolveCartLineItems(CookieUtils.getCartProductIds(req));
 
             if ("json".equalsIgnoreCase(format) || isAjaxRequest(req)) {
                 resp.setContentType("application/json");
                 JSONObject jsonResponse = new JSONObject();
                 JSONArray array = new JSONArray();
 
-                for (ProductBean product : productsInCart) {
-                    array.put(JsonUtils.serializeProduct(product));
+                for (CartLineItem item : cartItems) {
+                    JSONObject obj = JsonUtils.serializeProduct(item.getProduct());
+                    obj.put("coverImagePath", item.getCoverImagePath());
+                    array.put(obj);
                 }
 
                 jsonResponse.put("success", true);
                 jsonResponse.put("items", array);
-                jsonResponse.put("count", productsInCart.size());
+                jsonResponse.put("count", cartItems.size());
                 resp.getWriter().print(jsonResponse.toString());
             } else {
-                req.setAttribute("cartProducts", productsInCart);
-                req.getRequestDispatcher("/cart.jsp").forward(req, resp);
+                req.setAttribute("cartItems", cartItems);
+                req.getRequestDispatcher("WEB-INF/cart/cart.jsp").forward(req, resp);
             }
 
         } catch (IllegalArgumentException | EntityNotFoundException e) {
             sendErrorResponse(resp, HttpServletResponse.SC_BAD_REQUEST, e.getMessage());
         } catch (ServiceException e) {
-            logger.error("Error viewing cart for account: {}", accountId, e);
+            logger.error("Error viewing cart", e);
             sendErrorResponse(resp, HttpServletResponse.SC_INTERNAL_SERVER_ERROR, "Unable to retrieve cart items.");
         }
     }
@@ -129,15 +130,20 @@ public class CartServlet extends HttpServlet {
     // POST HANDLERS
     // =========================================================================
 
-    private void handleAddToCart(HttpServletRequest req, HttpServletResponse resp, String accountId) throws IOException {
+    private void handleAddToCart(HttpServletRequest req, HttpServletResponse resp) throws IOException {
         resp.setContentType("application/json");
         PrintWriter out = resp.getWriter();
         JSONObject jsonResponse = new JSONObject();
 
         String productId = req.getParameter("productId");
+        AccountBean currentAccount = getAuthenticatedAccount(req);
 
         try {
-            cartService.addToCart(accountId, productId);
+            if (currentAccount != null) {
+                cartService.addToCart(currentAccount.getAccountId(), productId);
+            } else {
+                addToGuestCart(req, resp, productId);
+            }
 
             jsonResponse.put("success", true);
             jsonResponse.put("message", "Product added to cart successfully.");
@@ -146,20 +152,25 @@ public class CartServlet extends HttpServlet {
         } catch (IllegalArgumentException | EntityNotFoundException | DuplicateEntityException e) {
             sendErrorResponse(resp, HttpServletResponse.SC_BAD_REQUEST, e.getMessage());
         } catch (ServiceException e) {
-            logger.error("Error adding product {} to cart for account: {}", productId, accountId, e);
+            logger.error("Error adding product {} to cart", productId, e);
             sendErrorResponse(resp, HttpServletResponse.SC_INTERNAL_SERVER_ERROR, "Unable to add product to cart.");
         }
     }
 
-    private void handleRemoveFromCart(HttpServletRequest req, HttpServletResponse resp, String accountId) throws IOException {
+    private void handleRemoveFromCart(HttpServletRequest req, HttpServletResponse resp) throws IOException {
         resp.setContentType("application/json");
         PrintWriter out = resp.getWriter();
         JSONObject jsonResponse = new JSONObject();
 
         String productId = req.getParameter("productId");
+        AccountBean currentAccount = getAuthenticatedAccount(req);
 
         try {
-            cartService.removeFromCart(accountId, productId);
+            if (currentAccount != null) {
+                cartService.removeFromCart(currentAccount.getAccountId(), productId);
+            } else {
+                removeFromGuestCart(req, resp, productId);
+            }
 
             jsonResponse.put("success", true);
             jsonResponse.put("message", "Product removed from cart successfully.");
@@ -170,18 +181,24 @@ public class CartServlet extends HttpServlet {
         } catch (IllegalArgumentException e) {
             sendErrorResponse(resp, HttpServletResponse.SC_BAD_REQUEST, e.getMessage());
         } catch (ServiceException e) {
-            logger.error("Error removing product {} from cart for account: {}", productId, accountId, e);
+            logger.error("Error removing product {} from cart", productId, e);
             sendErrorResponse(resp, HttpServletResponse.SC_INTERNAL_SERVER_ERROR, "Unable to remove product from cart.");
         }
     }
 
-    private void handleClearCart(HttpServletRequest req, HttpServletResponse resp, String accountId) throws IOException {
+    private void handleClearCart(HttpServletRequest req, HttpServletResponse resp) throws IOException {
         resp.setContentType("application/json");
         PrintWriter out = resp.getWriter();
         JSONObject jsonResponse = new JSONObject();
 
+        AccountBean currentAccount = getAuthenticatedAccount(req);
+
         try {
-            cartService.clearCart(accountId);
+            if (currentAccount != null) {
+                cartService.clearCart(currentAccount.getAccountId());
+            } else {
+                CookieUtils.clearCartCookie(resp, req.getContextPath());
+            }
 
             jsonResponse.put("success", true);
             jsonResponse.put("message", "Cart cleared successfully.");
@@ -190,9 +207,71 @@ public class CartServlet extends HttpServlet {
         } catch (IllegalArgumentException e) {
             sendErrorResponse(resp, HttpServletResponse.SC_BAD_REQUEST, e.getMessage());
         } catch (ServiceException e) {
-            logger.error("Error clearing cart for account: {}", accountId, e);
+            logger.error("Error clearing cart", e);
             sendErrorResponse(resp, HttpServletResponse.SC_INTERNAL_SERVER_ERROR, "Unable to clear cart.");
         }
+    }
+
+    private void handleCheckout(HttpServletRequest req, HttpServletResponse resp) throws IOException {
+        AccountBean currentAccount = getAuthenticatedAccount(req);
+        if (currentAccount == null) {
+            // Guests cannot check out: no account means no address/payment method to charge.
+            handleUnauthorized(req, resp);
+            return;
+        }
+
+        resp.setContentType("application/json");
+        PrintWriter out = resp.getWriter();
+        JSONObject jsonResponse = new JSONObject();
+
+        try {
+            String transactionId = orderService.placeOrderFromCart(currentAccount.getAccountId());
+
+            jsonResponse.put("success", true);
+            jsonResponse.put("message", "Order placed successfully.");
+            jsonResponse.put("transactionId", transactionId);
+            out.print(jsonResponse.toString());
+
+        } catch (EntityNotFoundException e) {
+            // Missing default address, payment method, or empty cart
+            sendErrorResponse(resp, HttpServletResponse.SC_BAD_REQUEST, e.getMessage());
+        } catch (InsufficientStockException e) {
+            sendErrorResponse(resp, HttpServletResponse.SC_CONFLICT, e.getMessage());
+        } catch (PaymentDeclinedException e) {
+            sendErrorResponse(resp, HttpServletResponse.SC_PAYMENT_REQUIRED, e.getMessage());
+        } catch (ServiceException e) {
+            logger.error("Error processing checkout for account: {}", currentAccount.getAccountId(), e);
+            sendErrorResponse(resp, HttpServletResponse.SC_INTERNAL_SERVER_ERROR, "Unable to complete checkout.");
+        }
+    }
+
+    // =========================================================================
+    // GUEST CART HELPERS (cookie-based, no DB access)
+    // =========================================================================
+
+    private void addToGuestCart(HttpServletRequest req, HttpServletResponse resp, String productId) {
+        if (productId == null || productId.isBlank()) {
+            throw new IllegalArgumentException("productId cannot be null or blank");
+        }
+
+        List<String> guestCart = new java.util.ArrayList<>(CookieUtils.getCartProductIds(req));
+        if (!guestCart.contains(productId)) {
+            guestCart.add(productId);
+        }
+        CookieUtils.setCartCookie(resp, guestCart, req.getContextPath());
+    }
+
+    private void removeFromGuestCart(HttpServletRequest req, HttpServletResponse resp, String productId) {
+        if (productId == null || productId.isBlank()) {
+            throw new IllegalArgumentException("productId cannot be null or blank");
+        }
+
+        List<String> guestCart = new java.util.ArrayList<>(CookieUtils.getCartProductIds(req));
+        if (!guestCart.remove(productId)) {
+            throw new EntityNotFoundException("Product not found in guest cart",
+                    EntityNotFoundException.EntityType.PRODUCT);
+        }
+        CookieUtils.setCartCookie(resp, guestCart, req.getContextPath());
     }
 
     // =========================================================================

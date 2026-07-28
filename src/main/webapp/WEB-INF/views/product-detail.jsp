@@ -19,10 +19,12 @@
     <link rel="stylesheet" href="${pageContext.request.contextPath}/css/style.css">
     <link rel="stylesheet" href="${pageContext.request.contextPath}/css/header.css">
     <link rel="stylesheet" href="${pageContext.request.contextPath}/css/footer.css">
+    <link rel="stylesheet" href="${pageContext.request.contextPath}/css/confirm-modal.css">
     <link rel="stylesheet" href="${pageContext.request.contextPath}/css/product-detail.css">
 
     <!-- Script -->
     <script src="${pageContext.request.contextPath}/js/header.js" defer></script>
+    <script src="${pageContext.request.contextPath}/js/confirm-modal.js" defer></script>
     <script src="${pageContext.request.contextPath}/js/product-detail.js" defer></script>
 </head>
 <body>

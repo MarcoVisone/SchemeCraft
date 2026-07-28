@@ -87,8 +87,49 @@ document.addEventListener('DOMContentLoaded', () => {
     const btnBuyNow = document.getElementById('btnBuyNow');
     if (btnBuyNow) {
         btnBuyNow.addEventListener('click', () => {
-            window.location.href = `${contextPath}/checkout?productId=${productId}`;
+            const productName = document.querySelector('.product-name')?.textContent?.trim() || 'this item';
+            const priceText = btnBuyNow.textContent.replace('Buy - ', '').trim();
+
+            openConfirmModal({
+                title: 'Confirm purchase',
+                message: `Buy "${productName}" for ${priceText}?`,
+                confirmLabel: 'Buy now',
+                onConfirm: () => submitBuyNow()
+            });
         });
+    }
+
+    async function submitBuyNow() {
+        try {
+            const response = await fetch(`${contextPath}/product/buy`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                    'X-Requested-With': 'XMLHttpRequest'
+                },
+                body: new URLSearchParams({ productId: productId })
+            });
+
+            let data = {};
+            try {
+                data = await response.json();
+            } catch (e) {
+                // Ignore parsing failure for non-JSON responses
+            }
+
+            if (response.ok && data.success) {
+                showToast(data.message || 'Purchase completed successfully!', 'success');
+                setTimeout(() => window.location.reload(), 1500);
+            } else if (response.status === 401) {
+                showToast('Please login to complete your purchase.', 'warning');
+                setTimeout(() => window.location.href = `${contextPath}/login`, 1500);
+            } else {
+                showToast(data.error || 'Could not complete purchase.', 'error');
+            }
+        } catch (err) {
+            console.error('Purchase error:', err);
+            showToast('Network error. Please try again.', 'error');
+        }
     }
 
     const btnFavorite = document.getElementById('btnFavorite');

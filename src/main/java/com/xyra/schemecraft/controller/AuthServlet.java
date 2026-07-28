@@ -1,6 +1,7 @@
 package com.xyra.schemecraft.controller;
 
 import java.io.IOException;
+import java.util.List;
 
 import javax.servlet.ServletException;
 import javax.servlet.annotation.MultipartConfig;
@@ -11,6 +12,7 @@ import javax.servlet.http.HttpServletResponse;
 import javax.servlet.http.HttpSession;
 
 import com.xyra.schemecraft.constant.ValidationConstants;
+import com.xyra.schemecraft.service.CartService;
 import com.xyra.schemecraft.util.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -40,15 +42,17 @@ public class AuthServlet extends HttpServlet {
     private AccountService accountService;
     private RememberTokenService rememberTokenService;
     private LookupService lookupService;
+    private CartService cartService;
 
     public AuthServlet() {
         super();
     }
 
-    public AuthServlet(AccountService accountService, RememberTokenService rememberTokenService, LookupService lookupService) {
+    public AuthServlet(AccountService accountService, RememberTokenService rememberTokenService, LookupService lookupService, CartService cartService) {
         this.accountService = accountService;
         this.rememberTokenService = rememberTokenService;
         this.lookupService = lookupService;
+        this.cartService = cartService;
     }
 
     @Override
@@ -62,6 +66,9 @@ public class AuthServlet extends HttpServlet {
         }
         if (this.lookupService == null) {
             this.lookupService = new LookupService();
+        }
+        if (this.cartService == null) {
+            this.cartService = new CartService();
         }
 
         logger.info("AuthServlet successfully initialized with LookupService and RememberTokenService.");
@@ -144,6 +151,12 @@ public class AuthServlet extends HttpServlet {
             HttpSession newSession = req.getSession(true);
             newSession.setAttribute("userSession", userSession);
             newSession.setAttribute("account", userSession.getAccount());
+
+            List<String> guestCartProductIds = CookieUtils.getCartProductIds(req);
+            if (!guestCartProductIds.isEmpty()) {
+                cartService.mergeGuestCart(userSession.getAccount().getAccountId(), guestCartProductIds);
+                CookieUtils.clearCartCookie(resp, req.getContextPath());
+            }
 
             if ("true".equals(req.getParameter("rememberMe"))) {
                 String rawToken = rememberTokenService.createRememberToken(userSession.getAccount().getAccountId());
