@@ -1,6 +1,6 @@
 /* =============================================================================
-   CART PAGE — uses the shared Minecraft-slot visual language (--mc-* tokens),
-   but restricted to --font-body per project convention (no --font-game in UI text)
+   CART PAGE — clean card-based style, consistent with the admin wizard component
+   (soft shadows, thin 1px borders, generous radius, no 3D/game-slot aesthetic)
    ============================================================================= */
 
 .cart-page {
@@ -9,16 +9,22 @@
     width: 100%;
     margin: 0 auto;
     padding: 32px 20px;
+    box-sizing: border-box;
+    min-width: 0;
 }
 
 .cart-page__title {
     font-family: var(--font-body);
     font-weight: var(--weight-bold);
     font-size: 1.6rem;
-    margin-bottom: 24px;
+    margin: 0 0 24px 0;
+    letter-spacing: -0.02em;
 }
 
-/* Empty state */
+/* ==========================================================================
+   Empty state
+   ========================================================================== */
+
 .cart-empty {
     display: flex;
     flex-direction: column;
@@ -26,48 +32,64 @@
     gap: 16px;
     padding: 60px 20px;
     background-color: var(--bg-card);
-    border: 2px solid var(--border-color);
-    border-radius: 6px;
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-lg, 16px);
+    box-shadow: var(--shadow-card, 0 10px 30px rgba(0, 0, 0, 0.3));
+    text-align: center;
 }
 
 .cart-empty__message {
     color: var(--text-secondary);
     font-size: 1rem;
+    margin: 0;
 }
 
-/* Layout: list + summary side by side */
+/* ==========================================================================
+   Layout: list + summary side by side
+   ========================================================================== */
+
 .cart-layout {
     display: flex;
     gap: 24px;
     align-items: flex-start;
+    min-width: 0;
 }
 
 .cart-list {
     flex: 2;
+    min-width: 0;
     display: flex;
     flex-direction: column;
     gap: 12px;
 }
 
-/* Individual cart row */
+/* ==========================================================================
+   Individual cart row
+   ========================================================================== */
+
 .cart-row {
     display: flex;
     align-items: center;
     gap: 16px;
     background-color: var(--bg-card);
-    border: 2px solid var(--border-color);
-    border-radius: 6px;
-    padding: 12px 16px;
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-md, 10px);
+    padding: 14px 18px;
+    min-width: 0;
+    transition: var(--transition-smooth, all 0.2s cubic-bezier(0.16, 1, 0.3, 1));
+}
+
+.cart-row:hover {
+    border-color: var(--text-secondary);
 }
 
 .cart-row__icon {
     width: 56px;
     height: 56px;
     flex-shrink: 0;
-    background-color: #8B8B8B;
-    border: 3px solid #373737;
-    border-right-color: #FFFFFF;
-    border-bottom-color: #FFFFFF;
+    background-color: var(--bg-input, var(--bg-main));
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-sm, 6px);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -75,14 +97,14 @@
 }
 
 .cart-row__icon img {
-    width: 70%;
-    height: 70%;
-    object-fit: contain;
-    image-rendering: pixelated;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
 }
 
 .cart-row__info {
     flex: 1;
+    min-width: 0;
     display: flex;
     flex-direction: column;
     gap: 4px;
@@ -90,13 +112,16 @@
 
 .cart-row__name {
     font-family: var(--font-body);
-    font-weight: var(--weight-bold);
-    font-size: 1rem;
+    font-weight: var(--weight-medium);
+    font-size: 0.95rem;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
 }
 
 .cart-row__price {
     font-family: var(--font-body);
-    font-weight: var(--weight-medium);
+    font-size: 0.85rem;
     color: var(--text-secondary);
 }
 
@@ -108,33 +133,66 @@
 
 .cart-row__price--discounted {
     color: var(--btn-green-hover);
+    font-weight: var(--weight-medium);
 }
 
-/* Summary sidebar */
+/* ==========================================================================
+   Remove button — small icon-style, not a heavy 3D button
+   ========================================================================== */
+
+.cart-row__remove {
+    flex-shrink: 0;
+    background: none;
+    border: 1px solid transparent;
+    border-radius: var(--radius-sm, 6px);
+    padding: 8px;
+    color: var(--text-secondary);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: var(--transition-smooth, all 0.2s ease);
+}
+
+.cart-row__remove:hover {
+    color: #e53935;
+    border-color: #e53935;
+    background-color: rgba(229, 57, 53, 0.08);
+}
+
+/* ==========================================================================
+   Summary sidebar
+   ========================================================================== */
+
 .cart-summary {
     flex: 1;
+    min-width: 0;
     display: flex;
     flex-direction: column;
     gap: 12px;
     background-color: var(--bg-card);
-    border: 2px solid var(--border-color);
-    border-radius: 6px;
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-lg, 16px);
+    box-shadow: var(--shadow-card, 0 10px 30px rgba(0, 0, 0, 0.3));
     padding: 20px;
     position: sticky;
     top: 20px;
+    box-sizing: border-box;
 }
 
 .cart-summary__title {
     font-family: var(--font-body);
     font-weight: var(--weight-bold);
-    font-size: 1.1rem;
-    margin-bottom: 8px;
+    font-size: 1.05rem;
+    margin: 0 0 4px 0;
 }
 
 .cart-summary__row {
     display: flex;
     justify-content: space-between;
+    align-items: baseline;
     font-family: var(--font-body);
+    gap: 8px;
 }
 
 .cart-summary__row--total {
@@ -143,9 +201,9 @@
 }
 
 .cart-summary__note {
-    font-size: 0.8rem;
+    font-size: 0.78rem;
     color: var(--text-secondary);
-    margin-bottom: 8px;
+    margin: 0 0 8px 0;
 }
 
 .cart-summary__clear {
@@ -153,63 +211,101 @@
     border: none;
     color: var(--text-secondary);
     font-family: var(--font-body);
-    font-size: 0.85rem;
+    font-size: 0.82rem;
     text-decoration: underline;
     cursor: pointer;
     padding: 4px;
+    align-self: center;
 }
 
 .cart-summary__clear:hover {
     color: var(--text-primary);
 }
 
-/* Buttons — Minecraft launcher style, but font-body for text per project convention */
-.btn-mc {
-    font-family: var(--font-body);
-    font-weight: var(--weight-bold);
-    font-size: 0.85rem;
-    text-transform: uppercase;
-    color: #FFFFFF;
-    background-color: var(--btn-green);
-    border: 2px solid #000000;
-    border-radius: 4px;
-    padding: 10px 16px;
-    cursor: pointer;
-    text-align: center;
-    box-shadow:
-            inset 2px 2px 0px rgba(255, 255, 255, 0.4),
-            inset -2px -2px 0px rgba(0, 0, 0, 0.4);
-    transition: background-color 0.1s;
-    text-decoration: none;
-    display: inline-block;
-}
+/* ==========================================================================
+   Buttons — flat card style (matches .btn / .btn-primary from the wizard)
+   ========================================================================== */
 
-.btn-mc:hover {
-    background-color: var(--btn-green-hover);
-}
-
-.btn-mc--remove {
-    background-color: var(--accent-brown);
-    padding: 8px 12px;
-    font-size: 0.75rem;
-}
-
-.btn-mc--remove:hover {
-    background-color: #9c633c;
-}
-
-.btn-mc--checkout {
+.btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
     width: 100%;
+    padding: 0.75rem 1.4rem;
+    font-family: var(--font-body);
+    font-size: 0.9rem;
+    font-weight: var(--weight-medium);
+    border-radius: var(--radius-sm, 6px);
+    border: 1px solid var(--border-color);
+    background-color: var(--bg-card);
+    color: var(--text-primary);
+    cursor: pointer;
+    text-decoration: none;
+    box-sizing: border-box;
+    white-space: normal;
+    word-break: break-word;
     text-align: center;
+    transition: var(--transition-smooth, all 0.2s cubic-bezier(0.16, 1, 0.3, 1));
 }
 
-/* Mobile */
+.btn:hover {
+    background-color: var(--bg-card-hover, var(--bg-card));
+    border-color: var(--text-secondary);
+}
+
+.btn-primary {
+    background-color: var(--btn-green);
+    border-color: var(--btn-green);
+    color: #FFFFFF;
+}
+
+.btn-primary:hover {
+    background-color: var(--btn-green-hover);
+    border-color: var(--btn-green-hover);
+    box-shadow: 0 4px 12px rgba(82, 177, 53, 0.3);
+    transform: translateY(-1px);
+}
+
+/* ==========================================================================
+   Responsive
+   ========================================================================== */
+
 @media (max-width: 720px) {
     .cart-layout {
         flex-direction: column;
     }
+
     .cart-summary {
         position: static;
         width: 100%;
+    }
+
+    .cart-row {
+        flex-wrap: wrap;
+    }
+
+    .cart-row__info {
+        min-width: 150px;
+    }
+}
+
+@media (max-width: 480px) {
+    .cart-page {
+        padding: 20px 12px;
+    }
+
+    .cart-row {
+        padding: 12px;
+        gap: 12px;
+    }
+
+    .cart-row__icon {
+        width: 48px;
+        height: 48px;
+    }
+
+    .cart-row__name {
+        font-size: 0.88rem;
     }
 }
