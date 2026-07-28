@@ -151,7 +151,7 @@ public class ProductDAO extends BaseDAO {
      * @param criteria The SearchCriteria details model
      * @return List of matching active products
      * @throws DAOException             if a database error occurs
-     * @throws IllegalArgumentException if the search criteria is null, or contains an invalid sort column
+     * @throws IllegalArgumentException if the search criteria is null
      */
     public List<ProductBean> searchProducts(Connection conn, ProductSearchCriteria criteria) throws DAOException {
         if (criteria == null) {
@@ -160,35 +160,36 @@ public class ProductDAO extends BaseDAO {
 
         StringBuilder sql = new StringBuilder();
 
-        boolean hasVersionFilter = criteria.getMinecraftVersion() != null && !criteria.getMinecraftVersion().trim().isEmpty();
-        boolean hasCategoryFilter = criteria.getCategoryId() != null && !criteria.getCategoryId().trim().isEmpty();
+        String mcVersion = sanitizeString(criteria.getMinecraftVersion());
+        String categoryId = sanitizeString(criteria.getCategoryId());
+        String keywords = sanitizeString(criteria.getKeywords());
 
-        if (hasVersionFilter || hasCategoryFilter) {
-            sql.append("SELECT DISTINCT p.product_id, p.account_id, p.currency_id, p.average_rating, ");
-            sql.append("p.created_at, p.discount, p.description, p.is_active, p.latest_update, p.price, ");
-            sql.append("p.product_name, p.stock_quantity, p.total_downloads, p.total_reviews FROM product p ");
+        boolean hasVersionFilter = mcVersion != null;
+        boolean hasCategoryFilter = categoryId != null;
 
-            if (hasVersionFilter) {
-                sql.append("JOIN product_version pv ON p.product_id = pv.product_id ");
-            }
-            if (hasCategoryFilter) {
-                sql.append("JOIN product_category pc ON p.product_id = pc.product_id ");
-            }
-            sql.append("WHERE p.is_active = TRUE");
-        } else {
-            sql.append("SELECT p.* FROM product p WHERE p.is_active = TRUE");
+        sql.append("SELECT DISTINCT p.* FROM product p ");
+
+        if (hasVersionFilter) {
+            sql.append("JOIN product_version pv ON p.product_id = pv.product_id ");
         }
+        if (hasCategoryFilter) {
+            sql.append("JOIN product_category pc ON p.product_id = pc.product_id ");
+        }
+
+        sql.append("WHERE p.is_active = TRUE");
 
         List<Object> queryParams = new ArrayList<>();
 
-        if (criteria.getKeywords() != null && !criteria.getKeywords().trim().isEmpty()) {
-            sql.append(" AND MATCH(p.product_name, p.description) AGAINST(? IN NATURAL LANGUAGE MODE)");
-            queryParams.add(criteria.getKeywords().trim());
+        if (keywords != null) {
+            sql.append(" AND (LOWER(p.product_name) LIKE ? OR LOWER(p.description) LIKE ?)");
+            String kwParam = "%" + keywords.toLowerCase() + "%";
+            queryParams.add(kwParam);
+            queryParams.add(kwParam);
         }
 
         if (hasCategoryFilter) {
             sql.append(" AND pc.category_id = ?");
-            queryParams.add(criteria.getCategoryId().trim());
+            queryParams.add(categoryId);
         }
 
         if (criteria.getMinPrice() != null) {
@@ -215,27 +216,34 @@ public class ProductDAO extends BaseDAO {
 
         if (hasVersionFilter) {
             sql.append(" AND pv.minecraft_version LIKE ?");
-            queryParams.add("%" + criteria.getMinecraftVersion().trim() + "%");
+            queryParams.add("%" + mcVersion + "%");
         }
 
-        if (criteria.getOrderByColumn() != null && !criteria.getOrderByColumn().trim().isEmpty()) {
-            String safeOrderBy = switch (criteria.getOrderByColumn().toLowerCase().trim()) {
+        String rawOrderBy = criteria.getOrderByColumn();
+        String safeOrderBy = "created_at";
+
+        if (rawOrderBy != null && !rawOrderBy.trim().isEmpty()) {
+            safeOrderBy = switch (rawOrderBy.toLowerCase().trim()) {
                 case "price" -> "price";
                 case "average_rating" -> "average_rating";
                 case "total_reviews" -> "total_reviews";
                 case "total_downloads" -> "total_downloads";
-                case "created_at" -> "created_at";
                 case "product_name" -> "product_name";
-                default -> throw new IllegalArgumentException("Invalid sort column: " + criteria.getOrderByColumn());
+                case "created_at" -> "created_at";
+                default -> "created_at";
             };
-            String direction = (criteria.getAscending() != null && !criteria.getAscending()) ? "DESC" : "ASC";
-            sql.append(" ORDER BY p.").append(safeOrderBy).append(" ").append(direction);
         }
 
-        sql.append(" LIMIT ? OFFSET ?");
+        String direction = (criteria.getAscending() != null && criteria.getAscending()) ? "ASC" : "DESC";
+        sql.append(" ORDER BY p.").append(safeOrderBy).append(" ").append(direction);
 
-        int limit = criteria.getPageSize();
-        int offset = (criteria.getPageNumber() - 1) * limit;
+        int pageNumber = (criteria.getPageNumber() == 0 || criteria.getPageNumber() < 1) ? 1 : criteria.getPageNumber();
+        int pageSize = (criteria.getPageSize() == 0 || criteria.getPageSize() < 1) ? 10 : criteria.getPageSize();
+
+        int limit = pageSize;
+        int offset = (pageNumber - 1) * limit;
+
+        sql.append(" LIMIT ? OFFSET ?");
 
         List<ProductBean> products = new ArrayList<>();
 
@@ -259,7 +267,17 @@ public class ProductDAO extends BaseDAO {
             throw new DAOException("Error performing dynamic product search", e);
         }
 
+        logger.info("Found products: {}", products.size());
         return products;
+    }
+
+    private String sanitizeString(String input) {
+        if (input == null) return null;
+        String trimmed = input.trim();
+        if (trimmed.isEmpty() || "null".equalsIgnoreCase(trimmed) || "undefined".equalsIgnoreCase(trimmed)) {
+            return null;
+        }
+        return trimmed;
     }
 
     /**

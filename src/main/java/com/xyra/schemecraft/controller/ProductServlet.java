@@ -13,6 +13,7 @@ import com.xyra.schemecraft.model.*;
 import com.xyra.schemecraft.service.CategoryService;
 import com.xyra.schemecraft.util.FileUploadUtils;
 import com.xyra.schemecraft.util.JsonUtils;
+import com.xyra.schemecraft.util.ServletUtils;
 import org.json.JSONArray;
 import org.json.JSONObject;
 import org.slf4j.Logger;
@@ -69,7 +70,7 @@ public class ProductServlet extends HttpServlet {
 
         switch (action) {
             case "", "/", "/catalog" -> showCatalog(req, resp);
-            case "/search" -> handleSearchProducts(req, resp);
+            case "/search", "/search/" -> handleSearchProducts(req, resp);
             case "/detail", "/get" -> handleGetProductDetail(req, resp);
             case "/images" -> handleListImages(req, resp);
             case "/versions" -> handleListVersions(req, resp);
@@ -163,12 +164,32 @@ public class ProductServlet extends HttpServlet {
 
         try {
             ProductSearchCriteria criteria = buildSearchCriteria(req);
+            logger.info("Search criteria: {}", criteria);
             List<ProductBean> products = productService.searchProducts(criteria);
 
             JSONArray array = new JSONArray();
             for (ProductBean product : products) {
-                // Uso di JsonUtils qui
-                array.put(JsonUtils.serializeProduct(product));
+                JSONObject productJson = JsonUtils.serializeProduct(product);
+
+                JSONArray categoriesArray = new JSONArray();
+                try {
+                    List<ProductCategoryBean> associations = categoryService.listAllCategoriesAssociated(product.getProductId());
+
+                    if (associations != null) {
+                        for (ProductCategoryBean assoc : associations) {
+                            CategoryBean category = categoryService.getCategoryById(assoc.getCategoryId());
+                            if (category != null && category.getCategoryName() != null) {
+                                categoriesArray.put(category.getCategoryName());
+                            }
+                        }
+                    }
+                } catch (Exception e) {
+                    logger.warn("Unable to retrieve categories for product ID: {}", product.getProductId(), e);
+                }
+
+                productJson.put("categories", categoriesArray);
+
+                array.put(productJson);
             }
 
             jsonResponse.put("success", true);
@@ -790,8 +811,7 @@ public class ProductServlet extends HttpServlet {
     }
 
     private String getActionPath(HttpServletRequest req) {
-        String pathInfo = req.getPathInfo();
-        return (pathInfo == null) ? "" : pathInfo;
+        return ServletUtils.getActionPath(req);
     }
 
     private BigDecimal parseBigDecimal(String val) {
