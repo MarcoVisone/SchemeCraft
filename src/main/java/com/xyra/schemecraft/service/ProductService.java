@@ -3,10 +3,7 @@ package com.xyra.schemecraft.service;
 import com.xyra.schemecraft.connection.ConnectionPool;
 import com.xyra.schemecraft.constant.ServiceConstants;
 import com.xyra.schemecraft.dao.*;
-import com.xyra.schemecraft.dto.OwnedProductItem;
-import com.xyra.schemecraft.dto.ProductRequest;
-import com.xyra.schemecraft.dto.ProductSearchCriteria;
-import com.xyra.schemecraft.dto.ProductVersionRequest;
+import com.xyra.schemecraft.dto.*;
 import com.xyra.schemecraft.exception.DAOException;
 import com.xyra.schemecraft.exception.ServiceException;
 import com.xyra.schemecraft.exception.UnauthorizedActionException;
@@ -496,6 +493,131 @@ public class ProductService {
             throw new ServiceException("Error while checking product ownership", e);
         }
     }
+
+    /**
+     * Creates a fully published product in a single atomic transaction: base product data,
+     * category assignments, gallery images, and the first downloadable version.
+     * If any step fails, the entire operation is rolled back and nothing is persisted.
+     *
+     * @param fullRequest Aggregated request containing product data, categories, images, and version data
+     * @return The fully created ProductBean
+     * @throws IllegalArgumentException if any required argument is null, empty, or invalid
+     * @throws ServiceException         if any persistence step fails; the whole transaction is rolled back
+     */
+    public ProductBean createFullProduct(ProductFullRequest fullRequest) {
+
+        if (fullRequest == null) {
+            throw new IllegalArgumentException("Full product request cannot be null");
+        }
+
+        ProductRequest productRequest = fullRequest.productRequest();
+        List<String> categoryIds = fullRequest.categoryIds();
+        List<String> imagePaths = fullRequest.imagePaths();
+        ProductVersionRequest versionRequest = fullRequest.versionRequest();
+
+        String accountId = productRequest.accountId() == null ? null : productRequest.accountId().trim();
+        String currencyId = productRequest.currencyId() == null ? null : productRequest.currencyId().trim();
+
+        if (accountId == null || accountId.isBlank()) {
+            throw new IllegalArgumentException("Account ID cannot be null or blank");
+        }
+        if (currencyId == null || currencyId.isBlank()) {
+            throw new IllegalArgumentException("Currency ID cannot be null or blank");
+        }
+
+        try (Connection conn = ConnectionPool.getConnection()) {
+            try {
+                conn.setAutoCommit(false);
+
+                // Step 1: validate account and currency
+                entityValidator.validateActiveAccount(conn, accountId);
+                entityValidator.validateActiveCurrency(conn, currencyId);
+
+                // Step 2: create the base product
+                BigDecimal discount = productRequest.discount() != null ? productRequest.discount() : BigDecimal.ZERO;
+
+                ProductBean productBean = new ProductBean();
+                productBean.setProductId(UUID.randomUUID().toString());
+                productBean.setAccountId(accountId);
+                productBean.setCurrencyId(currencyId);
+                productBean.setProductName(productRequest.productName());
+                productBean.setDescription(productRequest.description());
+                productBean.setPrice(productRequest.price());
+                productBean.setDiscount(discount);
+                productBean.setStockQuantity(productRequest.stockQuantity());
+                productBean.setActive(true);
+
+                productDAO.insert(conn, productBean);
+                String productId = productBean.getProductId();
+
+                // Step 3: assign categories
+                for (String rawCategoryId : categoryIds) {
+                    String categoryId = rawCategoryId == null ? null : rawCategoryId.trim();
+                    if (categoryId == null || categoryId.isBlank()) {
+                        throw new IllegalArgumentException("Category ID cannot be null or blank");
+                    }
+                    entityValidator.validateActiveCategory(conn, categoryId);
+                    productCategoryDAO.insert(conn, new ProductCategoryBean(categoryId, productId));
+                }
+
+                // Step 4: add gallery images, preserving list order as display order
+                int displayOrder = 0;
+                for (String rawImagePath : imagePaths) {
+                    String imagePath = rawImagePath == null ? null : rawImagePath.trim();
+                    if (imagePath == null || imagePath.isBlank()) {
+                        throw new IllegalArgumentException("Image path cannot be null or blank");
+                    }
+                    ProductImageBean image = new ProductImageBean(
+                            UUID.randomUUID().toString(), productId, imagePath, displayOrder);
+                    productImageDAO.insert(conn, image);
+                    displayOrder++;
+                }
+
+                // Step 5: publish the first version, resolving the real productId now that it exists
+                ProductVersionBean versionBean = new ProductVersionBean();
+                versionBean.setVersionId(UUID.randomUUID().toString());
+                versionBean.setProductId(productId);
+                versionBean.setChangelog(versionRequest.changelog());
+                versionBean.setFilePath(versionRequest.filePath());
+                versionBean.setMinecraftVersion(versionRequest.minecraftVersion());
+                versionBean.setVersion(versionRequest.version());
+
+                productVersionDAO.insert(conn, versionBean);
+
+                // Step 6: link the product to its creator's owned products
+                accountProductDAO.insert(conn, new AccountProductBean(accountId, productId));
+
+                conn.commit();
+                logger.info("Full product successfully created with ID: {} by account {} " +
+                                "({} categories, {} images, version {})",
+                        productId, accountId, categoryIds.size(), imagePaths.size(), versionBean.getVersion());
+
+                return productBean;
+
+            } catch (SQLException | DAOException | IllegalArgumentException e) {
+                try {
+                    conn.rollback();
+                } catch (SQLException rollbackEx) {
+                    logger.error("Failed to rollback full product creation transaction for account {}: {}",
+                            accountId, rollbackEx.getMessage(), rollbackEx);
+                    throw new ServiceException("Error while creating full product and failed to rollback", rollbackEx);
+                }
+                logger.error("Error while creating full product for account {}: {}", accountId, e.getMessage(), e);
+                throw new ServiceException("Error while creating full product", e);
+            } finally {
+                try {
+                    conn.setAutoCommit(true);
+                } catch (SQLException e) {
+                    logger.error("Failed to reset auto-commit for account {}: {}", accountId, e.getMessage(), e);
+                }
+            }
+        } catch (SQLException e) {
+            logger.error("Database connection error while creating full product for account {}: {}",
+                    accountId, e.getMessage(), e);
+            throw new ServiceException("Database connection error while creating full product", e);
+        }
+    }
+
 
     public List<OwnedProductItem> listOwnedProducts(String rawAccountId) {
         String accountId = rawAccountId == null ? null : rawAccountId.trim();

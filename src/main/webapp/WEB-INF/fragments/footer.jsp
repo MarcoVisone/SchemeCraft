@@ -1,4 +1,3 @@
-<hr>
 <footer class="site-footer">
     <p class="site-footer__brand"><img src="${pageContext.request.contextPath}/icons/logo.svg" alt="SchemeCraft Logo"></p>
     <p class="site-footer__copyright">

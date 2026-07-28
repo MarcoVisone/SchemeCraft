@@ -1,8 +1,10 @@
 package com.xyra.schemecraft.util;
 
+import java.io.BufferedReader;
 import java.io.IOException;
 import java.util.List;
 
+import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
 import org.json.JSONArray;
@@ -97,6 +99,21 @@ public final class JsonUtils {
     }
 
     // =========================================================================
+    // HTTP REQUEST HELPERS
+    // =========================================================================
+
+    public static JSONObject readJsonBody(HttpServletRequest req) throws IOException {
+        StringBuilder sb = new StringBuilder();
+        try (BufferedReader reader = req.getReader()) {
+            String line;
+            while ((line = reader.readLine()) != null) {
+                sb.append(line);
+            }
+        }
+        return new JSONObject(sb.toString());
+    }
+
+    // =========================================================================
     // SERIALIZERS (Model -> JSONObject)
     // =========================================================================
 
@@ -113,8 +130,14 @@ public final class JsonUtils {
         obj.put("description", product.getDescription());
         obj.put("price", product.getPrice());
         obj.put("discount", product.getDiscount());
+
+        obj.put("averageRating", product.getAverageRating());
+        obj.put("totalReviews", product.getTotalReviews());
+        obj.put("totalDownloads", product.getTotalDownloads());
+
         obj.put("stockQuantity", product.getStockQuantity());
         obj.put("isActive", product.isActive());
+
         return obj;
     }
 

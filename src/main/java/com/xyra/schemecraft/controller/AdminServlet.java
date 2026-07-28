@@ -2,37 +2,36 @@ package com.xyra.schemecraft.controller;
 
 import java.io.IOException;
 import java.math.BigDecimal;
+import java.nio.file.Paths;
 import java.time.LocalDate;
 import java.time.LocalTime;
 import java.time.format.DateTimeParseException;
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
 
 import javax.servlet.ServletException;
+import javax.servlet.annotation.MultipartConfig;
 import javax.servlet.annotation.WebServlet;
-import javax.servlet.http.HttpServlet;
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
-import javax.servlet.http.HttpSession;
+import javax.servlet.http.*;
 
+import com.xyra.schemecraft.constant.ServiceConstants;
 import com.xyra.schemecraft.dto.*;
+import com.xyra.schemecraft.model.*;
+import com.xyra.schemecraft.service.*;
+import com.xyra.schemecraft.util.FileUploadUtils;
 import com.xyra.schemecraft.util.ServletUtils;
+import org.json.JSONObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.xyra.schemecraft.exception.EntityNotFoundException;
 import com.xyra.schemecraft.exception.ServiceException;
 import com.xyra.schemecraft.exception.UnauthorizedActionException;
-import com.xyra.schemecraft.model.AccountBean;
-import com.xyra.schemecraft.model.CategoryBean;
-import com.xyra.schemecraft.model.ProductBean;
-import com.xyra.schemecraft.model.UserSession;
-import com.xyra.schemecraft.service.AccountService;
-import com.xyra.schemecraft.service.CategoryService;
-import com.xyra.schemecraft.service.OrderService;
-import com.xyra.schemecraft.service.ProductService;
 import com.xyra.schemecraft.util.JsonUtils;
 
 @WebServlet(name = "AdminServlet", urlPatterns = {"/admin/*"})
+@MultipartConfig(maxFileSize = 52_428_800) // 50 MB hard limit enforced by the container
 public class AdminServlet extends HttpServlet {
 
     private static final Logger logger = LoggerFactory.getLogger(AdminServlet.class);
@@ -43,17 +42,19 @@ public class AdminServlet extends HttpServlet {
     private OrderService orderService;
     private AccountService accountService;
     private CategoryService categoryService;
+    private LookupService lookupService;
 
     public AdminServlet() {
         super();
     }
 
     public AdminServlet(ProductService productService, OrderService orderService,
-                        AccountService accountService, CategoryService categoryService) {
+                        AccountService accountService, CategoryService categoryService, LookupService lookupService) {
         this.productService = productService;
         this.orderService = orderService;
         this.accountService = accountService;
         this.categoryService = categoryService;
+        this.lookupService = lookupService;
     }
 
     @Override
@@ -70,6 +71,9 @@ public class AdminServlet extends HttpServlet {
         }
         if (this.categoryService == null) {
             this.categoryService = new CategoryService();
+        }
+        if (this.lookupService == null) {
+            this.lookupService = new LookupService();
         }
         logger.info("AdminServlet successfully initialized.");
     }
@@ -91,6 +95,8 @@ public class AdminServlet extends HttpServlet {
         switch (action) {
             case "", "/", "/products" ->
                     req.getRequestDispatcher("/WEB-INF/admin/products.jsp").forward(req, resp);
+            case "/products/new" -> // <-- NUOVA ROTTA WIZARD
+                    req.getRequestDispatcher("/WEB-INF/admin/product_new.jsp").forward(req, resp);
             case "/orders" ->
                     req.getRequestDispatcher("/WEB-INF/admin/orders.jsp").forward(req, resp);
             case "/users" ->
@@ -100,6 +106,7 @@ public class AdminServlet extends HttpServlet {
             case "/orders/list" -> handleListOrders(req, resp);
             case "/users/list" -> handleListUsers(req, resp);
             case "/categories/list" -> handleListCategories(req, resp);
+            case "/currencies/list" -> handleListCurrencies(req, resp);
 
             default -> resp.sendError(HttpServletResponse.SC_NOT_FOUND, "Endpoint non trovato.");
         }
@@ -115,6 +122,9 @@ public class AdminServlet extends HttpServlet {
 
         switch (action) {
             case "/products/create" -> handleCreateProduct(req, resp);
+            case "/products/create-full" -> handleCreateFullProduct(req, resp);
+            case "/upload/image" -> handleUploadImage(req, resp);
+            case "/upload/schematic" -> handleUploadSchematic(req, resp);
             case "/products/update" -> handleUpdateProduct(req, resp);
             case "/products/delete" -> handleDeleteProduct(req, resp);
             case "/products/activate" -> handleActivateProduct(req, resp);
@@ -299,6 +309,190 @@ public class AdminServlet extends HttpServlet {
         }
     }
 
+
+    private void handleCreateFullProduct(HttpServletRequest req, HttpServletResponse resp) throws IOException {
+        AccountBean adminAccount = getAuthenticatedAccount(req);
+        if (adminAccount == null) {
+            JsonUtils.sendError(resp, "Authentication required.", HttpServletResponse.SC_UNAUTHORIZED);
+            return;
+        }
+
+        try {
+            JSONObject body = JsonUtils.readJsonBody(req);
+
+            JSONObject productJson = body.getJSONObject("product");
+            BigDecimal price = productJson.getBigDecimal("price");
+            BigDecimal discount = productJson.has("discount") ? productJson.getBigDecimal("discount") : BigDecimal.ZERO;
+            boolean unlimitedStock = productJson.optBoolean("unlimitedStock", false);
+            Integer stockQuantity = productJson.has("stockQuantity") ? productJson.getInt("stockQuantity") : 0;
+
+            ProductRequest productRequest = new ProductRequest(
+                    adminAccount.getAccountId(),
+                    productJson.getString("currencyId"),
+                    productJson.getString("productName"),
+                    productJson.optString("description", null),
+                    discount,
+                    price,
+                    stockQuantity,
+                    unlimitedStock
+            );
+
+            List<String> categoryIds = new ArrayList<>();
+            for (Object categoryId : body.getJSONArray("categoryIds")) {
+                categoryIds.add((String) categoryId);
+            }
+
+            List<String> imagePaths = new ArrayList<>();
+            for (Object imagePath : body.getJSONArray("imagePaths")) {
+                imagePaths.add((String) imagePath);
+            }
+
+            JSONObject versionJson = body.getJSONObject("version");
+            ProductVersionRequest versionRequest = new ProductVersionRequest(
+                    null, // productId is resolved internally by the service, since the product doesn't exist yet
+                    versionJson.optString("changelog", null),
+                    versionJson.getString("filePath"),
+                    versionJson.optString("minecraftVersion", null),
+                    versionJson.getString("version")
+            );
+
+            ProductFullRequest fullRequest = new ProductFullRequest(productRequest, categoryIds, imagePaths, versionRequest);
+
+            ProductBean createdProduct = productService.createFullProduct(fullRequest);
+
+            JsonUtils.sendSuccessWithData(resp, "Product fully created successfully.", "product", createdProduct);
+
+        } catch (org.json.JSONException e) {
+            JsonUtils.sendError(resp, "Invalid or incomplete request payload.", HttpServletResponse.SC_BAD_REQUEST);
+        } catch (IllegalArgumentException e) {
+            JsonUtils.sendError(resp, e.getMessage(), HttpServletResponse.SC_BAD_REQUEST);
+        } catch (ServiceException e) {
+            logger.error("Error creating full product by admin {}", adminAccount.getAccountId(), e);
+            JsonUtils.sendError(resp, "Unable to create product.", HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
+        }
+    }
+
+    // =========================================================================
+    // FILE UPLOAD HANDLERS
+    // =========================================================================
+
+    private void handleUploadImage(HttpServletRequest req, HttpServletResponse resp) throws IOException {
+        AccountBean adminAccount = getAuthenticatedAccount(req);
+        if (adminAccount == null) {
+            JsonUtils.sendError(resp, "Authentication required.", HttpServletResponse.SC_UNAUTHORIZED);
+            return;
+        }
+
+        try {
+            Part filePart = req.getPart("file");
+
+            if (!isValidUpload(filePart, ServiceConstants.ALLOWED_IMAGE_EXTENSIONS,
+                    ServiceConstants.ALLOWED_IMAGE_CONTENT_TYPES, ServiceConstants.MAX_IMAGE_SIZE_BYTES)) {
+                JsonUtils.sendError(resp, "Invalid image file. Allowed types: PNG, JPG, JPEG, WEBP (max 50MB).",
+                        HttpServletResponse.SC_BAD_REQUEST);
+                return;
+            }
+
+            String savedPath = FileUploadUtils.saveUploadedFile(filePart,
+                    req.getServletContext().getRealPath(""), "products");
+
+            if (savedPath == null) {
+                JsonUtils.sendError(resp, "File upload failed.", HttpServletResponse.SC_BAD_REQUEST);
+                return;
+            }
+
+            logger.info("Image uploaded by admin {}: {}", adminAccount.getAccountId(), savedPath);
+            JsonUtils.sendSuccess(resp, "Image uploaded successfully.", "path", savedPath);
+
+        } catch (ServletException e) {
+            logger.error("Error reading multipart request for image upload", e);
+            JsonUtils.sendError(resp, "Invalid upload request.", HttpServletResponse.SC_BAD_REQUEST);
+        }
+    }
+
+    private void handleUploadSchematic(HttpServletRequest req, HttpServletResponse resp) throws IOException {
+        AccountBean adminAccount = getAuthenticatedAccount(req);
+        if (adminAccount == null) {
+            JsonUtils.sendError(resp, "Authentication required.", HttpServletResponse.SC_UNAUTHORIZED);
+            return;
+        }
+
+        try {
+            Part filePart = req.getPart("file");
+
+            if (!isValidUpload(filePart, ServiceConstants.ALLOWED_SCHEMATIC_EXTENSIONS,
+                    null, ServiceConstants.MAX_SCHEMATIC_SIZE_BYTES)) {
+                JsonUtils.sendError(resp,
+                        "Invalid schematic file. Allowed types: .schematic, .schem, .litematic (max 50MB).",
+                        HttpServletResponse.SC_BAD_REQUEST);
+                return;
+            }
+
+            String savedPath = FileUploadUtils.saveUploadedFile(filePart,
+                    req.getServletContext().getRealPath(""), "schematics");
+
+            if (savedPath == null) {
+                JsonUtils.sendError(resp, "File upload failed.", HttpServletResponse.SC_BAD_REQUEST);
+                return;
+            }
+
+            logger.info("Schematic uploaded by admin {}: {}", adminAccount.getAccountId(), savedPath);
+            JsonUtils.sendSuccess(resp, "Schematic uploaded successfully.", "path", savedPath);
+
+        } catch (ServletException e) {
+            logger.error("Error reading multipart request for schematic upload", e);
+            JsonUtils.sendError(resp, "Invalid upload request.", HttpServletResponse.SC_BAD_REQUEST);
+        }
+    }
+
+    /**
+     * Validates an uploaded file part against an extension whitelist, an optional content-type
+     * whitelist, and a maximum size. The submitted file name is normalized to its final path
+     * segment before checking the extension, guarding against path traversal attempts embedded
+     * in the client-supplied file name.
+     */
+    private boolean isValidUpload(Part filePart, Set<String> allowedExtensions,
+                                  Set<String> allowedContentTypes, long maxSizeBytes) {
+        if (filePart == null || filePart.getSize() <= 0) {
+            return false;
+        }
+
+        if (filePart.getSize() > maxSizeBytes) {
+            logger.warn("Upload rejected: file size {} exceeds limit {}", filePart.getSize(), maxSizeBytes);
+            return false;
+        }
+
+        String submittedFileName = filePart.getSubmittedFileName();
+        if (submittedFileName == null || submittedFileName.isBlank()) {
+            return false;
+        }
+
+        // Normalize to the last path segment only, discarding any directory traversal sequences
+        // a malicious client might embed in the submitted file name.
+        String fileName = Paths.get(submittedFileName).getFileName().toString();
+
+        int dotIndex = fileName.lastIndexOf('.');
+        if (dotIndex < 0) {
+            return false;
+        }
+        String extension = fileName.substring(dotIndex).toLowerCase();
+
+        if (!allowedExtensions.contains(extension)) {
+            logger.warn("Upload rejected: extension {} not allowed", extension);
+            return false;
+        }
+
+        if (allowedContentTypes != null) {
+            String contentType = filePart.getContentType();
+            if (contentType == null || !allowedContentTypes.contains(contentType.toLowerCase())) {
+                logger.warn("Upload rejected: content-type {} not allowed", contentType);
+                return false;
+            }
+        }
+
+        return true;
+    }
+
     // =========================================================================
     // ORDER HANDLERS (FILTERS)
     // =========================================================================
@@ -480,6 +674,20 @@ public class AdminServlet extends HttpServlet {
         } catch (ServiceException e) {
             logger.error("Error deleting category {}", categoryId, e);
             JsonUtils.sendError(resp, "Unable to delete category.", HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
+        }
+    }
+
+    // =========================================================================
+    // CURRENCIES HANDLERS
+    // =========================================================================
+
+    private void handleListCurrencies(HttpServletRequest req, HttpServletResponse resp) throws IOException {
+        try {
+            List<CurrencyBean> currencies = lookupService.listActiveCurrencies();
+            JsonUtils.sendSuccessWithData(resp, "Currencies retrieved successfully.", "currencies", currencies);
+        } catch (ServiceException e) {
+            logger.error("Error retrieving active currencies list for admin wizard", e);
+            JsonUtils.sendError(resp, "Unable to retrieve currencies.", HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
         }
     }
 
