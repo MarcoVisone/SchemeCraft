@@ -201,6 +201,39 @@ public class CategoryDAO extends BaseDAO {
     }
 
     /**
+     * Retrieves all categories assigned to a product, joining product_category
+     * with category in a single query to avoid N+1 lookups.
+     */
+    public List<CategoryBean> findCategoriesByProductId(Connection conn, String productId) throws DAOException {
+        String sql = "SELECT c.category_id, c.category_name, c.parent_category_id, c.description " +
+                "FROM product_category pc " +
+                "JOIN category c ON pc.category_id = c.category_id " +
+                "WHERE pc.product_id = ?";
+
+        List<CategoryBean> categories = new ArrayList<>();
+
+        try (PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setString(1, productId);
+
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    CategoryBean category = new CategoryBean();
+                    category.setCategoryId(rs.getString("category_id"));
+                    category.setCategoryName(rs.getString("category_name"));
+                    category.setParentCategoryId(rs.getString("parent_category_id"));
+                    category.setDescription(rs.getString("description"));
+                    categories.add(category);
+                }
+            }
+        } catch (SQLException e) {
+            logger.error("Database error retrieving categories for product {}", productId, e);
+            throw new DAOException("Error retrieving categories for product", e);
+        }
+
+        return categories;
+    }
+
+    /**
      * Updates an existing Category with new property values using its unique ID.
      *
      * @param conn       Active database connection

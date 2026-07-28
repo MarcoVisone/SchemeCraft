@@ -50,11 +50,5 @@ public record ProductRequest(
         currencyId = currencyId.trim();
         productName = productName.trim();
         description = description != null ? description.trim() : null;
-
-        if (unlimitedStock) {
-            stockQuantity = 0;
-        } else if (stockQuantity == null || stockQuantity < 0) {
-            stockQuantity = 0;
-        }
     }
 }

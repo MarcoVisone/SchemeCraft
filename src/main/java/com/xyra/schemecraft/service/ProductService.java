@@ -26,6 +26,7 @@ public class ProductService {
     private final ProductVersionDAO productVersionDAO;
     private final ProductCategoryDAO productCategoryDAO;
     private final AccountProductDAO accountProductDAO;
+    private final CategoryDAO categoryDAO;
 
     public ProductService(){
         this.productDAO = new ProductDAO();
@@ -34,6 +35,7 @@ public class ProductService {
         this.productVersionDAO = new ProductVersionDAO();
         this.productCategoryDAO = new ProductCategoryDAO();
         this.accountProductDAO = new AccountProductDAO();
+        this.categoryDAO = new CategoryDAO();
     }
 
     public ProductBean getProductById(String rawProductId) {
@@ -62,6 +64,20 @@ public class ProductService {
         }
         try(Connection conn = ConnectionPool.getConnection()) {
             return productDAO.searchProducts(conn, criteria);
+        } catch (SQLException e) {
+            throw new ServiceException("Error while searching products", e);
+        } catch (DAOException e) {
+            throw new EntityNotFoundException("Product not found for search criteria"
+                    , EntityNotFoundException.EntityType.PRODUCT);
+        }
+    }
+
+    public List<ProductBean> searchProducts(ProductSearchCriteria criteria, Boolean activeFilter) {
+        if(criteria == null) {
+            throw new IllegalArgumentException("Search criteria cannot be null");
+        }
+        try(Connection conn = ConnectionPool.getConnection()) {
+            return productDAO.searchProductsForAdmin(conn, criteria, activeFilter);
         } catch (SQLException e) {
             throw new ServiceException("Error while searching products", e);
         } catch (DAOException e) {
@@ -476,6 +492,17 @@ public class ProductService {
         }
     }
 
+    public List<CategoryBean> listCategories(String rawProductId) {
+        String productId = rawProductId == null ? null : rawProductId.trim();
+
+        try (Connection conn = ConnectionPool.getConnection()) {
+            return categoryDAO.findCategoriesByProductId(conn, productId);
+        } catch (SQLException | DAOException e) {
+            logger.error("Error retrieving categories for product {}", productId, e);
+            throw new ServiceException("Unable to retrieve product categories", e);
+        }
+    }
+
     public boolean ownsProduct(String rawAccountId, String rawProductId) {
         String accountId = rawAccountId == null ? null : rawAccountId.trim();
         if (accountId == null || accountId.isBlank()) {
@@ -545,6 +572,9 @@ public class ProductService {
                 productBean.setPrice(productRequest.price());
                 productBean.setDiscount(discount);
                 productBean.setStockQuantity(productRequest.stockQuantity());
+                productBean.setTotalDownloads(0);
+                productBean.setTotalReviews(0);
+                productBean.setAverageRating(BigDecimal.ZERO);
                 productBean.setActive(true);
 
                 productDAO.insert(conn, productBean);

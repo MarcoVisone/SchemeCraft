@@ -205,9 +205,11 @@
 
         try {
             const keywords = els.filterSearch.value.trim();
+            const status = els.filterStatus.value; // "all" | "active" | "inactive" — forwarded to the server
             const url = new URL(API_BASE + '/list', window.location.origin);
             if (keywords) url.searchParams.set('keywords', keywords);
-            // Fetch a large batch; filter/sort/paginate client-side
+            if (status && status !== 'all') url.searchParams.set('status', status);
+            // Fetch a large batch; sort/paginate client-side, filtering is done server-side
             url.searchParams.set('page', '1');
             url.searchParams.set('pageSize', '9999');
 
@@ -246,14 +248,9 @@
     function applyFiltersAndSort() {
         let result = [...allProducts];
 
-        // Status filter
-        // NOTE: JsonUtils.serializeProduct() emits the field as "isActive" (boolean).
-        // There is no "active" / "status" / "enabled" key in the real payload.
-        const statusFilter = els.filterStatus.value;
-        if (statusFilter !== 'all') {
-            const targetActive = statusFilter === 'active';
-            result = result.filter(p => p.isActive === targetActive);
-        }
+        // Status filtering is now done server-side (see fetchProducts), since
+        // ProductDAO.searchProductsForAdmin accepts an explicit active/inactive
+        // filter. No client-side status filtering needed here anymore.
 
         // Sort
         const sortValue = els.filterSort.value;
@@ -321,9 +318,6 @@
         const created = formatDate(product.createdAt || product.dateCreated || product.created);
         const price = formatPrice(product.price);
 
-        // ProductBean.stockQuantity is null when the digital product has unlimited stock
-        // (see scheme.sql comment on product.stock_quantity). There is no separate
-        // "unlimitedStock" flag in the serialized payload.
         const isUnlimited = product.stockQuantity === null || product.stockQuantity === undefined;
         const stock = isUnlimited
             ? '<span class="status-badge status-badge--inactive" style="text-transform:none;letter-spacing:normal;font-size:0.8125rem;padding:3px 10px;">Unlimited</span>'
@@ -333,7 +327,6 @@
         const downloads = formatCompactNumber(product.totalDownloads);
         const isActive = product.isActive === true;
 
-        // Categories
         let categoriesHtml = '';
         const categories = product.categories || [];
         if (Array.isArray(categories) && categories.length > 0) {
@@ -349,52 +342,41 @@
             categoriesHtml = '<span style="color:var(--text-secondary);font-size:0.8125rem;">—</span>';
         }
 
-        // Status badge
         const statusBadge = isActive
             ? `<span class="status-badge status-badge--active"><span class="status-badge__dot"></span>Active</span>`
             : `<span class="status-badge status-badge--inactive"><span class="status-badge__dot"></span>Inactive</span>`;
 
-        // Actions
-        // Toggle button uses static icons instead of Lucide: shows "deactive.png" when the
-        // product is currently active (clicking will deactivate it), and "active.png" when
-        // it's currently inactive (clicking will activate it).
         const toggleIconPath = isActive
             ? `${CTX}/icons/deactive.png`
             : `${CTX}/icons/active.png`;
         const toggleClass = isActive ? 'actions__btn--toggle-active' : 'actions__btn--toggle-inactive';
         const toggleTitle = isActive ? 'Deactivate product' : 'Activate product';
-        const deleteBtn = isActive
-            ? `<button class="actions__btn actions__btn--delete" data-action="delete" data-id="${id}" title="Deactivate product" type="button">
-                   <i data-lucide="trash-2" class="actions__btn-icon"></i>
-               </button>`
-            : '';
 
         return `
-            <tr class="data-table__row" data-product-id="${id}">
-                <td class="data-table__cell data-table__cell--id" title="${id}">${truncate(id, 14)}</td>
-                <td class="data-table__cell">${name}</td>
-                <td class="data-table__cell data-table__cell--created">${created}</td>
-                <td class="data-table__cell">${price}</td>
-                <td class="data-table__cell">${stock}</td>
-                <td class="data-table__cell data-table__cell--categories">${categoriesHtml}</td>
-                <td class="data-table__cell data-table__cell--rating">
-                    <span class="rating"><span class="rating__star">★</span><span class="rating__value">${rating.toFixed(1)}</span></span>
-                </td>
-                <td class="data-table__cell data-table__cell--downloads">${downloads}</td>
-                <td class="data-table__cell">${statusBadge}</td>
-                <td class="data-table__cell data-table__cell--actions">
-                    <div class="actions">
-                        <button class="actions__btn ${toggleClass}" data-action="toggle" data-id="${id}" data-active="${isActive}" title="${toggleTitle}" type="button">
-                            <img src="${toggleIconPath}" alt="${toggleTitle}" class="actions__btn-icon" />
-                        </button>
-                        <button class="actions__btn actions__btn--edit" title="Coming soon" type="button" disabled>
-                            <img src="${CTX}/icons/command_block_edit.gif" alt="Edit product" class="actions__btn-icon" />
-                        </button>
-                        ${deleteBtn}
-                    </div>
-                </td>
-            </tr>
-        `;
+        <tr class="data-table__row" data-product-id="${id}">
+            <td class="data-table__cell data-table__cell--id" data-label="ID" title="${id}">${truncate(id, 14)}</td>
+            <td class="data-table__cell" data-label="Name">${name}</td>
+            <td class="data-table__cell data-table__cell--created" data-label="Created">${created}</td>
+            <td class="data-table__cell" data-label="Price">${price}</td>
+            <td class="data-table__cell" data-label="Stock">${stock}</td>
+            <td class="data-table__cell data-table__cell--categories" data-label="Categories">${categoriesHtml}</td>
+            <td class="data-table__cell data-table__cell--rating" data-label="Rating">
+                <span class="rating"><span class="rating__star">★</span><span class="rating__value">${rating.toFixed(1)}</span></span>
+            </td>
+            <td class="data-table__cell data-table__cell--downloads" data-label="Downloads">${downloads}</td>
+            <td class="data-table__cell" data-label="Status">${statusBadge}</td>
+            <td class="data-table__cell data-table__cell--actions" data-label="Actions">
+                <div class="actions">
+                    <button class="actions__btn ${toggleClass}" data-action="toggle" data-id="${id}" data-active="${isActive}" title="${toggleTitle}" type="button">
+                        <img src="${toggleIconPath}" alt="${toggleTitle}" class="actions__btn-icon" />
+                    </button>
+                    <button class="actions__btn actions__btn--edit" title="Coming soon" type="button" disabled>
+                        <img src="${CTX}/icons/command_block_edit.gif" alt="Edit product" class="actions__btn-icon" />
+                    </button>
+                </div>
+            </td>
+        </tr>
+    `;
     }
 
     /* ----------------------------------------------------------------------
@@ -457,7 +439,7 @@
     }
 
     /* ----------------------------------------------------------------------
-       Actions: Toggle & Delete
+       Actions: Toggle Active/Inactive
        ---------------------------------------------------------------------- */
 
     async function handleToggle(productId, currentlyActive) {
@@ -497,38 +479,6 @@
         }
     }
 
-    async function handleDelete(productId) {
-        const confirmed = await showConfirm('Are you sure you want to deactivate this product?');
-        if (!confirmed) return;
-
-        const url = API_BASE + '/delete';
-        const body = new URLSearchParams();
-        body.append('productId', productId);
-
-        try {
-            const response = await fetch(url, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-                body: body.toString(),
-            });
-
-            if (!response.ok) {
-                throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-            }
-
-            const json = await response.json();
-            if (json.success === false) {
-                throw new Error(json.message || 'Failed to deactivate product.');
-            }
-
-            await fetchProducts();
-        } catch (err) {
-            // Non-blocking: log only, no alert(). UI feedback for action failures
-            // is intentionally deferred until a proper toast/notification component exists.
-            console.error('Failed to deactivate product:', err);
-        }
-    }
-
     /* ----------------------------------------------------------------------
        Event Listeners
        ---------------------------------------------------------------------- */
@@ -552,9 +502,9 @@
             fetchProducts();
         }, 300));
 
-        // Status filter
+        // Status filter — now applied server-side, so changing it requires a new fetch
         els.filterStatus.addEventListener('change', function () {
-            applyFiltersAndSort();
+            fetchProducts();
         });
 
         // Sort filter
@@ -598,8 +548,6 @@
             if (action === 'toggle') {
                 const currentlyActive = btn.dataset.active === 'true';
                 handleToggle(productId, currentlyActive);
-            } else if (action === 'delete') {
-                handleDelete(productId);
             }
         });
     }

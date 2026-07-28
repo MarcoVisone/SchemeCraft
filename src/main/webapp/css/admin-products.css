@@ -32,12 +32,11 @@
 .admin-products {
     max-width: 1400px;
     margin: 0 auto;
-    padding: 24px;
-    font-family: var(--font-body);
+    padding: calc(var(--admin-header-height, 65px) + 32px) 24px 24px;
+    font-family: var(--font-body), serif;
     color: var(--text-primary);
     position: relative;
 }
-
 /* --------------------------------------------------------------------------
    Header Area
    -------------------------------------------------------------------------- */
@@ -273,6 +272,7 @@
     box-shadow: var(--shadow-card);
     position: relative;
     min-height: 200px;
+    scroll-margin-top: calc(var(--admin-header-height, 65px) + 20px); /* NUOVO */
 }
 
 /* --------------------------------------------------------------------------
@@ -593,6 +593,7 @@
     padding: 60px 24px;
     text-align: center;
     gap: 12px;
+    scroll-margin-top: calc(var(--admin-header-height, 65px) + 20px); /* NUOVO */
 }
 
 .admin-products__state--visible {
@@ -746,15 +747,8 @@
 }
 
 /* --------------------------------------------------------------------------
-   Responsive
+   Responsive – Card view
    -------------------------------------------------------------------------- */
-@media (max-width: 1024px) {
-    .data-table__cell--id,
-    .data-table__cell--created {
-        display: none;
-    }
-}
-
 @media (max-width: 768px) {
     .admin-products {
         padding: 16px;
@@ -790,20 +784,74 @@
         width: 100%;
     }
 
-    .data-table__cell--categories,
-    .data-table__cell--downloads {
-        display: none;
+    /* Trasforma la tabella in blocchi */
+    .admin-products__table-wrapper {
+        background: none;
+        border: none;
+        box-shadow: none;
+        overflow: visible;
+    }
+
+    .data-table,
+    .data-table__body,
+    .data-table__row,
+    .data-table__cell {
+        display: block;
+        width: 100%;
+        box-sizing: border-box;
+    }
+
+    .data-table__head {
+        display: none;   /* nasconde l'intestazione originale */
+    }
+
+    .data-table__row {
+        background-color: var(--bg-card);
+        border: 1px solid var(--border-color);
+        border-radius: var(--radius-md);
+        margin-bottom: 16px;
+        padding: 12px;
+        box-shadow: var(--shadow-card);
+    }
+
+    .data-table__row:hover {
+        background-color: var(--bg-card-hover);
+    }
+
+    .data-table__cell {
+        display: flex;
+        align-items: baseline;
+        justify-content: space-between;
+        padding: 8px 0;
+        border-bottom: 1px solid var(--border-color);
+        font-size: 0.875rem;
+    }
+
+    .data-table__cell:last-child {
+        border-bottom: none;
+    }
+
+    /* Etichetta generata dall'attributo data-label */
+    .data-table__cell::before {
+        content: attr(data-label);
+        font-weight: var(--weight-medium);
+        color: var(--text-secondary);
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+        font-size: 0.75rem;
+        margin-right: 12px;
+        white-space: nowrap;
+        flex-shrink: 0;
+    }
+
+    /* Eccezioni: alcune celle potrebbero non aver bisogno dell'etichetta */
+    .data-table__cell--actions::before {
+        content: none;  /* oppure "Actions" se preferisci, ma di solito i pulsanti sono autoesplicativi */
     }
 
     .pagination {
         flex-direction: column;
         align-items: center;
-    }
-
-    .data-table__cell--header,
-    .data-table__cell {
-        padding: 12px 10px;
-        font-size: 0.8125rem;
     }
 
     .admin-products__fab {
@@ -815,10 +863,6 @@
 }
 
 @media (max-width: 480px) {
-    .data-table__cell--rating {
-        display: none;
-    }
-
     .actions__btn {
         width: 30px;
         height: 30px;

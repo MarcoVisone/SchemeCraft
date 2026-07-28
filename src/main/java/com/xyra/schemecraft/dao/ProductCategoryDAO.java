@@ -42,14 +42,14 @@ public class ProductCategoryDAO extends BaseDAO {
         String productId = association.getProductId().trim();
         String categoryId = association.getCategoryId().trim();
 
-        String sql = "WITH RECURSIVE category_tree AS (" +
+        String sql = "INSERT IGNORE INTO product_category (product_id, category_id) " +
+                "WITH RECURSIVE category_tree AS (" +
                 "    SELECT category_id, parent_category_id FROM category WHERE category_id = ? " +
                 "    UNION ALL " +
                 "    SELECT c.category_id, c.parent_category_id " +
                 "    FROM category c " +
                 "    JOIN category_tree ct ON c.category_id = ct.parent_category_id " +
                 ") " +
-                "INSERT IGNORE INTO product_category (product_id, category_id) " +
                 "SELECT ?, category_id FROM category_tree";
 
         try (PreparedStatement ps = conn.prepareStatement(sql)) {

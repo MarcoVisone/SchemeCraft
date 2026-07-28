@@ -271,6 +271,137 @@ public class ProductDAO extends BaseDAO {
         return products;
     }
 
+    /**
+     * Admin variant of searchProducts: supports an explicit active/inactive filter
+     * instead of always restricting results to active products only.
+     *
+     * @param activeFilter null = both active and inactive products,
+     *                      true = active products only,
+     *                      false = inactive products only
+     */
+    public List<ProductBean> searchProductsForAdmin(Connection conn, ProductSearchCriteria criteria, Boolean activeFilter) throws DAOException {
+        if (criteria == null) {
+            throw new IllegalArgumentException("Search criteria cannot be null");
+        }
+
+        StringBuilder sql = new StringBuilder();
+
+        String mcVersion = sanitizeString(criteria.getMinecraftVersion());
+        String categoryId = sanitizeString(criteria.getCategoryId());
+        String keywords = sanitizeString(criteria.getKeywords());
+
+        boolean hasVersionFilter = mcVersion != null;
+        boolean hasCategoryFilter = categoryId != null;
+
+        sql.append("SELECT DISTINCT p.* FROM product p ");
+
+        if (hasVersionFilter) {
+            sql.append("JOIN product_version pv ON p.product_id = pv.product_id ");
+        }
+        if (hasCategoryFilter) {
+            sql.append("JOIN product_category pc ON p.product_id = pc.product_id ");
+        }
+
+        sql.append("WHERE 1=1");
+
+        List<Object> queryParams = new ArrayList<>();
+
+        if (activeFilter != null) {
+            sql.append(" AND p.is_active = ?");
+            queryParams.add(activeFilter);
+        }
+
+        if (keywords != null) {
+            sql.append(" AND (LOWER(p.product_name) LIKE ? OR LOWER(p.description) LIKE ?)");
+            String kwParam = "%" + keywords.toLowerCase() + "%";
+            queryParams.add(kwParam);
+            queryParams.add(kwParam);
+        }
+
+        if (hasCategoryFilter) {
+            sql.append(" AND pc.category_id = ?");
+            queryParams.add(categoryId);
+        }
+
+        if (criteria.getMinPrice() != null) {
+            sql.append(" AND p.price >= ?");
+            queryParams.add(criteria.getMinPrice());
+        }
+        if (criteria.getMaxPrice() != null) {
+            sql.append(" AND p.price <= ?");
+            queryParams.add(criteria.getMaxPrice());
+        }
+
+        if (criteria.getMinRating() != null) {
+            sql.append(" AND p.average_rating >= ?");
+            queryParams.add(criteria.getMinRating());
+        }
+        if (criteria.getMaxRating() != null) {
+            sql.append(" AND p.average_rating <= ?");
+            queryParams.add(criteria.getMaxRating());
+        }
+
+        if (criteria.getOnlyWithDiscount() != null && criteria.getOnlyWithDiscount()) {
+            sql.append(" AND p.discount > 0");
+        }
+
+        if (hasVersionFilter) {
+            sql.append(" AND pv.minecraft_version LIKE ?");
+            queryParams.add("%" + mcVersion + "%");
+        }
+
+        String rawOrderBy = criteria.getOrderByColumn();
+        String safeOrderBy = "created_at";
+
+        if (rawOrderBy != null && !rawOrderBy.trim().isEmpty()) {
+            safeOrderBy = switch (rawOrderBy.toLowerCase().trim()) {
+                case "price" -> "price";
+                case "average_rating" -> "average_rating";
+                case "total_reviews" -> "total_reviews";
+                case "total_downloads" -> "total_downloads";
+                case "product_name" -> "product_name";
+                case "created_at" -> "created_at";
+                default -> "created_at";
+            };
+        }
+
+        String direction = (criteria.getAscending() != null && criteria.getAscending()) ? "ASC" : "DESC";
+        sql.append(" ORDER BY p.").append(safeOrderBy).append(" ").append(direction);
+
+        int pageNumber = (criteria.getPageNumber() == 0 || criteria.getPageNumber() < 1) ? 1 : criteria.getPageNumber();
+        int pageSize = (criteria.getPageSize() == 0 || criteria.getPageSize() < 1) ? 10 : criteria.getPageSize();
+
+        int limit = pageSize;
+        int offset = (pageNumber - 1) * limit;
+
+        sql.append(" LIMIT ? OFFSET ?");
+
+        List<ProductBean> products = new ArrayList<>();
+
+        try (PreparedStatement ps = conn.prepareStatement(sql.toString())) {
+            int paramIndex = 1;
+
+            for (Object param : queryParams) {
+                ps.setObject(paramIndex++, param);
+            }
+
+            ps.setInt(paramIndex++, limit);
+            ps.setInt(paramIndex, offset);
+
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    products.add(mapRow(rs));
+                }
+            }
+        } catch (SQLException e) {
+            logger.error("Database error during admin product search. Query: {}", sql, e);
+            throw new DAOException("Error performing admin product search", e);
+        }
+
+        logger.info("Found products (admin search): {}", products.size());
+        return products;
+    }
+
     private String sanitizeString(String input) {
         if (input == null) return null;
         String trimmed = input.trim();

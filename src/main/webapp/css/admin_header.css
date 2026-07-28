@@ -1,3 +1,13 @@
+:root {
+    --admin-header-height: 65px;
+}
+
+@media (max-width: 48rem) {
+    :root {
+        --admin-header-height: 75px;
+    }
+}
+
 /* ==========================================================================
    Admin Header & Navigation (fully self-contained, no dependency on header.css)
    ========================================================================== */

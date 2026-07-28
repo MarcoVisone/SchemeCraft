@@ -7,19 +7,13 @@ import java.util.List;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
+import com.xyra.schemecraft.model.*;
 import org.json.JSONArray;
 import org.json.JSONObject;
 
 import com.xyra.schemecraft.dto.AccountAdminView;
 import com.xyra.schemecraft.dto.OrderAdminView;
 import com.xyra.schemecraft.dto.OwnedProductItem;
-import com.xyra.schemecraft.model.AddressBean;
-import com.xyra.schemecraft.model.CategoryBean;
-import com.xyra.schemecraft.model.OrderBean;
-import com.xyra.schemecraft.model.PaymentMethodBean;
-import com.xyra.schemecraft.model.ProductBean;
-import com.xyra.schemecraft.model.ProductImageBean;
-import com.xyra.schemecraft.model.ProductVersionBean;
 
 public final class JsonUtils {
 
@@ -253,6 +247,32 @@ public final class JsonUtils {
         return obj;
     }
 
+    public static JSONObject serializeCurrency(CurrencyBean currency) {
+        if (currency == null) {
+            return new JSONObject();
+        }
+        JSONObject obj = new JSONObject();
+        obj.put("currencyId", currency.getCurrencyId());
+        obj.put("currencyName", currency.getCurrencyName());
+        obj.put("symbol", currency.getSymbol());
+        obj.put("isActive", currency.isActive());
+        return obj;
+    }
+
+    public static JSONObject serializeProductWithCategories(ProductBean product, List<CategoryBean> categories) {
+        JSONObject obj = serializeProduct(product);
+
+        JSONArray categoriesArray = new JSONArray();
+        if (categories != null) {
+            for (CategoryBean category : categories) {
+                categoriesArray.put(serializeCategory(category));
+            }
+        }
+        obj.put("categories", categoriesArray);
+
+        return obj;
+    }
+
     public static JSONObject serializeAccountAdminView(AccountAdminView account) {
         if (account == null) {
             return new JSONObject();
@@ -290,6 +310,8 @@ public final class JsonUtils {
             return serializeVersion(ver);
         } else if (item instanceof OwnedProductItem opi) {
             return serializeOwnedProductItem(opi);
+        } else if (item instanceof CurrencyBean cur) {
+            return serializeCurrency(cur);
         } else {
             return item;
         }

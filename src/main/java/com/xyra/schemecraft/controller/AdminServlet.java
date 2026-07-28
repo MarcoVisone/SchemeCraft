@@ -21,6 +21,7 @@ import com.xyra.schemecraft.model.*;
 import com.xyra.schemecraft.service.*;
 import com.xyra.schemecraft.util.FileUploadUtils;
 import com.xyra.schemecraft.util.ServletUtils;
+import org.json.JSONArray;
 import org.json.JSONObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -140,17 +141,36 @@ public class AdminServlet extends HttpServlet {
     // =========================================================================
     // PRODUCT HANDLERS
     // =========================================================================
-
     private void handleListProducts(HttpServletRequest req, HttpServletResponse resp) throws IOException {
         String keywords = req.getParameter("keywords");
         String pageParam = req.getParameter("page");
         String pageSizeParam = req.getParameter("pageSize");
+        String statusParam = req.getParameter("status"); // "active" | "inactive" | absent/other = all
 
         ProductSearchCriteria criteria = createCriteria(keywords, pageParam, pageSizeParam);
 
+        Boolean activeFilter = null;
+        if ("active".equalsIgnoreCase(statusParam)) {
+            activeFilter = Boolean.TRUE;
+        } else if ("inactive".equalsIgnoreCase(statusParam)) {
+            activeFilter = Boolean.FALSE;
+        }
+
         try {
-            List<ProductBean> products = productService.searchProducts(criteria);
-            JsonUtils.sendSuccessWithData(resp, "Products retrieved successfully.", "products", products);
+            List<ProductBean> products = productService.searchProducts(criteria, activeFilter);
+
+            JSONArray productsArray = new JSONArray();
+            for (ProductBean product : products) {
+                List<CategoryBean> categories = productService.listCategories(product.getProductId());
+                productsArray.put(JsonUtils.serializeProductWithCategories(product, categories));
+            }
+
+            JSONObject json = new JSONObject();
+            json.put("success", true);
+            json.put("message", "Products retrieved successfully.");
+            json.put("products", productsArray);
+            JsonUtils.sendJson(resp, json, HttpServletResponse.SC_OK);
+
         } catch (ServiceException e) {
             logger.error("Error retrieving products list for admin", e);
             JsonUtils.sendError(resp, "Unable to retrieve products list.", HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
@@ -324,7 +344,15 @@ public class AdminServlet extends HttpServlet {
             BigDecimal price = productJson.getBigDecimal("price");
             BigDecimal discount = productJson.has("discount") ? productJson.getBigDecimal("discount") : BigDecimal.ZERO;
             boolean unlimitedStock = productJson.optBoolean("unlimitedStock", false);
-            Integer stockQuantity = productJson.has("stockQuantity") ? productJson.getInt("stockQuantity") : 0;
+            Integer stockQuantity;
+
+            if (unlimitedStock) {
+                stockQuantity = null;
+            } else if (productJson.has("stockQuantity") && !productJson.isNull("stockQuantity")) {
+                stockQuantity = productJson.getInt("stockQuantity");
+            } else {
+                stockQuantity = 0;
+            }
 
             ProductRequest productRequest = new ProductRequest(
                     adminAccount.getAccountId(),
