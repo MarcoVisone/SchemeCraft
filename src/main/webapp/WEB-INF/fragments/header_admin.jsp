@@ -31,10 +31,6 @@
            class="admin-header__link ${pageContext.request.requestURI.endsWith('/orders') ? 'active' : ''}">
           Orders
         </a>
-        <a href="${pageContext.request.contextPath}/admin/users"
-           class="admin-header__link ${pageContext.request.requestURI.endsWith('/users') ? 'active' : ''}">
-          Users
-        </a>
       </nav>
 
       <!-- Right Side Controls -->

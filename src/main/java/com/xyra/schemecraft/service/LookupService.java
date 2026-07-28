@@ -11,14 +11,16 @@ import com.xyra.schemecraft.connection.ConnectionPool;
 import com.xyra.schemecraft.dao.CountryDAO;
 import com.xyra.schemecraft.dao.CurrencyDAO;
 import com.xyra.schemecraft.dao.LanguageDAO;
+import com.xyra.schemecraft.dao.OrderStatusDAO;
 import com.xyra.schemecraft.exception.DAOException;
 import com.xyra.schemecraft.exception.ServiceException;
 import com.xyra.schemecraft.model.CountryBean;
 import com.xyra.schemecraft.model.CurrencyBean;
 import com.xyra.schemecraft.model.LanguageBean;
+import com.xyra.schemecraft.model.OrderStatusBean;
 
 /**
- * Read-only service for lookup/dictionary tables (country, currency, language).
+ * Read-only service for lookup/dictionary tables (country, currency, language, order status).
  * Used to populate dropdowns and reference data across the application.
  */
 public class LookupService {
@@ -28,11 +30,13 @@ public class LookupService {
     private final CountryDAO countryDAO;
     private final CurrencyDAO currencyDAO;
     private final LanguageDAO languageDAO;
+    private final OrderStatusDAO orderStatusDAO;
 
     public LookupService() {
         this.countryDAO = new CountryDAO();
         this.currencyDAO = new CurrencyDAO();
         this.languageDAO = new LanguageDAO();
+        this.orderStatusDAO = new OrderStatusDAO();
     }
 
     public List<CountryBean> listActiveCountries() {
@@ -77,6 +81,21 @@ public class LookupService {
         } catch (SQLException | DAOException e) {
             logger.error("Failed to retrieve all languages", e);
             throw new ServiceException("Unable to retrieve all languages", e);
+        }
+    }
+
+    /**
+     * Retrieves all configured order statuses.
+     *
+     * @return List of all registered order status beans
+     * @throws ServiceException if a database error or DAO failure occurs
+     */
+    public List<OrderStatusBean> listOrderStatuses() {
+        try (Connection conn = ConnectionPool.getConnection()) {
+            return orderStatusDAO.findAll(conn);
+        } catch (SQLException | DAOException e) {
+            logger.error("Failed to retrieve order statuses", e);
+            throw new ServiceException("Unable to retrieve order statuses", e);
         }
     }
 }

@@ -102,11 +102,9 @@ public class AdminServlet extends HttpServlet {
                     req.getRequestDispatcher("/WEB-INF/admin/product_categories.jsp").forward(req, resp);
             case "/orders" ->
                     req.getRequestDispatcher("/WEB-INF/admin/orders.jsp").forward(req, resp);
-            case "/users" ->
-                    req.getRequestDispatcher("/WEB-INF/admin/users.jsp").forward(req, resp);
-
             case "/products/list" -> handleListProducts(req, resp);
             case "/orders/list" -> handleListOrders(req, resp);
+            case "/orders/statuses" -> handleListOrderStatuses(req, resp);
             case "/users/list" -> handleListUsers(req, resp);
             case "/categories/list" -> handleListCategories(req, resp);
             case "/currencies/list" -> handleListCurrencies(req, resp);
@@ -402,6 +400,7 @@ public class AdminServlet extends HttpServlet {
         }
     }
 
+
     // =========================================================================
     // FILE UPLOAD HANDLERS
     // =========================================================================
@@ -626,6 +625,17 @@ public class AdminServlet extends HttpServlet {
             JsonUtils.sendError(resp, "Unable to reactivate account.", HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
         }
     }
+
+    private void handleListOrderStatuses(HttpServletRequest req, HttpServletResponse resp) throws IOException {
+        try {
+            List<OrderStatusBean> statuses = lookupService.listOrderStatuses();
+            JsonUtils.sendSuccessWithData(resp, "Order statuses retrieved.", "statuses", statuses);
+        } catch (ServiceException e) {
+            logger.error("Error retrieving order statuses", e);
+            JsonUtils.sendError(resp, "Unable to retrieve order statuses.", HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
+        }
+    }
+
 
     // =========================================================================
     // CATEGORY HANDLERS

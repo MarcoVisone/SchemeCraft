@@ -140,6 +140,16 @@ public final class JsonUtils {
         return obj;
     }
 
+    public static JSONObject serializeOrderStatus(OrderStatusBean status) {
+        if (status == null) {
+            return new JSONObject();
+        }
+        JSONObject obj = new JSONObject();
+        obj.put("statusId", status.getStatusId());
+        obj.put("statusName", status.getStatusName());
+        return obj;
+    }
+
     public static JSONObject serializeImage(ProductImageBean image) {
         if (image == null) {
             return new JSONObject();
@@ -317,6 +327,8 @@ public final class JsonUtils {
             return serializeOwnedProductItem(opi);
         } else if (item instanceof CurrencyBean cur) {
             return serializeCurrency(cur);
+        } else if (item instanceof OrderStatusBean osb) {
+            return serializeOrderStatus(osb);
         } else {
             return item;
         }

@@ -25,12 +25,22 @@
             <h1 class="admin-products__title">Products</h1>
         </div>
 
-        <a href="${pageContext.request.contextPath}/admin/products/new" class="admin-products__fab">
-            <img src="${pageContext.request.contextPath}/icons/crafting_table.webp"
-                 alt="New Product Icon"
-                 class="admin-products__fab-icon" />
-            <span class="admin-products__fab-text">Craft Product</span>
-        </a>
+        <div class="admin-fabs">
+            <a href="${pageContext.request.contextPath}/admin/products/categories"
+               class="admin-products__fab admin-products__fab--categories">
+                <img src="${pageContext.request.contextPath}/icons/chest.png"
+                     alt="Categories Icon"
+                     class="admin-products__fab-icon" />
+                <span class="admin-products__fab-text">Categories</span>
+            </a>
+            <a href="${pageContext.request.contextPath}/admin/products/new"
+               class="admin-products__fab">
+                <img src="${pageContext.request.contextPath}/icons/crafting_table.webp"
+                     alt="New Product Icon"
+                     class="admin-products__fab-icon" />
+                <span class="admin-products__fab-text">Craft Product</span>
+            </a>
+        </div>
 
         <!-- Filters bar -->
         <div class="filters">

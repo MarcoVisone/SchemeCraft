@@ -1,11 +1,8 @@
 /* ==========================================================================
-   Admin Products Dashboard Styles (rivisto con FAB a colonna)
-   Variabili globali ereditate da style.css — NON duplicare.
+   Admin Orders Dashboard Styles
+   Adapted from admin-products.css
    ========================================================================== */
 
-/* --------------------------------------------------------------------------
-   Variabili locali (mancanti in style.css)
-   -------------------------------------------------------------------------- */
 :root {
     --bg-card-hover: #353535;
     --bg-input: #242424;
@@ -26,10 +23,8 @@
     }
 }
 
-/* --------------------------------------------------------------------------
-   Admin Products Container
-   -------------------------------------------------------------------------- */
-.admin-products {
+/* Container */
+.admin-orders {
     max-width: 1400px;
     margin: 0 auto;
     padding: calc(var(--admin-header-height, 65px) + 32px) 24px 24px;
@@ -38,10 +33,7 @@
     position: relative;
 }
 
-/* --------------------------------------------------------------------------
-   Header Area
-   -------------------------------------------------------------------------- */
-.admin-products__header {
+.admin-orders__header {
     display: flex;
     align-items: center;
     justify-content: space-between;
@@ -49,102 +41,21 @@
     gap: 16px;
 }
 
-.admin-products__title {
+.admin-orders__title {
     font-size: 1.75rem;
     font-weight: var(--weight-bold);
     margin: 0;
     color: var(--text-primary);
 }
 
-/* ==========================================================================
-   FAB Container – posizionamento a colonna
-   Tutti i FAB ora vengono messi QUI, non più fissi singolarmente
-   ========================================================================== */
-.admin-fabs {
-    position: fixed;
-    bottom: 32px;
-    right: 32px;
-    display: flex;
-    flex-direction: column-reverse;  /* il primo nell'HTML (Categories) sta sopra */
-    gap: 12px;
-    z-index: 100;
-}
-
-/* Tutti i pulsanti all'interno del container perdono il posizionamento fisso */
-.admin-fabs .admin-products__fab {
-    position: static;
-    width: fit-content;
-}
-
-/* --------------------------------------------------------------------------
-   Floating Action Button – stile base (uguale a prima)
-   -------------------------------------------------------------------------- */
-.admin-products__fab {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    gap: 10px;
-    padding: 14px 24px;
-    background-color: var(--btn-green);
-    color: #FFFFFF;
-    text-decoration: none;
-    border-radius: var(--radius-md);
-    font-weight: var(--weight-medium);
-    font-size: 0.9375rem;
-    font-family: var(--font-body);
-    line-height: 1;
-    transition: var(--transition-smooth);
-    border: none;
-    cursor: pointer;
-    white-space: nowrap;
-    box-shadow: 0 6px 20px rgba(60, 133, 39, 0.4);
-}
-
-.admin-products__fab:hover {
-    background-color: var(--btn-green-hover);
-    transform: translateY(-2px);
-    box-shadow: 0 8px 28px rgba(60, 133, 39, 0.5);
-}
-
-.admin-products__fab:focus-visible {
-    outline: 2px solid var(--border-focus);
-    outline-offset: 3px;
-}
-
-/* Icona e testo */
-.admin-products__fab-icon {
-    width: 18px;
-    height: 18px;
-    flex-shrink: 0;
-}
-
-.admin-products__fab-text {
-    display: inline-block;
-    line-height: 1;
-}
-
-/* --------------------------------------------------------------------------
-   FAB Categorie – colore diverso
-   -------------------------------------------------------------------------- */
-.admin-products__fab--categories {
-    background-color: var(--accent-brown, #855432);
-    box-shadow: 0 6px 20px rgba(133, 84, 50, 0.4);
-}
-
-.admin-products__fab--categories:hover {
-    background-color: #9C6B45;
-    box-shadow: 0 8px 28px rgba(133, 84, 50, 0.5);
-}
-
-/* --------------------------------------------------------------------------
-   Filters Bar
-   -------------------------------------------------------------------------- */
+/* Filters – mostly same as products, but add date inputs */
 .filters {
     display: flex;
     align-items: flex-end;
     justify-content: space-between;
     gap: 16px;
     margin-bottom: 20px;
+    flex-wrap: wrap;
 }
 
 .filters__search {
@@ -222,18 +133,6 @@
     line-height: 1;
 }
 
-.filters__search-btn-icon {
-    width: 16px;
-    height: 16px;
-    flex-shrink: 0;
-    display: block;
-}
-
-.filters__search-btn span {
-    display: inline-block;
-    line-height: 1;
-}
-
 .filters__search-btn:hover {
     background-color: var(--btn-green-hover);
 }
@@ -248,12 +147,17 @@
     align-items: flex-end;
     gap: 12px;
     flex-shrink: 0;
+    flex-wrap: wrap;
 }
 
 .filters__group {
     display: flex;
     flex-direction: column;
     gap: 4px;
+}
+
+.filters__group--date {
+    min-width: 120px;
 }
 
 .filters__label {
@@ -292,10 +196,31 @@
     box-shadow: 0 0 0 3px var(--focus-ring);
 }
 
-/* --------------------------------------------------------------------------
-   Table Wrapper
-   -------------------------------------------------------------------------- */
-.admin-products__table-wrapper {
+.filters__date-input {
+    padding: 10px 12px;
+    background-color: var(--bg-input);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-sm);
+    color: var(--text-primary);
+    font-size: 0.875rem;
+    font-family: var(--font-body);
+    transition: var(--transition-smooth);
+    box-sizing: border-box;
+    min-width: 140px;
+}
+
+.filters__date-input:hover {
+    border-color: #666666;
+}
+
+.filters__date-input:focus {
+    outline: none;
+    border-color: var(--border-focus);
+    box-shadow: 0 0 0 3px var(--focus-ring);
+}
+
+/* Table wrapper and table – same as products */
+.admin-orders__table-wrapper {
     background-color: var(--bg-card);
     border: 1px solid var(--border-color);
     border-radius: var(--radius-md);
@@ -306,9 +231,6 @@
     scroll-margin-top: calc(var(--admin-header-height, 65px) + 20px);
 }
 
-/* --------------------------------------------------------------------------
-   Data Table
-   -------------------------------------------------------------------------- */
 .data-table {
     width: 100%;
     border-collapse: collapse;
@@ -367,68 +289,12 @@
     white-space: nowrap;
 }
 
-.data-table__cell--created {
-    white-space: nowrap;
-    color: var(--text-secondary);
-}
-
 .data-table__cell--actions {
     white-space: nowrap;
     width: 1%;
 }
 
-/* --------------------------------------------------------------------------
-   Category Chips
-   -------------------------------------------------------------------------- */
-.category-chips {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 4px;
-    align-items: center;
-}
-
-.category-chips__item {
-    display: inline-block;
-    padding: 3px 10px;
-    background-color: rgba(133, 84, 50, 0.2);
-    color: var(--accent-brown);
-    border: 1px solid rgba(133, 84, 50, 0.35);
-    border-radius: 999px;
-    font-size: 0.75rem;
-    font-weight: 500;
-    white-space: nowrap;
-}
-
-.category-chips__more {
-    font-size: 0.75rem;
-    color: var(--text-secondary);
-    font-weight: 500;
-}
-
-/* --------------------------------------------------------------------------
-   Rating Stars
-   -------------------------------------------------------------------------- */
-.rating {
-    display: inline-flex;
-    align-items: center;
-    gap: 4px;
-    font-weight: var(--weight-medium);
-    color: #F5A623;
-}
-
-.rating__star {
-    font-size: 0.875rem;
-    line-height: 1;
-}
-
-.rating__value {
-    font-size: 0.875rem;
-    color: var(--text-primary);
-}
-
-/* --------------------------------------------------------------------------
-   Status Badge
-   -------------------------------------------------------------------------- */
+/* Status badge (reuse from products) */
 .status-badge {
     display: inline-flex;
     align-items: center;
@@ -439,20 +305,10 @@
     font-weight: var(--weight-medium);
     text-transform: uppercase;
     letter-spacing: 0.03em;
-}
-
-.status-badge--active {
-    background-color: rgba(82, 177, 53, 0.15);
-    color: #52B135;
-    border: 1px solid rgba(82, 177, 53, 0.3);
-}
-
-.status-badge--inactive {
     background-color: rgba(170, 170, 170, 0.12);
     color: var(--text-secondary);
     border: 1px solid rgba(170, 170, 170, 0.25);
 }
-
 .status-badge__dot {
     width: 6px;
     height: 6px;
@@ -460,9 +316,34 @@
     background-color: currentColor;
 }
 
-/* --------------------------------------------------------------------------
-   Action Buttons
-   -------------------------------------------------------------------------- */
+/* Order status colours */
+.status-badge--pending {
+    background-color: rgba(255, 193, 7, 0.15);
+    color: #FFC107;
+    border: 1px solid rgba(255, 193, 7, 0.3);
+}
+.status-badge--processing {
+    background-color: rgba(33, 150, 243, 0.15);
+    color: #2196F3;
+    border: 1px solid rgba(33, 150, 243, 0.3);
+}
+.status-badge--shipped {
+    background-color: rgba(156, 39, 176, 0.15);
+    color: #9C27B0;
+    border: 1px solid rgba(156, 39, 176, 0.3);
+}
+.status-badge--delivered {
+    background-color: rgba(82, 177, 53, 0.15);
+    color: #52B135;
+    border: 1px solid rgba(82, 177, 53, 0.3);
+}
+.status-badge--cancelled {
+    background-color: rgba(214, 69, 69, 0.15);
+    color: #D64545;
+    border: 1px solid rgba(214, 69, 69, 0.3);
+}
+
+/* Action buttons */
 .actions {
     display: inline-flex;
     align-items: center;
@@ -493,41 +374,12 @@
     outline-offset: 1px;
 }
 
-.actions__btn--toggle-active {
-    color: #52B135;
-}
-
-.actions__btn--toggle-active:hover {
-    background-color: rgba(82, 177, 53, 0.12);
-    color: #6BCB4A;
-}
-
-.actions__btn--toggle-inactive {
+.actions__btn--view {
     color: var(--text-secondary);
 }
-
-.actions__btn--toggle-inactive:hover {
-    background-color: rgba(170, 170, 170, 0.12);
-    color: var(--text-primary);
-}
-
-.actions__btn--edit {
-    opacity: 0.4;
-    cursor: not-allowed;
-}
-
-.actions__btn--edit:hover {
-    background-color: transparent;
-    color: var(--text-secondary);
-}
-
-.actions__btn--delete {
-    color: #D64545;
-}
-
-.actions__btn--delete:hover {
-    background-color: rgba(214, 69, 69, 0.12);
-    color: #E85D5D;
+.actions__btn--view:hover {
+    background-color: rgba(33, 150, 243, 0.12);
+    color: #2196F3;
 }
 
 .actions__btn-icon {
@@ -535,9 +387,7 @@
     height: 18px;
 }
 
-/* --------------------------------------------------------------------------
-   Pagination
-   -------------------------------------------------------------------------- */
+/* Pagination – same as products */
 .pagination {
     display: flex;
     align-items: center;
@@ -546,18 +396,15 @@
     flex-wrap: wrap;
     gap: 12px;
 }
-
 .pagination__info {
     font-size: 0.875rem;
     color: var(--text-secondary);
 }
-
 .pagination__controls {
     display: inline-flex;
     align-items: center;
     gap: 4px;
 }
-
 .pagination__btn {
     display: inline-flex;
     align-items: center;
@@ -575,33 +422,27 @@
     cursor: pointer;
     transition: var(--transition-smooth);
 }
-
 .pagination__btn:hover:not(:disabled) {
     background-color: var(--bg-card-hover);
     border-color: #666666;
 }
-
 .pagination__btn:focus-visible {
     outline: 2px solid var(--border-focus);
     outline-offset: 1px;
 }
-
 .pagination__btn--active {
     background-color: var(--btn-green);
     border-color: var(--btn-green);
     color: #FFFFFF;
 }
-
 .pagination__btn--active:hover {
     background-color: var(--btn-green-hover);
     border-color: var(--btn-green-hover);
 }
-
 .pagination__btn:disabled {
     opacity: 0.4;
     cursor: not-allowed;
 }
-
 .pagination__ellipsis {
     display: inline-flex;
     align-items: center;
@@ -613,10 +454,8 @@
     user-select: none;
 }
 
-/* --------------------------------------------------------------------------
-   States (Loading, Empty, Error)
-   -------------------------------------------------------------------------- */
-.admin-products__state {
+/* States */
+.admin-orders__state {
     display: none;
     flex-direction: column;
     align-items: center;
@@ -626,25 +465,21 @@
     gap: 12px;
     scroll-margin-top: calc(var(--admin-header-height, 65px) + 20px);
 }
-
-.admin-products__state--visible {
+.admin-orders__state--visible {
     display: flex;
 }
-
-.admin-products__state-icon {
+.admin-orders__state-icon {
     width: 48px;
     height: 48px;
     color: var(--text-secondary);
     opacity: 0.5;
 }
-
-.admin-products__state-text {
+.admin-orders__state-text {
     font-size: 1rem;
     color: var(--text-secondary);
     margin: 0;
 }
-
-.admin-products__spinner {
+.admin-orders__spinner {
     width: 40px;
     height: 40px;
     border: 3px solid var(--border-color);
@@ -652,14 +487,10 @@
     border-radius: 50%;
     animation: spinner-rotate 0.8s linear infinite;
 }
-
 @keyframes spinner-rotate {
-    to {
-        transform: rotate(360deg);
-    }
+    to { transform: rotate(360deg); }
 }
-
-.admin-products__retry-btn {
+.admin-orders__retry-btn {
     display: inline-flex;
     align-items: center;
     gap: 8px;
@@ -676,24 +507,19 @@
     transition: var(--transition-smooth);
     line-height: 1;
 }
-
-.admin-products__retry-btn:hover {
+.admin-orders__retry-btn:hover {
     background-color: var(--btn-green-hover);
 }
-
-.admin-products__retry-btn:focus-visible {
+.admin-orders__retry-btn:focus-visible {
     outline: 2px solid var(--border-focus);
     outline-offset: 2px;
 }
-
-.admin-products__retry-icon {
+.admin-orders__retry-icon {
     width: 16px;
     height: 16px;
 }
 
-/* --------------------------------------------------------------------------
-   Confirmation Modal
-   -------------------------------------------------------------------------- */
+/* Confirmation modal – reused from products */
 .confirm-modal {
     position: fixed;
     inset: 0;
@@ -702,17 +528,14 @@
     align-items: center;
     justify-content: center;
 }
-
 .confirm-modal[hidden] {
     display: none;
 }
-
 .confirm-modal__backdrop {
     position: absolute;
     inset: 0;
     background-color: rgba(0, 0, 0, 0.6);
 }
-
 .confirm-modal__dialog {
     position: relative;
     z-index: 1;
@@ -725,7 +548,6 @@
     max-width: 380px;
     box-sizing: border-box;
 }
-
 .confirm-modal__title {
     margin: 0 0 20px;
     font-size: 1rem;
@@ -733,13 +555,11 @@
     color: var(--text-primary);
     line-height: 1.4;
 }
-
 .confirm-modal__actions {
     display: flex;
     justify-content: flex-end;
     gap: 10px;
 }
-
 .confirm-modal__btn {
     padding: 9px 18px;
     border-radius: var(--radius-sm);
@@ -751,77 +571,63 @@
     transition: var(--transition-smooth);
     line-height: 1;
 }
-
 .confirm-modal__btn--cancel {
     background-color: transparent;
     border-color: var(--border-color);
     color: var(--text-primary);
 }
-
 .confirm-modal__btn--cancel:hover {
     background-color: var(--bg-card-hover);
 }
-
 .confirm-modal__btn--confirm {
     background-color: #D64545;
     color: #FFFFFF;
 }
-
 .confirm-modal__btn--confirm:hover {
     background-color: #E85D5D;
 }
-
 .confirm-modal__btn:focus-visible {
     outline: 2px solid var(--border-focus);
     outline-offset: 2px;
 }
 
-/* ==========================================================================
-   Responsive – Card view
-   ========================================================================== */
+/* Responsive – card view */
 @media (max-width: 768px) {
-    .admin-products {
+    .admin-orders {
         padding: 16px;
     }
-
-    .admin-products__header {
+    .admin-orders__header {
         flex-direction: column;
         align-items: stretch;
         gap: 12px;
     }
-
     .filters {
         flex-direction: column;
         align-items: stretch;
         gap: 12px;
     }
-
     .filters__search {
         max-width: none;
         width: 100%;
     }
-
     .filters__controls {
         width: 100%;
         justify-content: flex-start;
     }
-
     .filters__group {
         flex: 1;
     }
-
-    .filters__select {
+    .filters__select,
+    .filters__date-input {
         width: 100%;
     }
 
-    /* Trasforma la tabella in blocchi */
-    .admin-products__table-wrapper {
+    .admin-orders__table-wrapper {
         background: none;
         border: none;
         box-shadow: none;
         overflow: visible;
     }
-
     .data-table,
     .data-table__body,
     .data-table__row,
@@ -830,11 +636,9 @@
         width: 100%;
         box-sizing: border-box;
     }
-
     .data-table__head {
         display: none;
     }
-
     .data-table__row {
         background-color: var(--bg-card);
         border: 1px solid var(--border-color);
@@ -843,11 +647,9 @@
         padding: 12px;
         box-shadow: var(--shadow-card);
     }
-
     .data-table__row:hover {
         background-color: var(--bg-card-hover);
     }
-
     .data-table__cell {
         display: flex;
         align-items: baseline;
@@ -856,11 +658,9 @@
         border-bottom: 1px solid var(--border-color);
         font-size: 0.875rem;
     }
-
     .data-table__cell:last-child {
         border-bottom: none;
     }
-
     .data-table__cell::before {
         content: attr(data-label);
         font-weight: var(--weight-medium);
@@ -872,21 +672,12 @@
         white-space: nowrap;
         flex-shrink: 0;
     }
-
     .data-table__cell--actions::before {
         content: none;
     }
-
     .pagination {
         flex-direction: column;
         align-items: center;
-    }
-
-    /* FAB container si adatta */
-    .admin-fabs {
-        bottom: 20px;
-        right: 20px;
-        gap: 12px;
     }
 }
 
@@ -895,29 +686,8 @@
         width: 30px;
         height: 30px;
     }
-
     .actions__btn-icon {
         width: 16px;
         height: 16px;
-    }
-
-    .admin-fabs {
-        bottom: 16px;
-        right: 16px;
-        gap: 8px;
-    }
-
-    /* Nascondi il testo dei FAB, solo icona */
-    .admin-products__fab-text {
-        display: none;
-    }
-
-    .admin-products__fab {
-        padding: 12px;
-    }
-
-    .admin-products__fab-icon {
-        width: 20px;
-        height: 20px;
     }
 }
