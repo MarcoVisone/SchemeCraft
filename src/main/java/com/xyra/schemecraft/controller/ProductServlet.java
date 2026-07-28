@@ -10,6 +10,7 @@ import javax.servlet.annotation.WebServlet;
 import javax.servlet.http.*;
 
 import com.xyra.schemecraft.model.*;
+import com.xyra.schemecraft.service.AccountService;
 import com.xyra.schemecraft.service.CategoryService;
 import com.xyra.schemecraft.util.FileUploadUtils;
 import com.xyra.schemecraft.util.JsonUtils;
@@ -102,25 +103,6 @@ public class ProductServlet extends HttpServlet {
 
         if ("/register-download".equals(action)) {
             handleRegisterDownload(req, resp);
-            return;
-        }
-
-        AccountBean currentAccount = getAuthenticatedAccount(req);
-        if (currentAccount == null) {
-            handleUnauthorized(req, resp);
-            return;
-        }
-
-        switch (action) {
-            case "/create" -> handleCreateProduct(req, resp, currentAccount.getAccountId());
-            case "/update" -> handleUpdateProduct(req, resp, currentAccount.getAccountId());
-            case "/deactivate" -> handleDeactivateProduct(req, resp);
-            case "/add-image" -> handleAddImage(req, resp);
-            case "/remove-image" -> handleRemoveImage(req, resp);
-            case "/publish-version" -> handlePublishVersion(req, resp);
-            case "/assign-category" -> handleAssignCategory(req, resp);
-            case "/remove-category" -> handleRemoveCategory(req, resp);
-            default -> resp.sendError(HttpServletResponse.SC_METHOD_NOT_ALLOWED, "HTTP method not allowed for this endpoint.");
         }
     }
 
@@ -188,6 +170,28 @@ public class ProductServlet extends HttpServlet {
                 }
 
                 productJson.put("categories", categoriesArray);
+
+                try {
+                    List<ProductImageBean> images = productService.listImages(product.getProductId());
+                    if (images != null && !images.isEmpty()) {
+                        productJson.put("coverImagePath", images.get(0).getImagePath());
+                    }
+                } catch (Exception e) {
+                    logger.warn("Unable to retrieve images for product ID: {}", product.getProductId(), e);
+                }
+
+                try {
+                    AccountService accountService = new AccountService();
+                    AccountBean creator = accountService.getAccountById(product.getAccountId());
+                    if (creator != null) {
+                        productJson.put("creatorName", creator.getUsername());
+                        if (creator.getProfileImagePath() != null) {
+                            productJson.put("creatorAvatarPath", creator.getProfileImagePath());
+                        }
+                    }
+                } catch (Exception e) {
+                    logger.warn("Unable to retrieve creator info for account ID: {}", product.getAccountId(), e);
+                }
 
                 array.put(productJson);
             }
@@ -413,192 +417,6 @@ public class ProductServlet extends HttpServlet {
     // POST HANDLERS
     // =========================================================================
 
-    private void handleCreateProduct(HttpServletRequest req, HttpServletResponse resp, String accountId) throws IOException {
-        resp.setContentType("application/json");
-        PrintWriter out = resp.getWriter();
-        JSONObject jsonResponse = new JSONObject();
-
-        try {
-            ProductRequest request = parseProductRequest(req, accountId);
-            ProductBean createdProduct = productService.createProduct(request);
-
-            jsonResponse.put("success", true);
-            jsonResponse.put("message", "Product created successfully.");
-            // Uso di JsonUtils qui
-            jsonResponse.put("product", JsonUtils.serializeProduct(createdProduct));
-            out.print(jsonResponse.toString());
-
-        } catch (IllegalArgumentException e) {
-            sendErrorResponse(resp, HttpServletResponse.SC_BAD_REQUEST, e.getMessage());
-        } catch (ServiceException e) {
-            logger.error("Error creating product for account: {}", accountId, e);
-            sendErrorResponse(resp, HttpServletResponse.SC_INTERNAL_SERVER_ERROR, "Unable to create product.");
-        }
-    }
-
-    private void handleUpdateProduct(HttpServletRequest req, HttpServletResponse resp, String accountId) throws IOException {
-        resp.setContentType("application/json");
-        PrintWriter out = resp.getWriter();
-        JSONObject jsonResponse = new JSONObject();
-
-        String productId = req.getParameter("productId");
-
-        try {
-            ProductRequest request = parseProductRequest(req, accountId);
-            productService.updateProduct(productId, request);
-
-            jsonResponse.put("success", true);
-            jsonResponse.put("message", "Product updated successfully.");
-            out.print(jsonResponse.toString());
-
-        } catch (UnauthorizedActionException e) {
-            sendErrorResponse(resp, HttpServletResponse.SC_FORBIDDEN, e.getMessage());
-        } catch (IllegalArgumentException | EntityNotFoundException e) {
-            sendErrorResponse(resp, HttpServletResponse.SC_BAD_REQUEST, e.getMessage());
-        } catch (ServiceException e) {
-            logger.error("Error updating product: {}", productId, e);
-            sendErrorResponse(resp, HttpServletResponse.SC_INTERNAL_SERVER_ERROR, "Unable to update product.");
-        }
-    }
-
-    private void handleDeactivateProduct(HttpServletRequest req, HttpServletResponse resp) throws IOException {
-        resp.setContentType("application/json");
-        PrintWriter out = resp.getWriter();
-        JSONObject jsonResponse = new JSONObject();
-
-        String productId = req.getParameter("productId");
-
-        try {
-            productService.deactivateProduct(productId);
-            jsonResponse.put("success", true);
-            jsonResponse.put("message", "Product deactivated successfully.");
-            out.print(jsonResponse.toString());
-
-        } catch (EntityNotFoundException e) {
-            sendErrorResponse(resp, HttpServletResponse.SC_NOT_FOUND, e.getMessage());
-        } catch (IllegalArgumentException e) {
-            sendErrorResponse(resp, HttpServletResponse.SC_BAD_REQUEST, e.getMessage());
-        } catch (ServiceException e) {
-            logger.error("Error deactivating product: {}", productId, e);
-            sendErrorResponse(resp, HttpServletResponse.SC_INTERNAL_SERVER_ERROR, "Unable to deactivate product.");
-        }
-    }
-
-    private void handleAddImage(HttpServletRequest req, HttpServletResponse resp) throws IOException, ServletException {
-        resp.setContentType("application/json");
-        PrintWriter out = resp.getWriter();
-        JSONObject jsonResponse = new JSONObject();
-
-        String productId = req.getParameter("productId");
-
-        try {
-            String imagePath = FileUploadUtils.saveUploadedFile(req, "imageFile", "products");
-
-            if (imagePath == null || imagePath.isBlank()) {
-                imagePath = req.getParameter("imagePath");
-            }
-
-            if (imagePath == null || imagePath.isBlank()) {
-                sendErrorResponse(resp, HttpServletResponse.SC_BAD_REQUEST, "No image file or path provided.");
-                return;
-            }
-
-            Integer displayOrderParam = parseInteger(req.getParameter("displayOrder"));
-
-            ProductImageBean imageBean;
-            if (displayOrderParam != null) {
-                imageBean = productService.addImage(productId, imagePath, displayOrderParam);
-            } else {
-                imageBean = productService.addImage(productId, imagePath);
-            }
-
-            JSONObject imgObj = new JSONObject();
-            imgObj.put("imageId", imageBean.getImageId());
-            imgObj.put("productId", imageBean.getProductId());
-            imgObj.put("imagePath", imageBean.getImagePath());
-            imgObj.put("displayOrder", imageBean.getDisplayOrder());
-
-            jsonResponse.put("success", true);
-            jsonResponse.put("message", "Image uploaded and added successfully.");
-            jsonResponse.put("image", imgObj);
-            out.print(jsonResponse.toString());
-
-        } catch (IllegalArgumentException | EntityNotFoundException e) {
-            sendErrorResponse(resp, HttpServletResponse.SC_BAD_REQUEST, e.getMessage());
-        } catch (ServiceException e) {
-            logger.error("Error adding image to product: {}", productId, e);
-            sendErrorResponse(resp, HttpServletResponse.SC_BAD_REQUEST, e.getMessage());
-        }
-    }
-
-    private void handleRemoveImage(HttpServletRequest req, HttpServletResponse resp) throws IOException {
-        resp.setContentType("application/json");
-        PrintWriter out = resp.getWriter();
-        JSONObject jsonResponse = new JSONObject();
-
-        String imageId = req.getParameter("imageId");
-
-        try {
-            productService.removeImage(imageId);
-            jsonResponse.put("success", true);
-            jsonResponse.put("message", "Image removed successfully.");
-            out.print(jsonResponse.toString());
-
-        } catch (EntityNotFoundException e) {
-            sendErrorResponse(resp, HttpServletResponse.SC_NOT_FOUND, e.getMessage());
-        } catch (IllegalArgumentException e) {
-            sendErrorResponse(resp, HttpServletResponse.SC_BAD_REQUEST, e.getMessage());
-        } catch (ServiceException e) {
-            logger.error("Error removing image: {}", imageId, e);
-            sendErrorResponse(resp, HttpServletResponse.SC_INTERNAL_SERVER_ERROR, "Unable to remove image.");
-        }
-    }
-
-    private void handlePublishVersion(HttpServletRequest req, HttpServletResponse resp) throws IOException, ServletException {
-        resp.setContentType("application/json");
-        PrintWriter out = resp.getWriter();
-        JSONObject jsonResponse = new JSONObject();
-
-        String productId = req.getParameter("productId");
-        String versionStr = req.getParameter("version");
-        String minecraftVersion = req.getParameter("minecraftVersion");
-        String changelog = req.getParameter("changelog");
-
-        try {
-            String filePath = FileUploadUtils.saveUploadedFile(req, "schematicFile", "schematics");
-
-            if (filePath == null || filePath.isBlank()) {
-                filePath = req.getParameter("filePath");
-            }
-
-            if (filePath == null || filePath.isBlank()) {
-                sendErrorResponse(resp, HttpServletResponse.SC_BAD_REQUEST, "No schematic file or file path provided.");
-                return;
-            }
-
-            ProductVersionRequest request = new ProductVersionRequest(
-                    productId,
-                    versionStr,
-                    minecraftVersion,
-                    filePath,
-                    changelog
-            );
-
-            ProductVersionBean version = productService.publishVersion(request);
-
-            jsonResponse.put("success", true);
-            jsonResponse.put("message", "Version published successfully.");
-            jsonResponse.put("version", JsonUtils.serializeVersion(version));
-            out.print(jsonResponse.toString());
-
-        } catch (IllegalArgumentException | EntityNotFoundException e) {
-            sendErrorResponse(resp, HttpServletResponse.SC_BAD_REQUEST, e.getMessage());
-        } catch (ServiceException e) {
-            logger.error("Error publishing version for product: {}", productId, e);
-            sendErrorResponse(resp, HttpServletResponse.SC_INTERNAL_SERVER_ERROR, "Unable to publish version.");
-        }
-    }
-
     private void handleRegisterDownload(HttpServletRequest req, HttpServletResponse resp) throws IOException {
         resp.setContentType("application/json");
         PrintWriter out = resp.getWriter();
@@ -619,50 +437,6 @@ public class ProductServlet extends HttpServlet {
         } catch (ServiceException e) {
             logger.error("Error registering download for version: {}", versionId, e);
             sendErrorResponse(resp, HttpServletResponse.SC_INTERNAL_SERVER_ERROR, "Unable to register download.");
-        }
-    }
-
-    private void handleAssignCategory(HttpServletRequest req, HttpServletResponse resp) throws IOException {
-        resp.setContentType("application/json");
-        PrintWriter out = resp.getWriter();
-        JSONObject jsonResponse = new JSONObject();
-
-        String productId = req.getParameter("productId");
-        String categoryId = req.getParameter("categoryId");
-
-        try {
-            productService.assignCategory(productId, categoryId);
-            jsonResponse.put("success", true);
-            jsonResponse.put("message", "Category assigned successfully.");
-            out.print(jsonResponse.toString());
-
-        } catch (IllegalArgumentException | EntityNotFoundException e) {
-            sendErrorResponse(resp, HttpServletResponse.SC_BAD_REQUEST, e.getMessage());
-        } catch (ServiceException e) {
-            logger.error("Error assigning category {} to product {}", categoryId, productId, e);
-            sendErrorResponse(resp, HttpServletResponse.SC_INTERNAL_SERVER_ERROR, "Unable to assign category.");
-        }
-    }
-
-    private void handleRemoveCategory(HttpServletRequest req, HttpServletResponse resp) throws IOException {
-        resp.setContentType("application/json");
-        PrintWriter out = resp.getWriter();
-        JSONObject jsonResponse = new JSONObject();
-
-        String productId = req.getParameter("productId");
-        String categoryId = req.getParameter("categoryId");
-
-        try {
-            productService.removeCategory(productId, categoryId);
-            jsonResponse.put("success", true);
-            jsonResponse.put("message", "Category removed successfully.");
-            out.print(jsonResponse.toString());
-
-        } catch (IllegalArgumentException | EntityNotFoundException e) {
-            sendErrorResponse(resp, HttpServletResponse.SC_BAD_REQUEST, e.getMessage());
-        } catch (ServiceException e) {
-            logger.error("Error removing category {} from product {}", categoryId, productId, e);
-            sendErrorResponse(resp, HttpServletResponse.SC_INTERNAL_SERVER_ERROR, "Unable to remove category.");
         }
     }
 
