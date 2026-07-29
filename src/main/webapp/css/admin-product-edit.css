@@ -1,0 +1,304 @@
+/* ==========================================================================
+   Admin Product Edit - Version Management Styles
+   ========================================================================== */
+
+/* --------------------------------------------------------------------------
+   Version Cards
+   -------------------------------------------------------------------------- */
+.version-card {
+    background: var(--bg-input);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-sm);
+    padding: 1rem;
+    margin-bottom: 0.75rem;
+    transition: var(--transition-smooth);
+}
+
+.version-card:hover {
+    border-color: var(--text-secondary);
+}
+
+.version-card__header {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem 1rem;
+    align-items: center;
+    margin-bottom: 0.25rem;
+}
+
+.version-card__version {
+    font-weight: var(--weight-medium);
+    color: var(--text-primary);
+}
+
+.version-card__mc {
+    color: var(--text-secondary);
+    font-size: 0.85rem;
+}
+
+.version-card__badge {
+    font-size: 0.75rem;
+    color: var(--text-secondary);
+    background: var(--bg-card);
+    padding: 0.15rem 0.5rem;
+    border-radius: 4px;
+    border: 1px solid var(--border-color);
+}
+
+.version-card__changelog {
+    font-size: 0.85rem;
+    color: var(--text-secondary);
+    margin-top: 0.25rem;
+}
+
+.version-card__actions {
+    margin-top: 0.5rem;
+    display: flex;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+}
+
+.version-card__actions .btn {
+    padding: 0.25rem 0.75rem;
+    font-size: 0.8rem;
+}
+
+/* --------------------------------------------------------------------------
+   Buttons
+   -------------------------------------------------------------------------- */
+.btn--danger {
+    background: #D64545;
+    border-color: #D64545;
+    color: #fff;
+}
+
+.btn--danger:hover {
+    background: #E85D5D;
+    border-color: #E85D5D;
+}
+
+.btn--success {
+    background: var(--btn-green);
+    border-color: var(--btn-green);
+    color: #fff;
+}
+
+.btn--success:hover {
+    background: var(--btn-green-hover);
+    border-color: var(--btn-green-hover);
+}
+
+/* --------------------------------------------------------------------------
+   Versions Section
+   -------------------------------------------------------------------------- */
+.versions-section {
+    margin-top: 1.5rem;
+    padding-top: 1.5rem;
+    border-top: 1px solid var(--border-color);
+}
+
+.versions-section__title {
+    font-size: 1rem;
+    font-weight: var(--weight-medium);
+    margin-bottom: 0.75rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.versions-section__title .badge-count {
+    background: var(--bg-input);
+    color: var(--text-secondary);
+    font-size: 0.75rem;
+    padding: 0.1rem 0.6rem;
+    border-radius: 999px;
+    border: 1px solid var(--border-color);
+}
+
+.versions-empty {
+    color: var(--text-secondary);
+    font-size: 0.9rem;
+    padding: 0.5rem 0;
+}
+
+/* --------------------------------------------------------------------------
+   New Version Form
+   -------------------------------------------------------------------------- */
+.new-version-form {
+    background: var(--bg-input);
+    border: 1px dashed var(--border-color);
+    border-radius: var(--radius-sm);
+    padding: 1rem;
+    margin-top: 0.75rem;
+    display: none;
+}
+
+.new-version-form.visible {
+    display: block;
+}
+
+.new-version-form .form-grid {
+    grid-template-columns: 1fr 1fr;
+    gap: 0.75rem;
+}
+
+.new-version-form .form-group {
+    margin-bottom: 0.75rem;
+}
+
+.new-version-form .form-group.full-width {
+    grid-column: span 2;
+}
+
+/* --------------------------------------------------------------------------
+   Schematic Upload Zone (within new version form)
+   -------------------------------------------------------------------------- */
+.new-version-form .schematic-upload-zone {
+    border: 2px dashed var(--border-color);
+    background-color: var(--bg-card);
+    border-radius: var(--radius-sm);
+    padding: 1rem;
+    text-align: center;
+    cursor: pointer;
+    transition: var(--transition-smooth);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.75rem;
+}
+
+.new-version-form .schematic-upload-zone:hover {
+    border-color: var(--btn-green-hover);
+    background-color: rgba(82, 177, 53, 0.04);
+}
+
+.new-version-form .schematic-upload-zone.dragover {
+    border-color: var(--btn-green-hover);
+    background-color: rgba(82, 177, 53, 0.08);
+}
+
+.new-version-form .schematic-file-info {
+    display: none;
+    margin-top: 0.5rem;
+    background: var(--bg-card);
+    padding: 0.5rem 0.75rem;
+    border-radius: var(--radius-sm);
+    border: 1px solid var(--border-focus);
+    font-size: 0.85rem;
+    color: var(--text-primary);
+}
+
+.new-version-form .schematic-file-info.visible {
+    display: block;
+}
+
+.new-version-form .schematic-file-info .file-name {
+    font-weight: var(--weight-medium);
+}
+
+.new-version-form .schematic-file-info .file-size {
+    color: var(--text-secondary);
+    margin-left: 0.5rem;
+    font-size: 0.75rem;
+}
+
+/* --------------------------------------------------------------------------
+   Toast Notifications (replaces native browser alert())
+   -------------------------------------------------------------------------- */
+.toast {
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-left: 4px solid #D64545;
+    border-radius: var(--radius-sm);
+    padding: 0.75rem 1rem;
+    color: var(--text-primary);
+    font-size: 0.85rem;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
+    opacity: 1;
+    transform: translateX(0);
+    transition: opacity 0.3s ease, transform 0.3s ease;
+    max-width: 320px;
+}
+
+.toast--success {
+    border-left-color: var(--btn-green);
+}
+
+.toast--hide {
+    opacity: 0;
+    transform: translateX(20px);
+}
+
+/* --------------------------------------------------------------------------
+   Confirmation Modal (replaces native browser confirm())
+   -------------------------------------------------------------------------- */
+.confirm-modal {
+    position: fixed;
+    inset: 0;
+    z-index: 10000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.confirm-modal[hidden] {
+    display: none;
+}
+
+.confirm-modal__backdrop {
+    position: absolute;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.55);
+}
+
+.confirm-modal__box {
+    position: relative;
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-sm);
+    padding: 1.25rem;
+    max-width: 380px;
+    width: 90%;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+}
+
+.confirm-modal__title {
+    color: var(--text-primary);
+    font-size: 0.95rem;
+    line-height: 1.4;
+    margin: 0 0 1rem 0;
+}
+
+.confirm-modal__actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 0.5rem;
+}
+
+/* --------------------------------------------------------------------------
+   Responsive
+   -------------------------------------------------------------------------- */
+@media screen and (max-width: 640px) {
+    .new-version-form .form-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .new-version-form .form-group.full-width {
+        grid-column: span 1;
+    }
+
+    .version-card__header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 0.25rem;
+    }
+
+    .version-card__actions {
+        width: 100%;
+    }
+
+    .version-card__actions .btn {
+        flex: 1;
+        justify-content: center;
+    }
+}

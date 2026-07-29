@@ -4,11 +4,8 @@ import com.xyra.schemecraft.connection.ConnectionPool;
 import com.xyra.schemecraft.constant.ServiceConstants;
 import com.xyra.schemecraft.dao.*;
 import com.xyra.schemecraft.dto.*;
-import com.xyra.schemecraft.exception.DAOException;
-import com.xyra.schemecraft.exception.ServiceException;
-import com.xyra.schemecraft.exception.UnauthorizedActionException;
+import com.xyra.schemecraft.exception.*;
 import com.xyra.schemecraft.model.*;
-import com.xyra.schemecraft.exception.EntityNotFoundException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -16,6 +13,7 @@ import java.math.BigDecimal;
 import java.sql.Connection;
 import java.sql.SQLException;
 import java.util.*;
+import java.util.stream.Collectors;
 
 public class ProductService {
     private static final Logger logger = LoggerFactory.getLogger(ReviewService.class);
@@ -27,6 +25,7 @@ public class ProductService {
     private final ProductCategoryDAO productCategoryDAO;
     private final AccountProductDAO accountProductDAO;
     private final CategoryDAO categoryDAO;
+    private final CurrencyDAO currencyDAO;
 
     public ProductService(){
         this.productDAO = new ProductDAO();
@@ -36,6 +35,7 @@ public class ProductService {
         this.productCategoryDAO = new ProductCategoryDAO();
         this.accountProductDAO = new AccountProductDAO();
         this.categoryDAO = new CategoryDAO();
+        this.currencyDAO = new CurrencyDAO();
     }
 
     public ProductBean getProductById(String rawProductId) {
@@ -496,8 +496,19 @@ public class ProductService {
         String productId = rawProductId == null ? null : rawProductId.trim();
 
         try (Connection conn = ConnectionPool.getConnection()) {
-            return categoryDAO.findCategoriesByProductId(conn, productId);
+            return listCategories_(conn, productId);
         } catch (SQLException | DAOException e) {
+            logger.error("Error retrieving categories for product {}", productId, e);
+            throw new ServiceException("Unable to retrieve product categories", e);
+        }
+    }
+
+
+    private List<CategoryBean> listCategories_(Connection conn, String rawProductId) {
+        String productId = rawProductId == null ? null : rawProductId.trim();
+        try {
+            return categoryDAO.findCategoriesByProductId(conn, productId);
+        } catch (DAOException e) {
             logger.error("Error retrieving categories for product {}", productId, e);
             throw new ServiceException("Unable to retrieve product categories", e);
         }
@@ -648,6 +659,319 @@ public class ProductService {
         }
     }
 
+
+    /**
+     * Updates an existing product in a single atomic operation: base product data,
+     * categories (full sync), images (full sync), and versions (full sync).
+     *
+     * @param request Full update request containing all product data
+     * @throws ServiceException if a database or system error occurs
+     * @throws EntityNotFoundException if the product or any referenced entity does not exist
+     * @throws IllegalArgumentException if validation fails
+     */
+    public void updateFullProduct(ProductFullUpdateRequest request)
+            throws ServiceException, EntityNotFoundException, IllegalArgumentException {
+
+        if (request == null) {
+            throw new IllegalArgumentException("Product full update request cannot be null");
+        }
+
+        String productId = request.productId().trim();
+        ProductRequest productRequest = request.product();
+        List<String> categoryIds = request.categoryIds();
+        List<String> imagePaths = request.imagePaths();
+        List<VersionUpdateRequest> versionsRequest = request.versions();
+
+        String currencyId = productRequest.currencyId() == null ? null : productRequest.currencyId().trim();
+
+        if (currencyId == null || currencyId.isBlank()) {
+            throw new IllegalArgumentException("Currency ID cannot be null or blank");
+        }
+
+        try (Connection conn = ConnectionPool.getConnection()) {
+            try {
+                conn.setAutoCommit(false);
+
+                ProductBean existingProduct = entityValidator.rawValidateProduct(conn, productId);
+
+                // Step 2: validate referenced entities (currency, categories, and potentially accounts)
+                // Note: account ID is not being changed, so we skip account validation
+                entityValidator.validateActiveCurrency(conn, currencyId);
+                for (String categoryId : categoryIds) {
+                    String trimmed = categoryId == null ? null : categoryId.trim();
+                    if (trimmed == null || trimmed.isBlank()) {
+                        throw new IllegalArgumentException("Category ID cannot be null or blank");
+                    }
+                    entityValidator.validateActiveCategory(conn, trimmed);
+                }
+
+                // Step 3: update base product data
+                BigDecimal discount = productRequest.discount() != null ? productRequest.discount() : BigDecimal.ZERO;
+
+                ProductBean updatedProduct = new ProductBean();
+                updatedProduct.setProductId(productId);
+                updatedProduct.setAccountId(existingProduct.getAccountId()); // preserve original owner
+                updatedProduct.setCurrencyId(currencyId);
+                updatedProduct.setProductName(productRequest.productName());
+                updatedProduct.setDescription(productRequest.description());
+                updatedProduct.setPrice(productRequest.price());
+                updatedProduct.setDiscount(discount);
+                updatedProduct.setStockQuantity(productRequest.stockQuantity());
+                // Preserve aggregated fields
+                updatedProduct.setTotalDownloads(existingProduct.getTotalDownloads());
+                updatedProduct.setTotalReviews(existingProduct.getTotalReviews());
+                updatedProduct.setAverageRating(existingProduct.getAverageRating());
+                updatedProduct.setActive(existingProduct.isActive());
+
+                productDAO.update(conn, updatedProduct);
+
+                // Step 4: full sync of categories (delete all + re-insert)
+                productCategoryDAO.deleteAllByProductId(conn, productId);
+                for (String categoryId : categoryIds) {
+                    String trimmed = categoryId.trim();
+                    try {
+                        productCategoryDAO.insert(conn, new ProductCategoryBean(trimmed, productId));
+                    } catch (DuplicateEntityException e) {
+                        logger.debug("Category {} already linked to product {} (likely via parent chain expansion), skipping",
+                                trimmed, productId);
+                    }
+                }
+
+                // Step 5: full sync of images (delete all + re-insert with display order)
+                productImageDAO.deleteAllByProductId(conn, productId);
+                int displayOrder = 0;
+                for (String imagePath : imagePaths) {
+                    String trimmed = imagePath.trim();
+                    if (trimmed.isBlank()) {
+                        throw new IllegalArgumentException("Image path cannot be blank");
+                    }
+                    ProductImageBean image = new ProductImageBean(
+                            UUID.randomUUID().toString(), productId, trimmed, displayOrder);
+                    productImageDAO.insert(conn, image);
+                    displayOrder++;
+                }
+
+                // Step 6: full sync of versions (update/insert/delete)
+                List<ProductVersionBean> existingVersions = productVersionDAO.findAllByProductId(conn, productId);
+
+                // Build a map of existing versions by ID for quick lookup
+                Map<String, ProductVersionBean> existingVersionMap = existingVersions.stream()
+                        .collect(Collectors.toMap(
+                                ProductVersionBean::getVersionId,
+                                v -> v,
+                                (v1, v2) -> v1 // In case of duplicates, keep the first
+                        ));
+
+                // Track which version IDs are kept (to identify deletions)
+                Set<String> keptVersionIds = new HashSet<>();
+
+                // Process each version from the request
+                for (VersionUpdateRequest versionRequestItem : versionsRequest) {
+                    String version = versionRequestItem.version() != null ? versionRequestItem.version().trim() : null;
+                    String minecraftVersion = versionRequestItem.minecraftVersion() != null
+                            ? versionRequestItem.minecraftVersion().trim()
+                            : null;
+                    String filePath = versionRequestItem.filePath() != null
+                            ? versionRequestItem.filePath().trim()
+                            : null;
+                    String changelog = versionRequestItem.changelog() != null
+                            ? versionRequestItem.changelog().trim()
+                            : null;
+
+                    if (version == null || version.isBlank()) {
+                        throw new IllegalArgumentException("Version string cannot be null or blank");
+                    }
+                    if (filePath == null || filePath.isBlank()) {
+                        throw new IllegalArgumentException("File path cannot be null or blank");
+                    }
+
+                    String versionId = versionRequestItem.versionId() != null
+                            ? versionRequestItem.versionId().trim()
+                            : null;
+
+                    if (versionId == null || versionId.isBlank()) {
+                        // Step 6a: new version (insert)
+                        ProductVersionBean newVersion = new ProductVersionBean();
+                        newVersion.setVersionId(UUID.randomUUID().toString());
+                        newVersion.setProductId(productId);
+                        newVersion.setVersion(version);
+                        newVersion.setMinecraftVersion(minecraftVersion);
+                        newVersion.setFilePath(filePath);
+                        newVersion.setChangelog(changelog);
+                        newVersion.setDownloadCount(0);
+
+                        productVersionDAO.insert(conn, newVersion);
+                        // No need to track in keptVersionIds since it wasn't existing
+                    } else {
+                        // Step 6b: existing version (update)
+                        ProductVersionBean existingVersion = existingVersionMap.get(versionId);
+                        if (existingVersion == null) {
+                            throw new EntityNotFoundException(
+                                    "Version not found with ID: " + versionId + " for product: " + productId
+                            );
+                        }
+
+                        existingVersion.setVersion(version);
+                        existingVersion.setMinecraftVersion(minecraftVersion);
+                        existingVersion.setFilePath(filePath);
+                        existingVersion.setChangelog(changelog);
+                        // download_count and created_at remain unchanged
+
+                        productVersionDAO.update(conn, existingVersion);
+                        keptVersionIds.add(versionId);
+                    }
+                }
+
+                // Step 6c: delete versions that were not kept
+                if (versionsRequest.isEmpty()) {
+                    throw new IllegalArgumentException(
+                            "Cannot remove all versions of product: " + productId + " — at least one version is required"
+                    );
+                }
+
+                boolean hasDeletedVersionWithDownloads = false;
+                for (ProductVersionBean existingVersion : existingVersions) {
+                    if (!keptVersionIds.contains(existingVersion.getVersionId())) {
+                        // If version has downloads, track for total_downloads recalculation
+                        if (existingVersion.getDownloadCount() > 0) {
+                            hasDeletedVersionWithDownloads = true;
+                        }
+
+                        productVersionDAO.delete(conn, existingVersion.getVersionId());
+                    }
+                }
+
+                // Step 7: the account_product association remains unchanged
+                // (ownership is preserved, admin is not modifying it)
+
+                conn.commit();
+
+                logger.info("Product successfully updated with ID: {} ({}. categories, {} images, {} versions managed)",
+                        productId, categoryIds.size(), imagePaths.size(), versionsRequest.size());
+
+            } catch (SQLException | DAOException | IllegalArgumentException e) {
+                try {
+                    conn.rollback();
+                } catch (SQLException rollbackEx) {
+                    logger.error("Failed to rollback full product update transaction for product {}: {}",
+                            productId, rollbackEx.getMessage(), rollbackEx);
+                    throw new ServiceException("Error while updating full product and failed to rollback", rollbackEx);
+                }
+                logger.error("Error while updating full product {}: {}", productId, e.getMessage(), e);
+                throw e;
+            } finally {
+                try {
+                    conn.setAutoCommit(true);
+                } catch (SQLException e) {
+                    logger.error("Failed to reset auto-commit for product {}: {}", productId, e.getMessage(), e);
+                }
+            }
+        } catch (SQLException e) {
+            logger.error("Database connection error while updating full product {}: {}",
+                    productId, e.getMessage(), e);
+            throw new ServiceException("Database connection error while updating full product", e);
+        }
+    }
+
+
+    /**
+     * Retrieves the Currency associated with a given Product, resolved via a single
+     * JOIN query rather than two separate lookups.
+     *
+     * @param rawProductId ID of the product whose currency is being requested
+     * @return The CurrencyBean linked to the product
+     * @throws IllegalArgumentException if the productId is null or blank
+     * @throws EntityNotFoundException  if no product exists for the given ID
+     * @throws ServiceException         if a database error occurs
+     */
+    public CurrencyBean getProductCurrency(String rawProductId) {
+        String productId = rawProductId == null ? null : rawProductId.trim();
+        if (productId == null || productId.isBlank()) {
+            throw new IllegalArgumentException("Product ID cannot be null or blank");
+        }
+
+        try (Connection conn = ConnectionPool.getConnection()) {
+            return currencyDAO.findByProductId(conn, productId).orElseThrow(() -> {
+                logger.warn("Currency lookup failed: no Product found for ID: {}", productId);
+                return new EntityNotFoundException("Product not found for ID: " + productId,
+                        EntityNotFoundException.EntityType.PRODUCT);
+            });
+        } catch (SQLException | DAOException e) {
+            logger.error("Database error while fetching currency for Product: {}", productId, e);
+            throw new ServiceException("Error while fetching product currency", e);
+        }
+    }
+
+    /**
+     * Retrieves complete product data including categories, images, and versions.
+     *
+     * @param productId the product ID
+     * @return ProductFullBean containing all product data
+     * @throws EntityNotFoundException if product does not exist
+     * @throws ServiceException if a database error occurs
+     */
+    public ProductFullBean getProductFull(String productId)
+            throws ServiceException, EntityNotFoundException {
+
+        if (productId == null || productId.trim().isEmpty()) {
+            throw new IllegalArgumentException("Product ID cannot be null or empty");
+        }
+
+        try (Connection conn = ConnectionPool.getConnection()) {
+            try {
+                conn.setAutoCommit(false);
+
+                // Step 1: Retrieve product
+                ProductBean product = entityValidator.rawValidateProduct(conn, productId);
+
+                // Step 2: Retrieve categories
+                List<CategoryBean> categories = listCategories_(conn, productId);
+                if (categories == null) {
+                    categories = new ArrayList<>();
+                }
+
+                // Step 3: Retrieve images
+                List<ProductImageBean> images = productImageDAO.findAllByProductId(conn, productId);
+                List<String> imagePaths = new ArrayList<>();
+                if (images != null) {
+                    // Sort by display_order (should already be sorted by DAO, but just in case)
+                    images.sort((a, b) -> Integer.compare(a.getDisplayOrder(), b.getDisplayOrder()));
+                    for (ProductImageBean image : images) {
+                        imagePaths.add(image.getImagePath());
+                    }
+                }
+
+                // Step 4: Retrieve versions
+                List<ProductVersionBean> versions = productVersionDAO.findAllByProductId(conn, productId);
+                if (versions == null) {
+                    versions = new ArrayList<>();
+                }
+
+                conn.commit();
+
+                // Build and return the full bean
+                return new ProductFullBean(product, categories, imagePaths, versions);
+
+            } catch (SQLException | DAOException e) {
+                try {
+                    conn.rollback();
+                } catch (SQLException rollbackEx) {
+                    logger.error("Failed to rollback getProductFull transaction: {}", rollbackEx.getMessage());
+                }
+                logger.error("Error retrieving full product data for ID {}: {}", productId, e.getMessage(), e);
+                throw new ServiceException("Error retrieving product data", e);
+            } finally {
+                try {
+                    conn.setAutoCommit(true);
+                } catch (SQLException e) {
+                    logger.error("Failed to reset auto-commit: {}", e.getMessage());
+                }
+            }
+        } catch (SQLException e) {
+            logger.error("Database connection error while retrieving product {}: {}", productId, e.getMessage());
+            throw new ServiceException("Database connection error", e);
+        }
+    }
 
     public List<OwnedProductItem> listOwnedProducts(String rawAccountId) {
         String accountId = rawAccountId == null ? null : rawAccountId.trim();

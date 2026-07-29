@@ -137,6 +137,50 @@ public final class JsonUtils {
         return obj;
     }
 
+    public static JSONObject serializeProductFull(ProductFullBean bean) {
+        if (bean == null) {
+            return new JSONObject();
+        }
+
+        JSONObject obj = new JSONObject();
+
+        // Serialize product (base data)
+        if (bean.product() != null) {
+            obj.put("product", serializeProduct(bean.product()));
+        } else {
+            obj.put("product", JSONObject.NULL);
+        }
+
+        // Serialize categories
+        JSONArray categoriesArray = new JSONArray();
+        if (bean.categories() != null) {
+            for (CategoryBean cat : bean.categories()) {
+                categoriesArray.put(serializeCategory(cat));
+            }
+        }
+        obj.put("categories", categoriesArray);
+
+        // Serialize image paths (as plain strings)
+        JSONArray imagePathsArray = new JSONArray();
+        if (bean.imagePaths() != null) {
+            for (String path : bean.imagePaths()) {
+                imagePathsArray.put(path);
+            }
+        }
+        obj.put("imagePaths", imagePathsArray);
+
+        // Serialize versions
+        JSONArray versionsArray = new JSONArray();
+        if (bean.versions() != null) {
+            for (ProductVersionBean version : bean.versions()) {
+                versionsArray.put(serializeVersion(version));
+            }
+        }
+        obj.put("versions", versionsArray);
+
+        return obj;
+    }
+
     public static JSONObject serializeOrderStatus(OrderStatusBean status) {
         if (status == null) {
             return new JSONObject();
@@ -328,6 +372,8 @@ public final class JsonUtils {
             return serializeOrderStatus(osb);
         } else if (item instanceof OrderDetailDTO odd) {
             return serializeOrderDetail(odd);
+        } else if (item instanceof ProductFullBean prf) {
+            return serializeProductFull(prf);
         } else {
             return item;
         }

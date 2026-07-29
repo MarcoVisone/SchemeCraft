@@ -370,9 +370,11 @@
                     <button class="actions__btn ${toggleClass}" data-action="toggle" data-id="${id}" data-active="${isActive}" title="${toggleTitle}" type="button">
                         <img src="${toggleIconPath}" alt="${toggleTitle}" class="actions__btn-icon" />
                     </button>
-                    <button class="actions__btn actions__btn--edit" title="Coming soon" type="button" disabled>
+                    <a href="${CTX}/admin/products/edit?productId=${id}" 
+                       class="actions__btn actions__btn--edit" 
+                       title="Edit product">
                         <img src="${CTX}/icons/command_block_edit.gif" alt="Edit product" class="actions__btn-icon" />
-                    </button>
+                    </a>
                 </div>
             </td>
         </tr>

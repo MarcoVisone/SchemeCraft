@@ -22,6 +22,7 @@ import com.xyra.schemecraft.service.*;
 import com.xyra.schemecraft.util.FileUploadUtils;
 import com.xyra.schemecraft.util.ServletUtils;
 import org.json.JSONArray;
+import org.json.JSONException;
 import org.json.JSONObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -98,11 +99,13 @@ public class AdminServlet extends HttpServlet {
                     req.getRequestDispatcher("/WEB-INF/admin/products.jsp").forward(req, resp);
             case "/products/new" ->
                     req.getRequestDispatcher("/WEB-INF/admin/product_new.jsp").forward(req, resp);
+            case "/products/edit" -> handleEditProductPage(req, resp);
             case "/products/categories" ->
                     req.getRequestDispatcher("/WEB-INF/admin/product_categories.jsp").forward(req, resp);
             case "/orders" ->
                     req.getRequestDispatcher("/WEB-INF/admin/orders.jsp").forward(req, resp);
             case "/products/list" -> handleListProducts(req, resp);
+            case "/products/get" -> handleGetProduct(req, resp);
             case "/orders/list" -> handleListOrders(req, resp);
             case "/orders/statuses" -> handleListOrderStatuses(req, resp);
             case "/users/list" -> handleListUsers(req, resp);
@@ -124,11 +127,12 @@ public class AdminServlet extends HttpServlet {
         switch (action) {
             case "/products/create" -> handleCreateProduct(req, resp);
             case "/products/create-full" -> handleCreateFullProduct(req, resp);
-            case "/upload/image" -> handleUploadImage(req, resp);
-            case "/upload/schematic" -> handleUploadSchematic(req, resp);
+            case "/products/update-full" -> handleUpdateFullProduct(req, resp);
             case "/products/update" -> handleUpdateProduct(req, resp);
             case "/products/delete" -> handleDeleteProduct(req, resp);
             case "/products/activate" -> handleActivateProduct(req, resp);
+            case "/upload/image" -> handleUploadImage(req, resp);
+            case "/upload/schematic" -> handleUploadSchematic(req, resp);
             case "/users/deactivate" -> handleDeactivateUser(req, resp);
             case "/users/reactivate" -> handleReactivateUser(req, resp);
             case "/categories/create" -> handleCreateCategory(req, resp);
@@ -175,6 +179,19 @@ public class AdminServlet extends HttpServlet {
             logger.error("Error retrieving products list for admin", e);
             JsonUtils.sendError(resp, "Unable to retrieve products list.", HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
         }
+    }
+
+    private void handleEditProductPage(HttpServletRequest req, HttpServletResponse resp)
+            throws ServletException, IOException {
+
+        String productId = req.getParameter("productId");
+        if (productId == null || productId.trim().isEmpty()) {
+            resp.sendError(HttpServletResponse.SC_BAD_REQUEST, "Missing productId parameter.");
+            return;
+        }
+
+        req.setAttribute("productId", productId.trim());
+        req.getRequestDispatcher("/WEB-INF/admin/product_edit.jsp").forward(req, resp);
     }
 
     private ProductSearchCriteria createCriteria(String keywords, String pageParam, String pageSizeParam) {
@@ -390,7 +407,7 @@ public class AdminServlet extends HttpServlet {
 
             JsonUtils.sendSuccessWithData(resp, "Product fully created successfully.", "product", createdProduct);
 
-        } catch (org.json.JSONException e) {
+        } catch (JSONException e) {
             JsonUtils.sendError(resp, "Invalid or incomplete request payload.", HttpServletResponse.SC_BAD_REQUEST);
         } catch (IllegalArgumentException e) {
             JsonUtils.sendError(resp, e.getMessage(), HttpServletResponse.SC_BAD_REQUEST);
@@ -400,6 +417,131 @@ public class AdminServlet extends HttpServlet {
         }
     }
 
+    /**
+     * Handles POST /admin/products/update-full
+     * Updates an existing product completely: base data, categories, images, and versions.
+     * Expects JSON payload with productId, product, categoryIds, imagePaths, and versions array.
+     */
+    private void handleUpdateFullProduct(HttpServletRequest req, HttpServletResponse resp) throws IOException {
+        AccountBean adminAccount = getAuthenticatedAccount(req);
+        if (adminAccount == null) {
+            JsonUtils.sendError(resp, "Authentication required.", HttpServletResponse.SC_UNAUTHORIZED);
+            return;
+        }
+
+        try {
+            JSONObject body = JsonUtils.readJsonBody(req);
+
+            // Extract productId (required for update)
+            String productId = body.getString("productId");
+
+            // Extract product data
+            JSONObject productJson = body.getJSONObject("product");
+            BigDecimal price = productJson.getBigDecimal("price");
+            BigDecimal discount = productJson.has("discount") ? productJson.getBigDecimal("discount") : BigDecimal.ZERO;
+            boolean unlimitedStock = productJson.optBoolean("unlimitedStock", false);
+            Integer stockQuantity;
+
+            if (unlimitedStock) {
+                stockQuantity = null;
+            } else if (productJson.has("stockQuantity") && !productJson.isNull("stockQuantity")) {
+                stockQuantity = productJson.getInt("stockQuantity");
+            } else {
+                stockQuantity = 0;
+            }
+
+            ProductRequest productRequest = new ProductRequest(
+                    adminAccount.getAccountId(), // requesting admin (ownership preserved in service)
+                    productJson.getString("currencyId"),
+                    productJson.getString("productName"),
+                    productJson.optString("description", null),
+                    discount,
+                    price,
+                    stockQuantity,
+                    unlimitedStock
+            );
+
+            // Extract category IDs
+            List<String> categoryIds = new ArrayList<>();
+            JSONArray catArray = body.getJSONArray("categoryIds");
+            for (int i = 0; i < catArray.length(); i++) {
+                categoryIds.add(catArray.getString(i));
+            }
+
+            // Extract image paths
+            List<String> imagePaths = new ArrayList<>();
+            JSONArray imgArray = body.getJSONArray("imagePaths");
+            for (int i = 0; i < imgArray.length(); i++) {
+                imagePaths.add(imgArray.getString(i));
+            }
+
+            // Extract versions (MULTIPLE, unlike create which has single version)
+            List<VersionUpdateRequest> versions = new ArrayList<>();
+            JSONArray verArray = body.getJSONArray("versions");
+            for (int i = 0; i < verArray.length(); i++) {
+                JSONObject v = verArray.getJSONObject(i);
+
+                String versionId = v.has("versionId") && !v.isNull("versionId")
+                        ? v.getString("versionId")
+                        : null;
+                String version = v.getString("version");
+                String minecraftVersion = v.optString("minecraftVersion", null);
+                String filePath = v.getString("filePath");
+                String changelog = v.optString("changelog", null);
+
+                VersionUpdateRequest versionRequest = new VersionUpdateRequest(
+                        versionId,
+                        version,
+                        minecraftVersion,
+                        filePath,
+                        changelog
+                );
+                versions.add(versionRequest);
+            }
+
+            // Build the full update request
+            ProductFullUpdateRequest updateRequest = new ProductFullUpdateRequest(
+                    productId,
+                    productRequest,
+                    categoryIds,
+                    imagePaths,
+                    versions
+            );
+
+            // Execute the update
+            productService.updateFullProduct(updateRequest);
+
+            JsonUtils.sendSuccess(resp, "Product updated successfully.");
+
+        } catch (JSONException e) {
+            JsonUtils.sendError(resp, "Invalid or incomplete request payload.", HttpServletResponse.SC_BAD_REQUEST);
+        } catch (IllegalArgumentException e) {
+            JsonUtils.sendError(resp, e.getMessage(), HttpServletResponse.SC_BAD_REQUEST);
+        } catch (EntityNotFoundException e) {
+            JsonUtils.sendError(resp, e.getMessage(), HttpServletResponse.SC_NOT_FOUND);
+        } catch (ServiceException e) {
+            logger.error("Error updating full product by admin {}", adminAccount.getAccountId(), e);
+            JsonUtils.sendError(resp, "Unable to update product.", HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
+        }
+    }
+
+    private void handleGetProduct(HttpServletRequest req, HttpServletResponse resp) throws IOException {
+        String productId = req.getParameter("productId");
+        if (isNullOrBlank(productId)) {
+            JsonUtils.sendError(resp, "Missing productId parameter.", HttpServletResponse.SC_BAD_REQUEST);
+            return;
+        }
+
+        try {
+            ProductFullBean fullBean = productService.getProductFull(productId);
+            JsonUtils.sendSuccessWithData(resp, "Product retrieved successfully.", "product", fullBean);
+        } catch (EntityNotFoundException e) {
+            JsonUtils.sendError(resp, e.getMessage(), HttpServletResponse.SC_NOT_FOUND);
+        } catch (ServiceException e) {
+            logger.error("Error retrieving product full data for ID: {}", productId, e);
+            JsonUtils.sendError(resp, "Unable to retrieve product details.", HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
+        }
+    }
 
     // =========================================================================
     // FILE UPLOAD HANDLERS

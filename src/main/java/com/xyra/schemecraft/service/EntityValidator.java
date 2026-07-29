@@ -101,6 +101,15 @@ public class EntityValidator {
         return product;
     }
 
+    public ProductBean rawValidateProduct(Connection connection, String productId) throws SQLException {
+        ProductBean product = productDAO.findById(connection, productId).orElseThrow(() -> {
+            logger.error("Product not found for ID: {}", productId);
+            return new EntityNotFoundException("Product not found for ID: " + productId,
+                    EntityNotFoundException.EntityType.PRODUCT);
+        });
+        return product;
+    }
+
     public CategoryBean validateActiveCategory(Connection connection, String categoryId) throws SQLException {
         return categoryDAO.findById(connection, categoryId)
                 .orElseThrow(() -> new EntityNotFoundException("Category not found for ID: " + categoryId

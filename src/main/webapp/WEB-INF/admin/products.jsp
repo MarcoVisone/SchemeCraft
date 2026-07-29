@@ -164,5 +164,16 @@
     const CONTEXT_PATH = "${pageContext.request.contextPath}";
 </script>
 <script src="${pageContext.request.contextPath}/js/admin/products.js"></script>
+<!-- Confirmation Modal -->
+<div class="confirm-modal" id="confirm-modal" hidden>
+    <div class="confirm-modal__backdrop" id="confirm-modal-backdrop"></div>
+    <div class="confirm-modal__dialog" role="alertdialog" aria-modal="true" aria-labelledby="confirm-modal-title">
+        <p class="confirm-modal__title" id="confirm-modal-title">Are you sure?</p>
+        <div class="confirm-modal__actions">
+            <button type="button" class="confirm-modal__btn confirm-modal__btn--cancel" id="confirm-modal-cancel">Cancel</button>
+            <button type="button" class="confirm-modal__btn confirm-modal__btn--confirm" id="confirm-modal-confirm">Confirm</button>
+        </div>
+    </div>
+</div>
 </body>
 </html>

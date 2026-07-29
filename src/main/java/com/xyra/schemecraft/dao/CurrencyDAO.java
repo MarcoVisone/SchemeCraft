@@ -122,6 +122,39 @@ public class CurrencyDAO extends BaseDAO {
     }
 
     /**
+     * Finds the Currency associated with a given Product, resolved via a single JOIN
+     * query on {@code product.currency_id = currency.currency_id}.
+     *
+     * @param conn      Active database connection
+     * @param productId Unique identifier of the product
+     * @return An Optional containing the populated bean, or empty if the product does not exist
+     * @throws DAOException             if a database error occurs
+     * @throws IllegalArgumentException if the productId is null or empty
+     */
+    public Optional<CurrencyBean> findByProductId(Connection conn, String productId) throws DAOException {
+        if (productId == null || productId.trim().isEmpty()) {
+            throw new IllegalArgumentException("Product ID cannot be null or empty for lookup");
+        }
+
+        String sql = "SELECT c.currency_id, c.currency_name, c.is_active, c.symbol " +
+                "FROM product p JOIN currency c ON p.currency_id = c.currency_id " +
+                "WHERE p.product_id = ?";
+
+        try (PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setString(1, productId);
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    return Optional.of(mapRow(rs));
+                }
+            }
+        } catch (SQLException e) {
+            logger.error("Database error while fetching currency for Product ID: {}", productId, e);
+            throw new DAOException("Error fetching currency by product ID", e);
+        }
+        return Optional.empty();
+    }
+
+    /**
      * Retrieves all currencies present in the system database.
      *
      * @param conn Active database connection

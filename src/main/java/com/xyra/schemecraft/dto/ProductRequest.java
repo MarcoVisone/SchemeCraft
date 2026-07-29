@@ -45,6 +45,9 @@ public record ProductRequest(
         if (discount != null && discount.compareTo(BigDecimal.ZERO) < 0) {
             throw new IllegalArgumentException("Discount cannot be negative");
         }
+        if(unlimitedStock) {
+            stockQuantity = null;
+        }
 
         accountId = accountId.trim();
         currencyId = currencyId.trim();
