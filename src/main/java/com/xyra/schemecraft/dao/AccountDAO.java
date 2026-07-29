@@ -506,11 +506,6 @@ public class AccountDAO extends BaseDAO {
             parameters.add(request.languageId());
         }
 
-        if (request.bannerPath() != null) {
-            setClauses.add("banner_path = ?");
-            parameters.add(request.bannerPath());
-        }
-
         if (request.bio() != null) {
             setClauses.add("bio = ?");
             parameters.add(request.bio());

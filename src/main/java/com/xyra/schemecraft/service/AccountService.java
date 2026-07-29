@@ -1,58 +1,77 @@
 package com.xyra.schemecraft.service;
 
-import com.xyra.schemecraft.connection.ConnectionPool;
-import com.xyra.schemecraft.constant.ValidationConstants;
-import com.xyra.schemecraft.dao.AddressDAO;
-import com.xyra.schemecraft.dao.PaymentMethodDAO;
-import com.xyra.schemecraft.dto.*;
-import com.xyra.schemecraft.exception.*;
-import com.xyra.schemecraft.model.*;
-
-import com.xyra.schemecraft.dao.AccountDAO;
-
-import com.xyra.schemecraft.service.gateway.FakeTokenizationService;
-import com.xyra.schemecraft.service.gateway.TokenizationResult;
-import com.xyra.schemecraft.util.Utils;
-import org.mindrot.jbcrypt.BCrypt;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import javax.validation.*;
 import java.sql.Connection;
 import java.sql.SQLException;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
+import javax.validation.*;
+
+import org.mindrot.jbcrypt.BCrypt;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import com.xyra.schemecraft.connection.ConnectionPool;
+import com.xyra.schemecraft.constant.ValidationConstants;
+import com.xyra.schemecraft.dao.AccountDAO;
+import com.xyra.schemecraft.dao.AddressDAO;
+import com.xyra.schemecraft.dao.PaymentMethodDAO;
+import com.xyra.schemecraft.dto.*;
+import com.xyra.schemecraft.exception.*;
+import com.xyra.schemecraft.model.*;
+import com.xyra.schemecraft.service.gateway.FakeTokenizationService;
+import com.xyra.schemecraft.service.gateway.TokenizationResult;
+import com.xyra.schemecraft.util.Utils;
+
 public class AccountService {
+
+    /** Logger instance for tracking service events and errors. */
     private static final Logger logger = LoggerFactory.getLogger(AccountService.class);
+
+    /** Work factor cost parameter for BCrypt password hashing algorithm. */
     private static final int BCRYPT_WORKLOAD = 12;
-    private static final ValidatorFactory validatorFactory = Validation.buildDefaultValidatorFactory();
-    private static final Validator validator = validatorFactory.getValidator();
+
+    /** Precomputed dummy BCrypt hash used for timing attack mitigation on failed lookups. */
     private static final String DUMMY_HASH =  "$2a$12$R9h/cIPz0gi.URNNX3kh2OPST9/PgBkqquzi.Ss7KIUgO3t0Rejsq";
 
+    /** Data Access Object for account persistence operations. */
     private final AccountDAO accountDAO;
+
+    /** Data Access Object for address management. */
     private final AddressDAO addressDAO;
+
+    /** Data Access Object for payment method transactions. */
     private final PaymentMethodDAO paymentMethodDAO;
+
+    /** Validator utility for inspecting entity constraints. */
     private final EntityValidator entityValidator;
+
+    /** Gateway simulator for handling mock payment tokenization. */
     private final FakeTokenizationService tokenizationGateway;
 
+    /**
+     * Default constructor initializing dependencies with default implementations.
+     */
     public AccountService(){
         this.accountDAO = new AccountDAO();
         this.addressDAO = new AddressDAO();
         this.paymentMethodDAO = new PaymentMethodDAO();
-        this.tokenizationGateway = new FakeTokenizationService();
         this.entityValidator = new EntityValidator();
+        this.tokenizationGateway = new FakeTokenizationService();
     }
 
-    public static boolean looksLikeEmail(String input) {
-        if (input == null || input.isBlank()) {
-            return false;
-        }
-
-        return input.matches(ValidationConstants.EMAIL_REGEX);
-    }
-
+    /**
+     * Authenticates a user using either their username or email address along with their plain-text password.
+     * Incorporates constant-time dummy password hashing checks to prevent timing side-channel attacks.
+     *
+     * @param usernameOrEmail The user's account username or registered email address
+     * @param password        The plain-text authentication password
+     * @return A newly established {@link UserSession} containing the authenticated account details
+     * @throws BadCredentialsException if credentials are missing, account is inactive, or password verification fails
+     * @throws ServiceException        if a database or infrastructure error occurs during authentication
+     */
     public UserSession login(String usernameOrEmail, String password) throws BadCredentialsException {
         if (Utils.isNullOrBlank(usernameOrEmail) || Utils.isNullOrBlank(password)) {
             throw new BadCredentialsException("Invalid credentials.");
@@ -62,7 +81,7 @@ public class AccountService {
 
         try (Connection conn = ConnectionPool.getConnection()) {
             AccountBean account = null;
-            boolean isEmail = looksLikeEmail(normalizedInput);
+            boolean isEmail = Utils.looksLikeEmail(normalizedInput);
 
             if (isEmail) {
                 account = accountDAO.findByEmail(conn, normalizedInput).orElse(null);
@@ -74,6 +93,7 @@ public class AccountService {
                 BCrypt.checkpw(password, DUMMY_HASH);
                 throw new BadCredentialsException("Invalid credentials.");
             }
+
             String storedHash = account.getPasswordHash();
             if (Utils.isNullOrBlank(storedHash)) {
                 BCrypt.checkpw(password, DUMMY_HASH);
@@ -102,9 +122,20 @@ public class AccountService {
         }
     }
 
+    /**
+     * Registers a new user account on the platform, performing comprehensive validation on user inputs,
+     * verifying related reference entities (country, currency, language), hashing the password securely with BCrypt,
+     * and persisting the new record.
+     *
+     * @param request The {@link AccountRegistrationRequest} containing account registration data
+     * @return An {@link AccountRegistrationResponse} carrying the newly created account summary details
+     * @throws IllegalArgumentException   if the request payload is null or any field fails validation constraints
+     * @throws DuplicateEntityException   if the username or email is already registered in the system
+     * @throws EntityNotFoundException    if referenced entities like country, currency, or language do not exist
+     * @throws ServiceException           if a database or infrastructure error occurs during execution
+     */
     public AccountRegistrationResponse registerAccount(AccountRegistrationRequest request)
-            throws DuplicateEntityException, EntityNotFoundException, InactiveEntityException, ServiceException {
-
+            throws DuplicateEntityException, EntityNotFoundException, ServiceException {
         if (request == null) {
             throw new IllegalArgumentException("Registration request cannot be null");
         }
@@ -129,7 +160,8 @@ public class AccountService {
         }
         if (!ValidationConstants.PASSWORD_PATTERN.matcher(rawPassword).matches()) {
             throw new IllegalArgumentException(String.format(
-                    "Password must be %d-%d characters long and contain at least one uppercase letter, one lowercase letter, and one digit",
+                    "Password must be %d-%d characters long and contain at least one uppercase letter, " +
+                            "one lowercase letter, and one digit",
                     ValidationConstants.PASSWORD_MIN_LENGTH,
                     ValidationConstants.PASSWORD_MAX_LENGTH
             ));
@@ -154,7 +186,6 @@ public class AccountService {
             account.setLanguageId(request.languageId());
             account.setCurrencyId(request.currencyId());
             account.setBio(request.bio());
-            account.setBannerPath(request.bannerPath());
             account.setProfileImagePath(request.profileImagePath());
             account.applyDefaultsIfMissing();
 
@@ -173,7 +204,6 @@ public class AccountService {
                     account.getLanguageId(),
                     account.getCurrencyId(),
                     account.getBio(),
-                    account.getBannerPath(),
                     account.getProfileImagePath(),
                     account.isAdmin(),
                     account.isActive()
@@ -187,16 +217,24 @@ public class AccountService {
         }
     }
 
+    /**
+     * Changes the authentication password for an existing active user account.
+     * Validates the old password via BCrypt verification, enforces length constraints,
+     * hashes the new password securely, and updates the database record.
+     *
+     * @param accountId   Unique identifier of the target account changing the password
+     * @param oldPassword The current plain-text password for verification
+     * @param newPassword The desired new plain-text password
+     * @throws EntityNotFoundException if the account does not exist or is inactive
+     * @throws BadCredentialsException if the old password verification fails or inputs are blank
+     * @throws ServiceException        if new password exceeds length limits, database operations fail, or update fails unexpectedly
+     */
     public void changePassword(String accountId, String oldPassword, String newPassword)
-            throws BadCredentialsException, EntityNotFoundException, ServiceException {
-
-        if (accountId == null || accountId.isBlank()) {
+            throws EntityNotFoundException, ServiceException {
+        if (Utils.isNullOrBlank(accountId)) {
             throw new ServiceException("Invalid account ID.");
         }
-        if (oldPassword == null || oldPassword.isEmpty()) {
-            throw new BadCredentialsException("Invalid credentials.");
-        }
-        if (newPassword == null || newPassword.isEmpty()) {
+        if (Utils.isNullOrBlank(oldPassword) || Utils.isNullOrBlank(newPassword)) {
             throw new BadCredentialsException("Invalid credentials.");
         }
         if (newPassword.getBytes(java.nio.charset.StandardCharsets.UTF_8).length > 72) {
@@ -218,7 +256,7 @@ public class AccountService {
             String newHash = BCrypt.hashpw(newPassword, BCrypt.gensalt(BCRYPT_WORKLOAD));
 
             boolean updated = accountDAO.updatePassword(conn, accountId, newHash);
-            if(!updated) {
+            if (!updated) {
                 logger.error("Password update failed unexpectedly for account {}", accountId);
                 throw new ServiceException("Failed to update password.");
             }
@@ -229,37 +267,23 @@ public class AccountService {
         }
     }
 
-    public boolean checkEmailExists(String email) {
-        if (email == null || email.isBlank()) {
-            throw new ServiceException("Invalid email.");
-        }
-
-        try (Connection conn = ConnectionPool.getConnection()) {
-            return accountDAO.findByEmail(conn, email).isPresent();
-        } catch (SQLException | DAOException e) {
-            logger.error("Database error while checking email existence", e);
-            throw new ServiceException("Internal database error occurred", e);
-        }
-    }
-
-    public boolean checkUsernameExists(String username) {
-        if(username == null || username.isBlank()) {
-            throw new ServiceException("Invalid username.");
-        }
-
-        try (Connection conn = ConnectionPool.getConnection()) {
-            return accountDAO.findByUsername(conn, username).isPresent();
-        } catch (SQLException | DAOException e) {
-            logger.error("Database error while checking username existence", e);
-            throw new ServiceException("Internal database error occurred", e);
-        }
-    }
-
+    /**
+     * Changes the display username for an existing active user account.
+     * Validates input parameters, checks account active status, updates the record in the database,
+     * and handles persistence or unique constraint exceptions appropriately.
+     *
+     * @param accountId   Unique identifier of the target account changing its username
+     * @param newUsername The desired new username string
+     * @throws IllegalArgumentException if the account ID or new username is null or blank
+     * @throws EntityNotFoundException  if the target account does not exist or is inactive
+     * @throws DuplicateEntityException if the new username is already taken by another account
+     * @throws ServiceException         if a database error occurs or the username update fails unexpectedly
+     */
     public void changeUsername(String accountId, String newUsername) throws EntityNotFoundException {
-        if (accountId == null || accountId.isBlank()) {
+        if (Utils.isNullOrBlank(accountId)) {
             throw new IllegalArgumentException("Account ID cannot be null or blank");
         }
-        if (newUsername == null || newUsername.isBlank()) {
+        if (Utils.isNullOrBlank(newUsername)) {
             throw new IllegalArgumentException("New username cannot be null or blank");
         }
 
@@ -281,11 +305,43 @@ public class AccountService {
         }
     }
 
+    /**
+     * Checks whether a specific username is already registered in the system.
+     *
+     * @param username The username string to verify
+     * @return true if an account associated with the username exists, false otherwise
+     * @throws ServiceException if the username is null or blank, or if a database or infrastructure error occurs
+     */
+    public boolean checkUsernameExists(String username) {
+        if (Utils.isNullOrBlank(username)) {
+            throw new ServiceException("Invalid username.");
+        }
+
+        try (Connection conn = ConnectionPool.getConnection()) {
+            return accountDAO.findByUsername(conn, username).isPresent();
+        } catch (SQLException | DAOException e) {
+            logger.error("Database error while checking username existence", e);
+            throw new ServiceException("Internal database error occurred", e);
+        }
+    }
+
+    /**
+     * Changes the registered email address for an existing active user account.
+     * Validates input parameters, verifies account active status, updates the record in the database,
+     * and handles persistence or unique constraint exceptions appropriately.
+     *
+     * @param accountId Unique identifier of the target account changing its email
+     * @param newEmail  The desired new email address string
+     * @throws IllegalArgumentException if the account ID or new email is null or blank
+     * @throws EntityNotFoundException  if the target account does not exist or is inactive
+     * @throws DuplicateEntityException if the new email address is already taken by another account
+     * @throws ServiceException         if a database error occurs or the email update fails unexpectedly
+     */
     public void changeEmail(String accountId, String newEmail) throws EntityNotFoundException {
-        if (accountId == null || accountId.isBlank()) {
+        if (Utils.isNullOrBlank(accountId)) {
             throw new IllegalArgumentException("Account ID cannot be null or blank");
         }
-        if (newEmail == null || newEmail.isBlank()) {
+        if (Utils.isNullOrBlank(newEmail)) {
             throw new IllegalArgumentException("New email cannot be null or blank");
         }
 
@@ -307,9 +363,37 @@ public class AccountService {
         }
     }
 
+    /**
+     * Checks whether a specific email address is already registered in the system.
+     *
+     * @param email The email address string to verify
+     * @return true if an account associated with the email exists, false otherwise
+     * @throws ServiceException if the email is null or blank, or if a database or infrastructure error occurs
+     */
+    public boolean checkEmailExists(String email) {
+        if (Utils.isNullOrBlank(email)) {
+            throw new ServiceException("Invalid email.");
+        }
 
+        try (Connection conn = ConnectionPool.getConnection()) {
+            return accountDAO.findByEmail(conn, email).isPresent();
+        } catch (SQLException | DAOException e) {
+            logger.error("Database error while checking email existence", e);
+            throw new ServiceException("Internal database error occurred", e);
+        }
+    }
+
+    /**
+     * Retrieves an account entity by its unique identifier.
+     * Clears sensitive data such as the password hash before returning the account object.
+     *
+     * @param accountId Unique identifier of the target account
+     * @return The retrieved {@link AccountBean} instance with its password hash redacted
+     * @throws ServiceException        if the account ID is null or blank, or if a database error occurs
+     * @throws EntityNotFoundException if no account exists with the specified ID
+     */
     public AccountBean getAccountById(String accountId) throws EntityNotFoundException {
-        if (accountId == null || accountId.isBlank()) {
+        if (Utils.isNullOrBlank(accountId)) {
             throw new ServiceException("Invalid account ID.");
         }
 
@@ -325,18 +409,28 @@ public class AccountService {
         }
     }
 
+    /**
+     * Updates an existing user's profile details using the provided {@link ProfileUpdateRequest} payload.
+     * Validates that the account is active and that any referenced relational entities (country, currency, language)
+     * are valid and active before executing the update.
+     *
+     * @param updatedAccount The {@link ProfileUpdateRequest} containing the profile fields to modify
+     * @throws IllegalArgumentException if the request payload is null
+     * @throws ServiceException         if the account ID is invalid, no fields are provided, or database errors occur
+     * @throws EntityNotFoundException  if the target account or referenced lookup entities do not exist
+     */
     public void updateProfile(ProfileUpdateRequest updatedAccount) throws EntityNotFoundException, ServiceException {
         if (updatedAccount == null) {
             throw new IllegalArgumentException("ProfileUpdateRequest cannot be null");
         }
 
-        if (updatedAccount.accountId() == null || updatedAccount.accountId().isBlank()) {
+        if (Utils.isNullOrBlank(updatedAccount.accountId())) {
             throw new ServiceException("Invalid account ID.");
         }
 
         if (updatedAccount.countryId() == null && updatedAccount.currencyId() == null &&
-                updatedAccount.languageId() == null && updatedAccount.bannerPath() == null &&
-                updatedAccount.bio() == null && updatedAccount.profileImagePath() == null) {
+                updatedAccount.languageId() == null && updatedAccount.bio() == null &&
+                updatedAccount.profileImagePath() == null) {
             throw new ServiceException("At least one profile field must be provided for update.");
         }
 
@@ -367,8 +461,17 @@ public class AccountService {
         }
     }
 
+    /**
+     * Deactivates an existing user account by its unique identifier.
+     * Updates the account status in the database to inactive.
+     *
+     * @param accountId Unique identifier of the target account to deactivate
+     * @throws IllegalArgumentException or {@link ServiceException} if the account ID is null or blank
+     * @throws EntityNotFoundException  if no account exists with the specified ID
+     * @throws ServiceException         if a database error occurs or account deactivation fails unexpectedly
+     */
     public void deactivateAccount(String accountId) throws EntityNotFoundException {
-        if (accountId == null || accountId.isBlank()) {
+        if (Utils.isNullOrBlank(accountId)) {
             throw new ServiceException("Invalid account ID.");
         }
 
@@ -385,8 +488,17 @@ public class AccountService {
         }
     }
 
+    /**
+     * Reactivates an existing suspended or deactivated user account by its unique identifier.
+     * Updates the account status in the database back to active.
+     *
+     * @param accountId Unique identifier of the target account to reactivate
+     * @throws IllegalArgumentException if the account ID is null or blank
+     * @throws EntityNotFoundException  if no account exists with the specified ID
+     * @throws ServiceException         if a database error occurs or account reactivation fails unexpectedly
+     */
     public void reactivateAccount(String accountId) throws EntityNotFoundException {
-        if (accountId == null || accountId.isBlank()) {
+        if (Utils.isNullOrBlank(accountId)) {
             throw new IllegalArgumentException("Account ID cannot be null or blank");
         }
 
@@ -403,28 +515,16 @@ public class AccountService {
         }
     }
 
-    public List<AccountAdminView> listAllAccountsForAdmin() {
-        try (Connection conn = ConnectionPool.getConnection()) {
-            List<AccountBean> accounts = accountDAO.findAllAdmin(conn);
-
-            return accounts.stream()
-                    .map(account -> new AccountAdminView(
-                            account.getAccountId(),
-                            account.getUsername(),
-                            account.getEmail(),
-                            account.getCreatedAt(),
-                            account.isActive(),
-                            account.isAdmin()
-                    ))
-                    .toList();
-        } catch (SQLException | DAOException e) {
-            logger.error("Database connection error while listing accounts for admin", e);
-            throw new ServiceException("Internal database error occurred", e);
-        }
-    }
-
+    /**
+     * Retrieves a list of all saved delivery or billing addresses associated with a specific user account.
+     *
+     * @param accountId Unique identifier of the target account
+     * @return A {@link List} of {@link AddressBean} objects belonging to the account
+     * @throws IllegalArgumentException if the account ID is null or blank
+     * @throws ServiceException         if a database or infrastructure error occurs during retrieval
+     */
     public List<AddressBean> listAddresses(String accountId) {
-        if (accountId == null || accountId.isBlank()) {
+        if (Utils.isNullOrBlank(accountId)) {
             throw new IllegalArgumentException("Account ID cannot be null or blank");
         }
 
@@ -436,16 +536,26 @@ public class AccountService {
         }
     }
 
+    /**
+     * Adds a new address entry for a specific user account within a transactional block.
+     * Validates account and country status, assigns a unique identifier if missing, handles
+     * default address precedence rules, and persists the record.
+     *
+     * @param address The {@link AddressBean} object containing address details to add
+     * @throws IllegalArgumentException if the address object is null or lacks a required country ID
+     * @throws EntityNotFoundException  if the target account or country does not exist or is inactive
+     * @throws ServiceException         if a database or transaction error occurs during execution
+     */
     public void addAddress(AddressBean address) {
         if (address == null) {
             throw new IllegalArgumentException("Address cannot be null");
         }
 
-        if (address.getCountryId() == null || address.getCountryId().isBlank()) {
+        if (Utils.isNullOrBlank(address.getCountryId())) {
             throw new IllegalArgumentException("Country ID is required for an address");
         }
 
-        if (address.getAddressId() == null || address.getAddressId().isBlank()) {
+        if (Utils.isNullOrBlank(address.getAddressId())) {
             address.setAddressId(UUID.randomUUID().toString());
         }
 
@@ -492,10 +602,10 @@ public class AccountService {
     }
 
     public void removeOwnAddress(String accountId, String addressId) throws EntityNotFoundException {
-        if (accountId == null || accountId.isBlank()) {
+        if (Utils.isNullOrBlank(accountId)) {
             throw new IllegalArgumentException("Account ID cannot be null or blank");
         }
-        if (addressId == null || addressId.isBlank()) {
+        if (Utils.isNullOrBlank(addressId)) {
             throw new IllegalArgumentException("Address ID cannot be null or blank");
         }
 
@@ -548,7 +658,7 @@ public class AccountService {
     }
 
     public void removeAddress(String addressId) throws EntityNotFoundException {
-        if (addressId == null || addressId.isBlank()) {
+        if (Utils.isNullOrBlank(addressId)) {
             throw new IllegalArgumentException("Address ID cannot be null or blank");
         }
 
@@ -598,7 +708,7 @@ public class AccountService {
     }
 
     public void setDefaultAddress(String accountId, String addressId) throws EntityNotFoundException {
-        if (accountId == null || accountId.isBlank() || addressId == null || addressId.isBlank()) {
+        if (Utils.isNullOrBlank(accountId) || Utils.isNullOrBlank(addressId)) {
             throw new IllegalArgumentException("Account ID and Address ID cannot be null or blank");
         }
 
@@ -644,7 +754,7 @@ public class AccountService {
     }
 
     public List<PaymentMethodBean> listPaymentMethods(String accountId) {
-        if (accountId == null || accountId.isBlank()) {
+        if (Utils.isNullOrBlank(accountId)) {
             throw new IllegalArgumentException("Account ID cannot be null or blank");
         }
 
@@ -741,10 +851,10 @@ public class AccountService {
     }
 
     public void removeOwnPaymentMethod(String accountId, String paymentMethodId) throws EntityNotFoundException {
-        if (accountId == null || accountId.isBlank()) {
+        if (Utils.isNullOrBlank(accountId)) {
             throw new IllegalArgumentException("Account ID cannot be null or blank");
         }
-        if (paymentMethodId == null || paymentMethodId.isBlank()) {
+        if (Utils.isNullOrBlank(paymentMethodId)) {
             throw new IllegalArgumentException("Payment Method ID cannot be null or blank");
         }
 
@@ -802,7 +912,7 @@ public class AccountService {
 
 
     public void removePaymentMethod(String paymentMethodId) throws EntityNotFoundException {
-        if (paymentMethodId == null || paymentMethodId.isBlank()) {
+        if (Utils.isNullOrBlank(paymentMethodId)) {
             throw new IllegalArgumentException("Payment Method ID cannot be null or blank");
         }
 
@@ -851,7 +961,7 @@ public class AccountService {
     }
 
     public void setDefaultPaymentMethod(String accountId, String paymentMethodId) throws EntityNotFoundException {
-        if (accountId == null || accountId.isBlank() || paymentMethodId == null || paymentMethodId.isBlank()) {
+        if (Utils.isNullOrBlank(accountId) || Utils.isNullOrBlank(paymentMethodId)) {
             throw new IllegalArgumentException("Account ID and Payment Method ID cannot be null or blank");
         }
 

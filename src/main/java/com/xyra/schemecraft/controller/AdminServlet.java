@@ -108,7 +108,6 @@ public class AdminServlet extends HttpServlet {
             case "/products/get" -> handleGetProduct(req, resp);
             case "/orders/list" -> handleListOrders(req, resp);
             case "/orders/statuses" -> handleListOrderStatuses(req, resp);
-            case "/users/list" -> handleListUsers(req, resp);
             case "/categories/list" -> handleListCategories(req, resp);
             case "/currencies/list" -> handleListCurrencies(req, resp);
 
@@ -501,7 +500,7 @@ public class AdminServlet extends HttpServlet {
         }
 
         try {
-            ProductFullBean fullBean = productService.getProductFull(productId);
+            ProductFullDTO fullBean = productService.getProductFull(productId);
             JsonUtils.sendSuccessWithData(resp, "Product retrieved successfully.", "product", fullBean);
         } catch (EntityNotFoundException e) {
             JsonUtils.sendError(resp, e.getMessage(), HttpServletResponse.SC_NOT_FOUND);
@@ -693,16 +692,6 @@ public class AdminServlet extends HttpServlet {
     // =========================================================================
     // USER HANDLERS
     // =========================================================================
-
-    private void handleListUsers(HttpServletRequest req, HttpServletResponse resp) throws IOException {
-        try {
-            List<AccountAdminView> accounts = accountService.listAllAccountsForAdmin();
-            JsonUtils.sendSuccessWithData(resp, "Accounts retrieved successfully.", "accounts", accounts);
-        } catch (ServiceException e) {
-            logger.error("Error retrieving accounts list for admin", e);
-            JsonUtils.sendError(resp, "Unable to retrieve accounts list.", HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
-        }
-    }
 
     private void handleDeactivateUser(HttpServletRequest req, HttpServletResponse resp) throws IOException {
         String accountId = req.getParameter("accountId");

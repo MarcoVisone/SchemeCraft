@@ -162,7 +162,8 @@ public class OrderDAO extends BaseDAO {
      * @throws DAOException             if a database error occurs
      * @throws IllegalArgumentException if criteria or connection is null
      */
-    public List<OrderAdminView> searchOrdersForAdmin(Connection conn, OrderSearchCriteria criteria) throws DAOException {
+    public List<OrderAdminView> searchOrdersForAdmin(Connection conn, OrderSearchCriteria criteria)
+            throws DAOException {
         if (criteria == null) {
             throw new IllegalArgumentException("Search criteria cannot be null");
         }

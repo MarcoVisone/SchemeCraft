@@ -3,25 +3,32 @@ package com.xyra.schemecraft.dto;
 import com.xyra.schemecraft.model.ProductBean;
 
 /**
- * Read-only view of a single cart row: a product paired with its cover image path.
- * Used to render both the authenticated (DB-backed) and guest (cookie-backed) cart
- * with a single, uniform data shape.
+ * Data Transfer Object (DTO) representing a single line item within a shopping cart,
+ * pairing product domain details with its resolved visual representation.
+ *
+ * @param product        The product model entity associated with this line item
+ * @param coverImagePath Relative path or URL to the product's primary cover image
  */
-public class CartLineItem {
+public record CartLineItem(
 
-    private final ProductBean product;
-    private final String coverImagePath; // null if the product has no uploaded images yet
+        ProductBean product,
 
-    public CartLineItem(ProductBean product, String coverImagePath) {
-        this.product = product;
-        this.coverImagePath = coverImagePath;
-    }
+        String coverImagePath
+) {
+    /**
+     * Compact constructor performing parameter assertion, sanitization, and default fallback assignments.
+     *
+     * @throws IllegalArgumentException if the product is null
+     */
+    public CartLineItem {
+        if (product == null) {
+            throw new IllegalArgumentException("Product cannot be null in cart line item");
+        }
 
-    public ProductBean getProduct() {
-        return product;
-    }
-
-    public String getCoverImagePath() {
-        return coverImagePath;
+        if (coverImagePath == null || coverImagePath.trim().isEmpty()) {
+            coverImagePath = "uploads/products/default-cover.png";
+        } else {
+            coverImagePath = coverImagePath.trim();
+        }
     }
 }

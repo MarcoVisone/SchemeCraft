@@ -65,8 +65,8 @@ public class ProductCategoryDAO extends BaseDAO {
                 throw new DAOException("Failed to link product to category: Specified Category ID does not exist");
             }
 
-            logger.info("Product ID: {} successfully linked to Category ID: {} and its parent chain (Total links inserted: {})",
-                    productId, categoryId, rowsAffected);
+            logger.info("Product ID: {} successfully linked to Category ID: " +
+                            "{} and its parent chain (Total links inserted: {})", productId, categoryId, rowsAffected);
 
         } catch (SQLException e) {
             logger.error("Failed to link Product ID: {} with Category ID: {}", productId, categoryId, e);

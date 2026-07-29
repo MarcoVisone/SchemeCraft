@@ -78,7 +78,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
         if (order.methodType !== undefined && order.methodType !== null) {
             const typeId = String(order.methodType);
-
             return `Method ID: ${typeId}`;
         }
 
@@ -87,6 +86,16 @@ document.addEventListener('DOMContentLoaded', () => {
         if (order.paymentType) return order.paymentType;
 
         return 'Credit Card / PayPal';
+    }
+
+    function escapeHtml(str) {
+        if (!str) return '';
+        return String(str)
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#039;');
     }
 
     function renderOrdersTable(orders) {
@@ -219,13 +228,18 @@ document.addEventListener('DOMContentLoaded', () => {
             const imgPath = product.imagePath ? `${contextPath}/${product.imagePath}` : null;
 
             const price = parseFloat(itemDTO.pricePaid || itemDTO.price || 0);
-            const discount = parseFloat(itemDTO.discountApplied || 0);
-            const tax = parseFloat(itemDTO.taxPaid || 0);
-            const lineTotal = itemDTO.lineTotal !== undefined ? parseFloat(itemDTO.lineTotal) : (price - discount + tax);
+            const discountRate = parseFloat(itemDTO.discountApplied || 0);
+            const taxRate = parseFloat(itemDTO.taxPaid || 0);
+
+            // Calcolo importi reali basati sulle percentuali
+            const discountAmount = price * (discountRate / 100);
+            const priceAfterDiscount = Math.max(0, price - discountAmount);
+            const taxAmount = priceAfterDiscount * (taxRate / 100);
+            const lineTotal = priceAfterDiscount + taxAmount;
 
             subtotal += price;
-            totalDiscount += discount;
-            totalTax += tax;
+            totalDiscount += discountAmount;
+            totalTax += taxAmount;
 
             return `
                 <tr class="order-item-row">
@@ -239,8 +253,8 @@ document.addEventListener('DOMContentLoaded', () => {
                         </div>
                     </td>
                     <td class="text-right">${symbol}${price.toFixed(2)}</td>
-                    <td class="text-right">${discount > 0 ? `-${symbol}${discount.toFixed(2)}` : '—'}</td>
-                    <td class="text-right">${tax > 0 ? `${symbol}${tax.toFixed(2)}` : '—'}</td>
+                    <td class="text-right">${discountRate > 0 ? `${discountRate}%` : '—'}</td>
+                    <td class="text-right">${taxRate > 0 ? `${taxRate}%` : '—'}</td>
                     <td class="text-right"><strong>${symbol}${lineTotal.toFixed(2)}</strong></td>
                 </tr>
             `;
@@ -295,7 +309,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 <div class="order-summary-box">
                     <div class="summary-line"><span>Subtotal:</span> <span>${symbol}${subtotal.toFixed(2)}</span></div>
                     ${totalDiscount > 0 ? `<div class="summary-line text-discount"><span>Discounts:</span> <span>-${symbol}${totalDiscount.toFixed(2)}</span></div>` : ''}
-                    ${totalTax > 0 ? `<div class="summary-line"><span>Taxes:</span> <span>${symbol}${totalTax.toFixed(2)}</span></div>` : ''}
+                    ${totalTax > 0 ? `<div class="summary-line"><span>Taxes:</span> <span>+${symbol}${totalTax.toFixed(2)}</span></div>` : ''}
                     <div class="summary-line summary-total"><span>Total Paid:</span> <span>${symbol}${total}</span></div>
                 </div>
             </div>
@@ -352,12 +366,25 @@ document.addEventListener('DOMContentLoaded', () => {
             `;
         }
 
+        let subtotal = 0;
+        let totalDiscount = 0;
+        let totalTax = 0;
+
         const itemsRows = (order.items || []).map(itemDTO => {
             const product = itemDTO.product || {};
             const name = product.productName || itemDTO.productName || 'Minecraft Schematic';
             const price = parseFloat(itemDTO.pricePaid || itemDTO.price || 0);
-            const discount = parseFloat(itemDTO.discountApplied || 0);
-            const lineTotal = itemDTO.lineTotal !== undefined ? parseFloat(itemDTO.lineTotal) : (price - discount);
+            const discountRate = parseFloat(itemDTO.discountApplied || 0);
+            const taxRate = parseFloat(itemDTO.taxPaid || 0);
+
+            const discountAmount = price * (discountRate / 100);
+            const priceAfterDiscount = Math.max(0, price - discountAmount);
+            const taxAmount = priceAfterDiscount * (taxRate / 100);
+            const lineTotal = priceAfterDiscount + taxAmount;
+
+            subtotal += price;
+            totalDiscount += discountAmount;
+            totalTax += taxAmount;
 
             return `
                 <tr>
@@ -366,7 +393,8 @@ document.addEventListener('DOMContentLoaded', () => {
                         <div style="font-size: 11px; color: #64748b;">Digital Download Product</div>
                     </td>
                     <td style="padding: 12px; border-bottom: 1px solid #e2e8f0; text-align: right;">${symbol}${price.toFixed(2)}</td>
-                    <td style="padding: 12px; border-bottom: 1px solid #e2e8f0; text-align: right;">${discount > 0 ? `-${symbol}${discount.toFixed(2)}` : '—'}</td>
+                    <td style="padding: 12px; border-bottom: 1px solid #e2e8f0; text-align: right;">${discountRate > 0 ? `${discountRate}%` : '—'}</td>
+                    <td style="padding: 12px; border-bottom: 1px solid #e2e8f0; text-align: right;">${taxRate > 0 ? `${taxRate}%` : '—'}</td>
                     <td style="padding: 12px; border-bottom: 1px solid #e2e8f0; text-align: right; font-weight: bold;">${symbol}${lineTotal.toFixed(2)}</td>
                 </tr>
             `;
@@ -374,6 +402,7 @@ document.addEventListener('DOMContentLoaded', () => {
             <tr>
                 <td style="padding: 12px; border-bottom: 1px solid #e2e8f0;">Minecraft Digital Content</td>
                 <td style="padding: 12px; border-bottom: 1px solid #e2e8f0; text-align: right;">${symbol}${total}</td>
+                <td style="padding: 12px; border-bottom: 1px solid #e2e8f0; text-align: right;">—</td>
                 <td style="padding: 12px; border-bottom: 1px solid #e2e8f0; text-align: right;">—</td>
                 <td style="padding: 12px; border-bottom: 1px solid #e2e8f0; text-align: right; font-weight: bold;">${symbol}${total}</td>
             </tr>
@@ -432,6 +461,7 @@ document.addEventListener('DOMContentLoaded', () => {
                             <th>Item Description</th>
                             <th style="text-align: right;">Price</th>
                             <th style="text-align: right;">Discount</th>
+                            <th style="text-align: right;">Tax</th>
                             <th style="text-align: right;">Amount</th>
                         </tr>
                     </thead>
@@ -440,6 +470,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
                 <div class="summary-container">
                     <div class="summary-table">
+                        <div><span>Subtotal:</span> <span>${symbol}${subtotal.toFixed(2)}</span></div>
+                        ${totalDiscount > 0 ? `<div><span>Discounts:</span> <span style="color: #16a34a;">-${symbol}${totalDiscount.toFixed(2)}</span></div>` : ''}
+                        ${totalTax > 0 ? `<div><span>Taxes:</span> <span>+${symbol}${totalTax.toFixed(2)}</span></div>` : ''}
                         <div class="grand-total">
                             <span>Total Paid:</span>
                             <span>${symbol}${total}</span>

@@ -1,32 +1,25 @@
 package com.xyra.schemecraft.dto;
 
+import java.time.LocalDateTime;
+
 import com.xyra.schemecraft.model.AccountBean;
 import com.xyra.schemecraft.model.ReviewBean;
 
-import java.time.LocalDateTime;
-
 /**
  * Wrapper object combining a ReviewBean with its Author Account details for UI rendering.
+ *
+ * @param review The review domain model entity
+ * @param author The account profile entity of the review author
  */
-public class ReviewView {
+public record ReviewView(
 
-    private final ReviewBean review;
-    private final AccountBean author;
+        ReviewBean review,
 
-    public ReviewView(ReviewBean review, AccountBean author) {
-        this.review = review;
-        this.author = author;
-    }
+        AccountBean author
+) {
 
-    public ReviewBean getReview() {
-        return review;
-    }
+    // --- Delegated Getter Methods ---
 
-    public AccountBean getAuthor() {
-        return author;
-    }
-
-    // --- Delegated Review Properties ---
     public String getAccountId() {
         return review != null ? review.getAccountId() : null;
     }
@@ -59,7 +52,6 @@ public class ReviewView {
         return review != null ? review.getRating() : 0;
     }
 
-    // --- Author Properties accessed by JSP (${rev.authorUsername}, ${rev.authorAvatar}) ---
     public String getAuthorUsername() {
         return (author != null && author.getUsername() != null) ? author.getUsername() : "Anonymous";
     }

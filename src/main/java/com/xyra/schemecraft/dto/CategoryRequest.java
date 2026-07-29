@@ -9,9 +9,13 @@ package com.xyra.schemecraft.dto;
  * @param description      Optional textual description of the category
  */
 public record CategoryRequest(
+
         String categoryId,
+
         String categoryName,
+
         String parentCategoryId,
+
         String description
 ) {
     /**

@@ -10,7 +10,7 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import javax.servlet.http.HttpSession;
 
-import com.xyra.schemecraft.model.UserSession;
+import com.xyra.schemecraft.dto.UserSession;
 import com.xyra.schemecraft.util.ServletUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

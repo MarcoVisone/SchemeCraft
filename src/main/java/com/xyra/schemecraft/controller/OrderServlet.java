@@ -22,7 +22,6 @@ import org.json.JSONObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.xyra.schemecraft.dto.OrderAdminView;
 import com.xyra.schemecraft.dto.OrderSearchCriteria;
 import com.xyra.schemecraft.exception.DuplicateEntityException;
 import com.xyra.schemecraft.exception.EntityNotFoundException;
@@ -31,7 +30,7 @@ import com.xyra.schemecraft.exception.PaymentDeclinedException;
 import com.xyra.schemecraft.exception.ServiceException;
 import com.xyra.schemecraft.model.AccountBean;
 import com.xyra.schemecraft.model.OrderBean;
-import com.xyra.schemecraft.model.UserSession;
+import com.xyra.schemecraft.dto.UserSession;
 import com.xyra.schemecraft.service.OrderService;
 import com.xyra.schemecraft.util.JsonUtils;
 
@@ -74,7 +73,6 @@ public class OrderServlet extends HttpServlet {
         switch (action) {
             case "", "/", "/list", "/my-orders" -> handleListAccountOrders(req, resp, currentAccount.getAccountId());
             case "/detail" -> handleGetOrderDetail(req, resp, currentAccount.getAccountId());
-            case "/admin/search" -> handleSearchOrdersAdmin(req, resp);
             default -> resp.sendError(HttpServletResponse.SC_NOT_FOUND, "The requested resource was not found.");
         }
     }
@@ -170,32 +168,6 @@ public class OrderServlet extends HttpServlet {
         } catch (ServiceException e) {
             logger.error("Error retrieving order details for ID: {}", orderId, e);
             sendErrorResponse(resp, HttpServletResponse.SC_INTERNAL_SERVER_ERROR, "Unable to retrieve order details.");
-        }
-    }
-
-    private void handleSearchOrdersAdmin(HttpServletRequest req, HttpServletResponse resp) throws IOException {
-        resp.setContentType("application/json");
-        PrintWriter out = resp.getWriter();
-        JSONObject jsonResponse = new JSONObject();
-
-        try {
-            OrderSearchCriteria criteria = buildSearchCriteria(req);
-            List<OrderAdminView> results = orderService.searchOrders(criteria);
-
-            JSONArray array = new JSONArray();
-            for (OrderAdminView adminView : results) {
-                array.put(JsonUtils.serializeOrderAdminView(adminView));
-            }
-
-            jsonResponse.put("success", true);
-            jsonResponse.put("orders", array);
-            out.print(jsonResponse.toString());
-
-        } catch (IllegalArgumentException e) {
-            sendErrorResponse(resp, HttpServletResponse.SC_BAD_REQUEST, e.getMessage());
-        } catch (ServiceException e) {
-            logger.error("Error searching orders for admin", e);
-            sendErrorResponse(resp, HttpServletResponse.SC_INTERNAL_SERVER_ERROR, "Unable to execute order search.");
         }
     }
 

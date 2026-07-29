@@ -15,7 +15,7 @@ import javax.servlet.http.HttpSession;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.xyra.schemecraft.model.UserSession;
+import com.xyra.schemecraft.dto.UserSession;
 
 /**
  * Ensures the user is logged in before accessing protected areas

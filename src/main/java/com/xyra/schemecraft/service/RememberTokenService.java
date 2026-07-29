@@ -7,7 +7,7 @@ import com.xyra.schemecraft.exception.InvalidTokenException;
 import com.xyra.schemecraft.exception.ServiceException;
 import com.xyra.schemecraft.model.AccountBean;
 import com.xyra.schemecraft.model.RememberTokenBean;
-import com.xyra.schemecraft.model.UserSession;
+import com.xyra.schemecraft.dto.UserSession;
 import com.xyra.schemecraft.util.Utils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

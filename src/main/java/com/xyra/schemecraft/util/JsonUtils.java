@@ -149,7 +149,7 @@ public final class JsonUtils {
         return obj;
     }
 
-    public static JSONObject serializeProductFull(ProductFullBean bean) {
+    public static JSONObject serializeProductFull(ProductFullDTO bean) {
         if (bean == null) {
             return new JSONObject();
         }
@@ -291,19 +291,6 @@ public final class JsonUtils {
         return obj;
     }
 
-    public static JSONObject serializeOrderAdminView(OrderAdminView view) {
-        if (view == null) {
-            return new JSONObject();
-        }
-        JSONObject obj = new JSONObject();
-        obj.put("orderId", view.getOrderId());
-        obj.put("email", view.getEmail());
-        obj.put("createdAt", view.getCreatedAt() != null ? view.getCreatedAt().toString() : null);
-        obj.put("status", view.getStatus());
-        obj.put("totalAmount", view.getTotalAmount());
-        return obj;
-    }
-
     public static JSONObject serializeCategory(CategoryBean category) {
         if (category == null) {
             return new JSONObject();
@@ -342,20 +329,6 @@ public final class JsonUtils {
         return obj;
     }
 
-    public static JSONObject serializeAccountAdminView(AccountAdminView account) {
-        if (account == null) {
-            return new JSONObject();
-        }
-        JSONObject obj = new JSONObject();
-        obj.put("accountId", account.accountId());
-        obj.put("username", account.username());
-        obj.put("email", account.email());
-        obj.put("createdAt", account.createdAt() != null ? account.createdAt().toString() : null);
-        obj.put("isActive", account.isActive());
-        obj.put("isAdmin", account.isAdmin());
-        return obj;
-    }
-
     // Dispatches a single (non-list) model object to its dedicated serializer, so
     // sendSuccessWithData never relies on org.json's uncontrolled reflection fallback.
     private static Object serializeSingle(Object item) {
@@ -365,14 +338,10 @@ public final class JsonUtils {
             return serializePaymentMethod(pm);
         } else if (item instanceof OrderBean ord) {
             return serializeOrder(ord);
-        } else if (item instanceof OrderAdminView oav) {
-            return serializeOrderAdminView(oav);
         } else if (item instanceof ProductBean prod) {
             return serializeProduct(prod);
         } else if (item instanceof CategoryBean cat) {
             return serializeCategory(cat);
-        } else if (item instanceof AccountAdminView acc) {
-            return serializeAccountAdminView(acc);
         } else if (item instanceof ProductImageBean img) {
             return serializeImage(img);
         } else if (item instanceof ProductVersionBean ver) {
@@ -385,7 +354,7 @@ public final class JsonUtils {
             return serializeOrderStatus(osb);
         } else if (item instanceof OrderDetailDTO odd) {
             return serializeOrderDetail(odd);
-        } else if (item instanceof ProductFullBean prf) {
+        } else if (item instanceof ProductFullDTO prf) {
             return serializeProductFull(prf);
         } else {
             return item;

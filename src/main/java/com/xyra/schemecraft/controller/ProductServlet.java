@@ -220,7 +220,7 @@ public class ProductServlet extends HttpServlet {
 
                     if (!reviews.isEmpty()) {
                         userReview = reviews.stream()
-                                .map(ReviewView::getReview)
+                                .map(ReviewView::review)
                                 .filter(r -> sessionUser.getAccountId().equals(r.getAccountId()))
                                 .findFirst()
                                 .orElse(null);
@@ -266,7 +266,7 @@ public class ProductServlet extends HttpServlet {
 
                 JSONArray reviewsJsonArray = new JSONArray();
                 for (ReviewView revView : reviews) {
-                    ReviewBean rev = revView.getReview();
+                    ReviewBean rev = revView.review();
                     JSONObject revObj = new JSONObject();
                     revObj.put("accountId", rev.getAccountId());
                     revObj.put("rating", rev.getRating());

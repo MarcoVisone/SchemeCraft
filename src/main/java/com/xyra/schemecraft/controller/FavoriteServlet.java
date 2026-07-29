@@ -18,7 +18,7 @@ import com.xyra.schemecraft.exception.EntityNotFoundException;
 import com.xyra.schemecraft.exception.ServiceException;
 import com.xyra.schemecraft.model.AccountBean;
 import com.xyra.schemecraft.model.ProductBean;
-import com.xyra.schemecraft.model.UserSession;
+import com.xyra.schemecraft.dto.UserSession;
 import com.xyra.schemecraft.service.FavoriteService;
 import com.xyra.schemecraft.util.JsonUtils;
 

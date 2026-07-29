@@ -24,7 +24,7 @@ import com.xyra.schemecraft.exception.DuplicateEntityException;
 import com.xyra.schemecraft.exception.EntityNotFoundException;
 import com.xyra.schemecraft.exception.InactiveEntityException;
 import com.xyra.schemecraft.exception.ServiceException;
-import com.xyra.schemecraft.model.UserSession;
+import com.xyra.schemecraft.dto.UserSession;
 import com.xyra.schemecraft.service.AccountService;
 import com.xyra.schemecraft.service.LookupService;
 import com.xyra.schemecraft.service.RememberTokenService;
@@ -351,7 +351,6 @@ public class AuthServlet extends HttpServlet {
                 req.getParameter("currencyId"),
                 req.getParameter("languageId"),
                 req.getParameter("bio"),
-                req.getParameter("bannerPath"),
                 profileImagePath
         );
     }

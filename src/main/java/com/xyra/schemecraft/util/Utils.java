@@ -1,5 +1,7 @@
 package com.xyra.schemecraft.util;
 
+import com.xyra.schemecraft.constant.ValidationConstants;
+
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.nio.charset.StandardCharsets;
@@ -31,5 +33,13 @@ public final class Utils {
         } catch (NoSuchAlgorithmException e) {
             throw new IllegalStateException("SHA-256 algorithm not available", e);
         }
+    }
+
+    public static boolean looksLikeEmail(String input) {
+        if (input == null || input.isBlank()) {
+            return false;
+        }
+
+        return input.matches(ValidationConstants.EMAIL_REGEX);
     }
 }

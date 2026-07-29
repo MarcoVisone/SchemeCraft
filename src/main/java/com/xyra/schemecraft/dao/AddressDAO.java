@@ -139,6 +139,15 @@ public class AddressDAO extends BaseDAO {
         return addresses;
     }
 
+    /**
+     * Retrieves all active addresses associated with a specific account.
+     *
+     * @param conn      Active database connection
+     * @param accountId Unique identifier of the parent account
+     * @return List of active addresses linked to the account
+     * @throws DAOException             if a database error occurs
+     * @throws IllegalArgumentException if the accountId is null or empty
+     */
     public List<AddressBean> findAllActiveByAccountId(Connection conn, String accountId) throws DAOException {
         if (accountId == null || accountId.trim().isEmpty()) {
             throw new IllegalArgumentException("Account ID cannot be null or empty for retrieval");

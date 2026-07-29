@@ -11,6 +11,7 @@ import javax.servlet.http.*;
 import com.xyra.schemecraft.dto.OwnedProductItem;
 import com.xyra.schemecraft.dto.PaymentMethodRequest;
 import com.xyra.schemecraft.dto.ProfileUpdateRequest;
+import com.xyra.schemecraft.dto.UserSession;
 import com.xyra.schemecraft.exception.*;
 import com.xyra.schemecraft.model.*;
 import com.xyra.schemecraft.service.AccountService;
@@ -229,14 +230,6 @@ public class AccountServlet extends HttpServlet {
                 }
             }
 
-            String bannerPath = FileUploadUtils.saveUploadedFile(req, "bannerFile", "banners");
-            if (bannerPath == null || bannerPath.isBlank()) {
-                bannerPath = req.getParameter("bannerPath");
-                if (bannerPath == null || bannerPath.isBlank()) {
-                    bannerPath = account.getBannerPath();
-                }
-            }
-
             String countryId = req.getParameter("countryId");
             String currencyId = req.getParameter("currencyId");
             String languageId = req.getParameter("languageId");
@@ -247,7 +240,6 @@ public class AccountServlet extends HttpServlet {
                     countryId,
                     currencyId,
                     languageId,
-                    bannerPath,
                     bio,
                     profileImagePath
             );

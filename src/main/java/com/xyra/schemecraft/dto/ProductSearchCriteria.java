@@ -9,24 +9,52 @@ import java.math.BigDecimal;
  */
 public class ProductSearchCriteria {
 
+    /** Default number of records per page if not specified or invalid. */
     private static final int DEFAULT_PAGE_SIZE = 20;
+
+    /** Minimum allowed page index for pagination. */
     private static final int MIN_PAGE_NUMBER = 1;
+
+    /** Maximum allowed page size boundary to prevent excessive memory consumption. */
     private static final int MAX_PAGE_SIZE = 100;
+
+    /** Upper bound limit for product rating values. */
     private static final BigDecimal RATING_MAX_LIMIT = new BigDecimal("5.0");
 
+    /** Search keywords filter query string. */
     private String keywords;
+
+    /** Minimum price boundary filter. */
     private BigDecimal minPrice;
+
+    /** Maximum price boundary filter. */
     private BigDecimal maxPrice;
+
+    /** Minimum product rating score filter. */
     private BigDecimal minRating;
+
+    /** Maximum product rating score filter. */
     private BigDecimal maxRating;
+
+    /** Flag indicating whether to restrict results only to discounted products. */
     private Boolean onlyWithDiscount;
+
+    /** Column or field name used for sorting query results. */
     private String orderByColumn;
+
+    /** Flag indicating sorting direction; true for ascending, false for descending. */
     private Boolean ascending = true;
+
+    /** Minecraft version compatibility filter. */
     private String minecraftVersion;
 
+    /** Target category unique identifier filter. */
     private String categoryId;
 
+    /** Current requested page number for paginated results (1-based index). */
     private int pageNumber = MIN_PAGE_NUMBER;
+
+    /** Maximum quantity of records to retrieve per page. */
     private int pageSize = DEFAULT_PAGE_SIZE;
 
     /**
@@ -43,6 +71,8 @@ public class ProductSearchCriteria {
     public ProductSearchCriteria(String keywords) {
         setKeywords(keywords);
     }
+
+    // --- Getters and Setters ---
 
     public String getKeywords() {
         return keywords;
@@ -147,7 +177,9 @@ public class ProductSearchCriteria {
     public void setPageSize(int pageSize) {
         if (pageSize <= 0) {
             this.pageSize = DEFAULT_PAGE_SIZE;
-        } else this.pageSize = Math.min(pageSize, MAX_PAGE_SIZE);
+        } else {
+            this.pageSize = Math.min(pageSize, MAX_PAGE_SIZE);
+        }
     }
 
     public String getCategoryId() {
@@ -158,6 +190,13 @@ public class ProductSearchCriteria {
         this.categoryId = (categoryId != null) ? categoryId.trim() : null;
     }
 
+    // --- Standard Object Override Methods ---
+
+    /**
+     * Returns a string representation of the ProductSearchCriteria object.
+     *
+     * @return Formatted string representation of this instance
+     */
     @Override
     public String toString() {
         return "ProductSearchCriteria{" +

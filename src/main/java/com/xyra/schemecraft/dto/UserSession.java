@@ -1,10 +1,10 @@
-package com.xyra.schemecraft.model;
+package com.xyra.schemecraft.dto;
+
+import com.xyra.schemecraft.model.AccountBean;
 
 import java.io.Serial;
 import java.io.Serializable;
 import java.util.Objects;
-
-import javax.validation.constraints.Size;
 
 /**
  * Represents the contextual session state of an active user within the SchemeCraft platform.

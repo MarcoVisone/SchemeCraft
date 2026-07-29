@@ -26,14 +26,15 @@ public class AccountBean implements Serializable {
 
     /** Unique alphanumeric username. */
     @NotBlank(message = "Username cannot be blank")
-    @Size(min = ValidationConstants.USERNAME_MIN_LENGTH, max = ValidationConstants.USERNAME_MAX_LENGTH, message = "Username must be between {min} and {max} characters")
-    @Pattern(regexp = ValidationConstants.USERNAME_REGEX, message = "Username can only contain letters, numbers, and underscores")
+    @Size(min = ValidationConstants.USERNAME_MIN_LENGTH, max = ValidationConstants.USERNAME_MAX_LENGTH,
+            message = "Username must be between {min} and {max} characters")
+    @Pattern(regexp = ValidationConstants.USERNAME_REGEX,
+            message = "Username can only contain letters, numbers, and underscores")
     private String username;
 
     /** Unique email address associated with the account. */
     @NotBlank(message = "Email address cannot be blank")
-    @Email(regexp = ValidationConstants.EMAIL_REGEX,
-            message = "Email address must be syntactically valid")
+    @Email(regexp = ValidationConstants.EMAIL_REGEX, message = "Email address must be syntactically valid")
     private String email;
 
     /** Reference identifier for the user's country of residence. */
@@ -70,7 +71,8 @@ public class AccountBean implements Serializable {
     /**
      * Default no-argument constructor.
      */
-    public AccountBean() {}
+    public AccountBean() {
+    }
 
     /**
      * Constructs a partially-initialized AccountBean without a registration timestamp.

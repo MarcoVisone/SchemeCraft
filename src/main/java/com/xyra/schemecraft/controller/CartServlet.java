@@ -25,7 +25,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.xyra.schemecraft.model.AccountBean;
-import com.xyra.schemecraft.model.UserSession;
+import com.xyra.schemecraft.dto.UserSession;
 import com.xyra.schemecraft.service.CartService;
 import com.xyra.schemecraft.service.OrderService;
 
@@ -118,8 +118,8 @@ public class CartServlet extends HttpServlet {
                 JSONArray array = new JSONArray();
 
                 for (CartLineItem item : cartItems) {
-                    JSONObject obj = JsonUtils.serializeProduct(item.getProduct());
-                    obj.put("coverImagePath", item.getCoverImagePath());
+                    JSONObject obj = JsonUtils.serializeProduct(item.product());
+                    obj.put("coverImagePath", item.coverImagePath());
                     array.put(obj);
                 }
 

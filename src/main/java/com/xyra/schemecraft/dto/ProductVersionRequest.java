@@ -12,10 +12,15 @@ package com.xyra.schemecraft.dto;
  * @param version          Semantic release version number
  */
 public record ProductVersionRequest(
+
         String productId,
+
         String changelog,
+
         String filePath,
+
         String minecraftVersion,
+
         String version
 ) {
     /**

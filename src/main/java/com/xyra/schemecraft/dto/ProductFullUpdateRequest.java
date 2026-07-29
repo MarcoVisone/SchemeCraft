@@ -6,11 +6,6 @@ import java.util.List;
  * Data Transfer Object (DTO) for the complete update of an existing product.
  * Aggregates all data that can be modified in a single atomic operation:
  * basic product data, categories, images, and versions.
- * <p>
- * Versions are managed via a list of {@link VersionUpdateRequest}:
- * - If an item has a null {@code versionId}, a new version is created.
- * - If an item has a present {@code versionId}, the existing version is updated.
- * - Existing versions not included in the list will be deleted.
  *
  * @param productId      ID of the product to update (required)
  * @param product        Basic product data (required)
@@ -19,10 +14,15 @@ import java.util.List;
  * @param versions       List of versions to keep (created, updated, or deleted)
  */
 public record ProductFullUpdateRequest(
+
         String productId,
+
         ProductRequest product,
+
         List<String> categoryIds,
+
         List<String> imagePaths,
+
         List<VersionUpdateRequest> versions
 ) {
     /**
@@ -48,7 +48,6 @@ public record ProductFullUpdateRequest(
             throw new IllegalArgumentException("Versions list cannot be null (use empty list if none)");
         }
 
-        // Defensive copies for immutability
         categoryIds = List.copyOf(categoryIds);
         imagePaths = List.copyOf(imagePaths);
         versions = List.copyOf(versions);

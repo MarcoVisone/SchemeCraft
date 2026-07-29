@@ -5,28 +5,36 @@ package com.xyra.schemecraft.dto;
  * returned following a successful account registration.
  *
  * @param accountId        Unique generated identifier assigned to the new account
- * @param username         Registered username
+ * @param username         Registered display name associated with the account
  * @param email            Primary email address linked to the account
  * @param countryId        Identifier of the assigned primary country
  * @param languageId       Identifier of the selected interface language
  * @param currencyId       Identifier of the preferred currency
  * @param bio              Biographical summary or profile description
- * @param bannerPath       Relative path or URL to the user's profile banner image
  * @param profileImagePath Relative path or URL to the user's avatar image
  * @param isAdmin          Flag indicating administrative privileges status
  * @param isActive         Flag indicating account activation status
  */
 public record AccountRegistrationResponse(
+
         String accountId,
+
         String username,
+
         String email,
+
         String countryId,
+
         String languageId,
+
         String currencyId,
+
         String bio,
-        String bannerPath,
+
         String profileImagePath,
+
         boolean isAdmin,
+
         boolean isActive
 ) {
     /**
@@ -46,7 +54,6 @@ public record AccountRegistrationResponse(
         languageId = languageId != null ? languageId.trim() : null;
         currencyId = currencyId != null ? currencyId.trim() : null;
         bio = bio != null ? bio.trim() : null;
-        bannerPath = bannerPath != null ? bannerPath.trim() : null;
         profileImagePath = profileImagePath != null ? profileImagePath.trim() : null;
     }
 }

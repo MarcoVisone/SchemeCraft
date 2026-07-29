@@ -229,7 +229,6 @@ public class ProductDAO extends BaseDAO {
                 case "total_reviews" -> "total_reviews";
                 case "total_downloads" -> "total_downloads";
                 case "product_name" -> "product_name";
-                case "created_at" -> "created_at";
                 default -> "created_at";
             };
         }
@@ -298,7 +297,7 @@ public class ProductDAO extends BaseDAO {
         String sql = "SELECT product_id, product_name, SUBSTRING(description, 1, 80) AS description " +
                 "FROM product " +
                 "WHERE is_active = TRUE AND (LOWER(product_name) LIKE ? OR LOWER(description) LIKE ?) " +
-                "ORDER BY (LOWER(product_name) LIKE ?) DESC, product_name ASC " +
+                "ORDER BY (LOWER(product_name) LIKE ?) DESC, product_name " +
                 "LIMIT ?";
 
         String normalizedKeyword = keyword.trim().toLowerCase();
@@ -338,7 +337,8 @@ public class ProductDAO extends BaseDAO {
      *                      true = active products only,
      *                      false = inactive products only
      */
-    public List<ProductBean> searchProductsForAdmin(Connection conn, ProductSearchCriteria criteria, Boolean activeFilter) throws DAOException {
+    public List<ProductBean> searchProductsForAdmin(Connection conn, ProductSearchCriteria criteria,
+                                                    Boolean activeFilter) throws DAOException {
         if (criteria == null) {
             throw new IllegalArgumentException("Search criteria cannot be null");
         }
@@ -419,7 +419,6 @@ public class ProductDAO extends BaseDAO {
                 case "total_reviews" -> "total_reviews";
                 case "total_downloads" -> "total_downloads";
                 case "product_name" -> "product_name";
-                case "created_at" -> "created_at";
                 default -> "created_at";
             };
         }

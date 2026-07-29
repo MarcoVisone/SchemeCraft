@@ -17,7 +17,7 @@ import org.slf4j.LoggerFactory;
 
 import com.xyra.schemecraft.exception.InvalidTokenException;
 import com.xyra.schemecraft.exception.ServiceException;
-import com.xyra.schemecraft.model.UserSession;
+import com.xyra.schemecraft.dto.UserSession;
 import com.xyra.schemecraft.service.RememberTokenService;
 import com.xyra.schemecraft.util.CookieUtils;
 

@@ -6,7 +6,6 @@ import java.util.List;
  * Data Transfer Object (DTO) aggregating everything required to create a fully published product
  * in a single atomic operation: base product data, category assignments, gallery images,
  * and the first downloadable version.
- * <p>
  * The embedded {@link ProductVersionRequest} is expected to have a null or empty productId,
  * since the product does not exist yet at the time this request is built by the caller.
  * The consuming service is responsible for generating the product ID and resolving it
@@ -18,9 +17,13 @@ import java.util.List;
  * @param versionRequest Data for the first product version release (productId is ignored if present)
  */
 public record ProductFullRequest(
+
         ProductRequest productRequest,
+
         List<String> categoryIds,
+
         List<String> imagePaths,
+
         ProductVersionRequest versionRequest
 ) {
     /**

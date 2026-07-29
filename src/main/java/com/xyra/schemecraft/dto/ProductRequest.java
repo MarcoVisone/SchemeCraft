@@ -15,14 +15,23 @@ import java.math.BigDecimal;
  * @param unlimitedStock Flag indicating whether the product has unlimited digital/physical inventory
  */
 public record ProductRequest(
+
         String accountId,
+
         String currencyId,
+
         String productName,
+
         String description,
+
         BigDecimal discount,
+
         BigDecimal price,
+
         Integer stockQuantity,
+
         boolean unlimitedStock
+
 ) {
     /**
      * Compact constructor performing parameter sanitization and mandatory constraint assertions.
@@ -45,7 +54,7 @@ public record ProductRequest(
         if (discount != null && discount.compareTo(BigDecimal.ZERO) < 0) {
             throw new IllegalArgumentException("Discount cannot be negative");
         }
-        if(unlimitedStock) {
+        if (unlimitedStock) {
             stockQuantity = null;
         }
 

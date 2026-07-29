@@ -945,11 +945,11 @@ public class ProductService {
      * Retrieves complete product data including categories, images, and versions.
      *
      * @param productId the product ID
-     * @return ProductFullBean containing all product data
+     * @return ProductFullDTO containing all product data
      * @throws EntityNotFoundException if product does not exist
      * @throws ServiceException if a database error occurs
      */
-    public ProductFullBean getProductFull(String productId)
+    public ProductFullDTO getProductFull(String productId)
             throws ServiceException, EntityNotFoundException {
 
         if (productId == null || productId.trim().isEmpty()) {
@@ -989,7 +989,7 @@ public class ProductService {
                 conn.commit();
 
                 // Build and return the full bean
-                return new ProductFullBean(product, categories, imagePaths, versions);
+                return new ProductFullDTO(product, categories, imagePaths, versions);
 
             } catch (SQLException | DAOException e) {
                 try {

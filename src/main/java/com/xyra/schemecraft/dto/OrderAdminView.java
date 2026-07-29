@@ -4,73 +4,55 @@ import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
 /**
- * Read-only Data Transfer Object representing a denormalized order row for the admin
- * order listing table. Combines order data with the associated customer's identifying
- * information (username, email) obtained via a join, so the admin view does not need
- * to perform separate lookups per row.
- * <p>
- * This is a view object only: it is never persisted or updated, so it is immutable
- * and exposes no setters.
+ * Data Transfer Object (DTO) representing an aggregated view of an order
+ * designed for administrative dashboards, combining transaction metrics and customer details.
+ *
+ * @param orderId     Unique identifier assigned to the order
+ * @param createdAt   Timestamp recording when the order was placed
+ * @param totalAmount Total monetary valuation of the order
+ * @param status      Numerical representation of the current order status
+ * @param accountId   Unique identifier of the account that placed the order
+ * @param username    Display name of the account holder
+ * @param email       Primary email address linked to the customer account
  */
-public class OrderAdminView {
+public record OrderAdminView(
 
-    private final String orderId;
-    private final LocalDateTime createdAt;
-    private final BigDecimal totalAmount;
-    private final int status;
-    private final String accountId;
-    private final String username;
-    private final String email;
+        String orderId,
 
-    public OrderAdminView(String orderId, LocalDateTime createdAt, BigDecimal totalAmount, int status,
-                          String accountId, String username, String email) {
-        this.orderId = orderId;
-        this.createdAt = createdAt;
-        this.totalAmount = totalAmount;
-        this.status = status;
-        this.accountId = accountId;
-        this.username = username;
-        this.email = email;
-    }
+        LocalDateTime createdAt,
 
-    public String getOrderId() {
-        return orderId;
-    }
+        BigDecimal totalAmount,
 
-    public LocalDateTime getCreatedAt() {
-        return createdAt;
-    }
+        int status,
 
-    public BigDecimal getTotalAmount() {
-        return totalAmount;
-    }
+        String accountId,
 
-    public int getStatus() {
-        return status;
-    }
+        String username,
 
-    public String getAccountId() {
-        return accountId;
-    }
+        String email
+) {
+    /**
+     * Compact constructor performing parameter assertion and string sanitization.
+     *
+     * @throws IllegalArgumentException if orderId, createdAt, totalAmount, or accountId is null
+     */
+    public OrderAdminView {
+        if (orderId == null || orderId.trim().isEmpty()) {
+            throw new IllegalArgumentException("Order ID cannot be null or empty");
+        }
+        if (createdAt == null) {
+            throw new IllegalArgumentException("Creation timestamp cannot be null");
+        }
+        if (totalAmount == null) {
+            throw new IllegalArgumentException("Total amount cannot be null");
+        }
+        if (accountId == null || accountId.trim().isEmpty()) {
+            throw new IllegalArgumentException("Account ID cannot be null or empty");
+        }
 
-    public String getUsername() {
-        return username;
-    }
-
-    public String getEmail() {
-        return email;
-    }
-
-    @Override
-    public String toString() {
-        return "OrderAdminView{" +
-                "orderId='" + orderId + '\'' +
-                ", createdAt=" + createdAt +
-                ", totalAmount=" + totalAmount +
-                ", status=" + status +
-                ", accountId='" + accountId + '\'' +
-                ", username='" + username + '\'' +
-                ", email='" + email + '\'' +
-                '}';
+        orderId = orderId.trim();
+        accountId = accountId.trim();
+        username = username != null ? username.trim() : null;
+        email = email != null ? email.trim() : null;
     }
 }

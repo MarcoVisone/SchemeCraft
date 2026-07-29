@@ -13,12 +13,17 @@ package com.xyra.schemecraft.dto;
  * @param accountId      Unique identifier of the account owner
  */
 public record PaymentMethodRequest(
+
         int methodType,
+
         boolean isDefault,
 
         String cardNumber,
+
         String cardExpiration,
+
         String cvv,
+
         String cardBrand,
 
         String paypalEmail,
