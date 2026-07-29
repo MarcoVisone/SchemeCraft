@@ -247,8 +247,8 @@ public class AccountServlet extends HttpServlet {
                     countryId,
                     currencyId,
                     languageId,
-                    bio,
                     bannerPath,
+                    bio,
                     profileImagePath
             );
 
@@ -265,8 +265,7 @@ public class AccountServlet extends HttpServlet {
             }
 
             JsonUtils.sendSuccess(resp, "Profile updated successfully.",
-                    "profileImagePath", updatedAccount.getProfileImagePath(),
-                    "bannerPath", updatedAccount.getBannerPath());
+                    "profileImagePath", updatedAccount.getProfileImagePath());
 
         } catch (IllegalArgumentException | EntityNotFoundException | ServiceException e) {
             logger.warn("Profile update failed for account: {}", account.getAccountId(), e);

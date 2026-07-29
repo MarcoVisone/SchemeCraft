@@ -4,6 +4,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const contextPath = container.dataset.contextPath || '';
 
+    const USERNAME_REGEX = /^[a-zA-Z0-9_]{3,50}$/;
+    const EMAIL_REGEX = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+    const PASSWORD_REGEX = /^(?=.*[0-9])(?=.*[a-z])(?=.*[A-Z]).{8,20}$/;
+
     initAvatarPreview();
     initBioCounter();
     initDeactivateAccount();
@@ -66,13 +70,28 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // Form Change Username
+    // Form Change Username (con Regex & Check Esistenza)
     const formChangeUsername = document.getElementById('formChangeUsername');
     if (formChangeUsername) {
         formChangeUsername.addEventListener('submit', async (e) => {
             e.preventDefault();
-            const newUsername = document.getElementById('newUsername').value;
+            const newUsername = document.getElementById('newUsername').value.trim();
+
+            if (!USERNAME_REGEX.test(newUsername)) {
+                showToast('Username must be 3-50 alphanumeric characters or underscores.', 'error');
+                return;
+            }
+
             try {
+                const checkResp = await fetch(`${contextPath}/auth/check-username?username=${encodeURIComponent(newUsername)}`);
+                const checkData = await checkResp.json();
+                const exists = checkData.exists ?? checkData.data?.exists ?? false;
+
+                if (exists) {
+                    showToast('Username is already taken by another user.', 'error');
+                    return;
+                }
+
                 const response = await fetch(`${contextPath}/account/change-username`, {
                     method: 'POST',
                     headers: {
@@ -95,13 +114,62 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // Form Change Password
+    const formChangeEmail = document.getElementById('formChangeEmail');
+    if (formChangeEmail) {
+        formChangeEmail.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const newEmail = document.getElementById('newEmail').value.trim();
+
+            if (!EMAIL_REGEX.test(newEmail)) {
+                showToast('Please enter a valid email address.', 'error');
+                return;
+            }
+
+            try {
+                const checkResp = await fetch(`${contextPath}/auth/check-email?email=${encodeURIComponent(newEmail)}`);
+                const checkData = await checkResp.json();
+                const exists = checkData.exists ?? checkData.data?.exists ?? false;
+
+                if (exists) {
+                    showToast('Email is already registered by another account.', 'error');
+                    return;
+                }
+
+                const response = await fetch(`${contextPath}/account/change-email`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded',
+                        'X-Requested-With': 'XMLHttpRequest'
+                    },
+                    body: new URLSearchParams({ newEmail })
+                });
+                const data = await response.json();
+                if (response.ok && data.success) {
+                    showToast(data.message || 'Email updated!', 'success');
+                    const headerEmail = document.querySelector('.account-email');
+                    if (headerEmail) headerEmail.textContent = newEmail;
+                } else {
+                    showToast(data.error || 'Email change failed.', 'error');
+                }
+            } catch (err) {
+                showToast('Connection error while changing email.', 'error');
+            }
+        });
+    }
+
+    // Form Change Password (con Regex)
     const formChangePassword = document.getElementById('formChangePassword');
     if (formChangePassword) {
         formChangePassword.addEventListener('submit', async (e) => {
             e.preventDefault();
             const oldPassword = document.getElementById('oldPassword').value;
             const newPassword = document.getElementById('newPassword').value;
+
+            if (!PASSWORD_REGEX.test(newPassword)) {
+                showToast('Password must be 8-20 characters long and contain at least one uppercase letter, one lowercase letter, and one number.', 'error');
+                return;
+            }
+
             try {
                 const response = await fetch(`${contextPath}/account/change-password`, {
                     method: 'POST',
