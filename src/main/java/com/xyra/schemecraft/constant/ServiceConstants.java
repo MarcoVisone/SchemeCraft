@@ -52,7 +52,7 @@ public final class ServiceConstants {
     /**
      * Maximum number of product suggestions to return.
      */
-    public static final int MAX_PRODUCT_SUGGESTIONS = 5;
+    public static final int MAX_PRODUCT_SUGGESTIONS = 3;
 
     public static final String DEFAULT_CURRENCY_SYMBOL = "$";
     /**

@@ -1164,3 +1164,33 @@ select.form-control option:disabled {
         padding: 1rem 0.75rem;
     }
 }
+
+/* =========================================================================
+   LOGOUT SIDEBAR
+   ========================================================================= */
+
+.tab-logout-item {
+    margin-top: 0.75rem;
+    padding-top: 0.75rem;
+    border-top: 1px solid var(--border-color, #333333);
+}
+
+.tab-link.tab-logout {
+    color: #ff6b6b;
+}
+
+.tab-link.tab-logout:hover {
+    background-color: rgba(220, 53, 69, 0.15);
+    color: #ff4d4d;
+    border-color: rgba(220, 53, 69, 0.3);
+}
+
+@media (max-width: 992px) {
+    .tab-logout-item {
+        margin-top: 0;
+        padding-top: 0;
+        border-top: none;
+        border-left: 1px solid var(--border-color, #333333);
+        padding-left: 0.5rem;
+    }
+}

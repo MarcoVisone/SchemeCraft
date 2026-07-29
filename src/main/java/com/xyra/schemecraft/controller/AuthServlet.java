@@ -232,10 +232,20 @@ public class AuthServlet extends HttpServlet {
     }
 
     private void handleLogout(HttpServletRequest req, HttpServletResponse resp) throws IOException {
+        String rememberToken = CookieUtils.getRememberMeCookieValue(req);
+        if (rememberToken != null && !rememberToken.isBlank()) {
+            try {
+                RememberTokenService rememberTokenService = new RememberTokenService();
+                rememberTokenService.invalidateRememberToken(rememberToken);
+            } catch (Exception e) {
+                logger.error("Error invalidating remember token during logout", e);
+            }
+            CookieUtils.clearRememberMeCookie(resp, req.getContextPath());
+        }
+
         HttpSession session = req.getSession(false);
         if (session != null) {
             session.invalidate();
-            logger.debug("User session successfully invalidated.");
         }
 
         resp.sendRedirect(req.getContextPath() + "/auth/login?logout=true");
