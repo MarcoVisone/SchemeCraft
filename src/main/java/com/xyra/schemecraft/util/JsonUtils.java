@@ -137,6 +137,18 @@ public final class JsonUtils {
         return obj;
     }
 
+    public static JSONObject serializeProductSuggestion(ProductSuggestionDTO suggestion) {
+        if (suggestion == null) {
+            return new JSONObject();
+        }
+        JSONObject obj = new JSONObject();
+        obj.put("productId", suggestion.productId());
+        obj.put("productName", suggestion.productName());
+        obj.put("description", suggestion.description());
+        obj.put("coverImagePath", suggestion.coverImagePath());
+        return obj;
+    }
+
     public static JSONObject serializeProductFull(ProductFullBean bean) {
         if (bean == null) {
             return new JSONObject();

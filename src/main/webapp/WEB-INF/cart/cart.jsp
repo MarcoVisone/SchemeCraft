@@ -58,15 +58,15 @@
                 <c:choose>
                   <c:when test="${p.discount > 0}">
                                         <span class="cart-row__price cart-row__price--original">
-                                            <fmt:formatNumber value="${p.price}" type="currency" currencySymbol=""/>
+                                            <fmt:formatNumber value="${p.price}" type="currency" currencySymbol="${currencySymbol}"/>
                                         </span>
                     <span class="cart-row__price cart-row__price--discounted">
-                                            <fmt:formatNumber value="${p.price * (1 - p.discount / 100)}" type="currency" currencySymbol=""/>
+                                            <fmt:formatNumber value="${p.price * (1 - p.discount / 100)}" type="currency" currencySymbol="${currencySymbol}"/>
                                         </span>
                   </c:when>
                   <c:otherwise>
                                         <span class="cart-row__price">
-                                            <fmt:formatNumber value="${p.price}" type="currency" currencySymbol=""/>
+                                            <fmt:formatNumber value="${p.price}" type="currency" currencySymbol="${currencySymbol}"/>
                                         </span>
                   </c:otherwise>
                 </c:choose>
@@ -94,7 +94,7 @@
                               <c:set var="p" value="${item.product}"/>
                               <c:set var="total" value="${total + (p.price * (1 - p.discount / 100))}"/>
                             </c:forEach>
-                            <fmt:formatNumber value="${total}" type="currency" currencySymbol=""/>
+                            <fmt:formatNumber value="${total}" type="currency" currencySymbol="${currencySymbol}"/>
                         </span>
           </div>
           <p class="cart-summary__note">Taxes are calculated at checkout.</p>

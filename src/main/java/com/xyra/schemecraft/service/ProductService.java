@@ -902,6 +902,45 @@ public class ProductService {
         }
     }
 
+
+    /**
+     * Retrieves a lightweight list of active product suggestions matching the given keyword,
+     * intended for search-bar autocomplete. Enriches each match with its cover image path
+     * (first gallery image) and returns minimal DTOs decoupled from the full product data.
+     *
+     * @param rawKeyword Search term to match against the product name
+     * @return List of matching product suggestions, ordered by name, capped at
+     *         {@link ServiceConstants#MAX_PRODUCT_SUGGESTIONS} results; empty if the keyword is blank
+     * @throws ServiceException if a database error or DAO failure occurs
+     */
+    public List<ProductSuggestionDTO> suggestProducts(String rawKeyword) {
+        String keyword = rawKeyword == null ? null : rawKeyword.trim();
+        if (keyword == null || keyword.isBlank()) {
+            return List.of();
+        }
+
+        try (Connection conn = ConnectionPool.getConnection()) {
+            List<ProductBean> matches = productDAO.suggestByKeyword(conn, keyword, ServiceConstants.MAX_PRODUCT_SUGGESTIONS);
+
+            List<ProductSuggestionDTO> suggestions = new ArrayList<>();
+            for (ProductBean product : matches) {
+                String coverImagePath = productImageDAO.findFirstImageByProductId(conn, product.getProductId());
+                suggestions.add(new ProductSuggestionDTO(
+                        product.getProductId(),
+                        product.getProductName(),
+                        product.getDescription(),
+                        coverImagePath
+                ));
+            }
+
+            return suggestions;
+
+        } catch (SQLException | DAOException e) {
+            logger.error("Database error while fetching product suggestions for keyword: {}", keyword, e);
+            throw new ServiceException("Error while fetching product suggestions", e);
+        }
+    }
+
     /**
      * Retrieves complete product data including categories, images, and versions.
      *

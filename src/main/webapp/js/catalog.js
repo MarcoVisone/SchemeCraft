@@ -14,6 +14,7 @@ document.addEventListener('DOMContentLoaded', () => {
     let hasMorePages = false;
 
     initAccordions();
+    initSearchSuggestions(contextPath);
 
     loadProducts();
 
@@ -60,6 +61,142 @@ document.addEventListener('DOMContentLoaded', () => {
             currentPage = 1;
             loadProducts();
         });
+    }
+
+
+    /* =========================================================================
+   SEARCH BAR AUTOCOMPLETE SUGGESTIONS
+   ========================================================================= */
+
+    function initSearchSuggestions(contextPath) {
+        const searchInput = document.getElementById('keywords');
+        if (!searchInput) return;
+
+        const searchBar = searchInput.closest('.search-hero-bar');
+        if (!searchBar) return;
+
+        // Suggestions dropdown container, injected right after the search bar
+        const dropdown = document.createElement('ul');
+        dropdown.className = 'suggestions-dropdown';
+        dropdown.hidden = true;
+        searchBar.appendChild(dropdown);
+
+        const avatarFallback = `${contextPath}/uploads/avatars/default-avatar.png`;
+
+        let suggestDebounceTimer = null;
+        let abortController = null;
+        let activeIndex = -1;
+
+        searchInput.addEventListener('input', () => {
+            clearTimeout(suggestDebounceTimer);
+            const keyword = searchInput.value.trim();
+
+            if (keyword.length < 2) {
+                closeDropdown();
+                return;
+            }
+
+            suggestDebounceTimer = setTimeout(() => fetchSuggestions(keyword), 200);
+        });
+
+        searchInput.addEventListener('keydown', (e) => {
+            const items = dropdown.querySelectorAll('.suggestion-item');
+            if (dropdown.hidden || items.length === 0) return;
+
+            if (e.key === 'ArrowDown') {
+                e.preventDefault();
+                activeIndex = (activeIndex + 1) % items.length;
+                highlightItem(items);
+            } else if (e.key === 'ArrowUp') {
+                e.preventDefault();
+                activeIndex = (activeIndex - 1 + items.length) % items.length;
+                highlightItem(items);
+            } else if (e.key === 'Enter' && activeIndex >= 0) {
+                e.preventDefault();
+                items[activeIndex].click();
+            } else if (e.key === 'Escape') {
+                closeDropdown();
+            }
+        });
+
+        document.addEventListener('click', (e) => {
+            if (!searchBar.contains(e.target)) {
+                closeDropdown();
+            }
+        });
+
+        function fetchSuggestions(keyword) {
+            if (abortController) abortController.abort();
+            abortController = new AbortController();
+
+            const params = new URLSearchParams();
+            params.append('keywords', keyword);
+
+            fetch(`${contextPath}/product/suggest?${params.toString()}`, { signal: abortController.signal })
+                .then(response => {
+                    if (!response.ok) throw new Error("Suggestion request failed");
+                    return response.json();
+                })
+                .then(data => {
+                    const suggestions = (data && Array.isArray(data.suggestions)) ? data.suggestions : [];
+                    renderSuggestions(suggestions);
+                })
+                .catch(err => {
+                    if (err.name === 'AbortError') return;
+                    console.error("Error loading suggestions:", err);
+                    closeDropdown();
+                });
+        }
+
+        function renderSuggestions(suggestions) {
+            dropdown.innerHTML = '';
+            activeIndex = -1;
+
+            if (!suggestions || suggestions.length === 0) {
+                closeDropdown();
+                return;
+            }
+
+            suggestions.forEach(suggestion => {
+                const item = document.createElement('li');
+                item.className = 'suggestion-item';
+
+                const imageSrc = suggestion.coverImagePath
+                    ? `${contextPath}/${suggestion.coverImagePath}`
+                    : null;
+
+                const imageMarkup = imageSrc
+                    ? `<img class="suggestion-thumb" src="${imageSrc}" alt="${escapeHtml(suggestion.productName)}" onerror="this.onerror=null; this.src='${avatarFallback}';">`
+                    : `<div class="suggestion-thumb dirt-bg"></div>`;
+
+                item.innerHTML = `
+                ${imageMarkup}
+                <div class="suggestion-text">
+                    <span class="suggestion-name">${escapeHtml(suggestion.productName)}</span>
+                    <span class="suggestion-desc">${escapeHtml(suggestion.description || '')}</span>
+                </div>
+            `;
+
+                item.addEventListener('click', () => {
+                    window.location.href = `${contextPath}/product/detail?id=${encodeURIComponent(suggestion.productId)}`;
+                });
+
+                dropdown.appendChild(item);
+            });
+
+            dropdown.hidden = false;
+        }
+
+        function highlightItem(items) {
+            items.forEach((item, i) => item.classList.toggle('active', i === activeIndex));
+            if (activeIndex >= 0) items[activeIndex].scrollIntoView({ block: 'nearest' });
+        }
+
+        function closeDropdown() {
+            dropdown.hidden = true;
+            dropdown.innerHTML = '';
+            activeIndex = -1;
+        }
     }
 
     /* =========================================================================
@@ -165,6 +302,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 finalPrice = price * (1 - (discountPercent / 100));
             }
 
+            const currencySymbol = product.currencySymbol || '$';
+
             const rawRating = product.averageRating ?? product.average_rating ?? product.rating ?? 0;
             const rating = parseFloat(rawRating).toFixed(1);
             const downloads = formatCompactNumber(product.totalDownloads || 0);
@@ -235,8 +374,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
                     <div class="card-price-action">
                         <div class="card-price">
-                            ${discountPercent > 0 ? `<span class="old-price">$${price.toFixed(2)}</span>` : ''}
-                            <span class="current-price">${finalPrice === 0 ? 'FREE' : '$' + finalPrice.toFixed(2)}</span>
+                            ${discountPercent > 0 ? `<span class="old-price">${currencySymbol}${price.toFixed(2)}</span>` : ''}
+                            <span class="current-price">${finalPrice === 0 ? 'FREE' : `${currencySymbol}${finalPrice.toFixed(2)}`}</span>
                         </div>
                         <a href="${contextPath}/product/detail?id=${product.productId}" class="btn-view">View</a>
                         </div>

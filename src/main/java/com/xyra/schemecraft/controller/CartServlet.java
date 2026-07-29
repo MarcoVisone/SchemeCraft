@@ -11,8 +11,11 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import javax.servlet.http.HttpSession;
 
+import com.xyra.schemecraft.constant.ServiceConstants;
 import com.xyra.schemecraft.dto.CartLineItem;
 import com.xyra.schemecraft.exception.*;
+import com.xyra.schemecraft.model.CurrencyBean;
+import com.xyra.schemecraft.service.LookupService;
 import com.xyra.schemecraft.util.CookieUtils;
 import com.xyra.schemecraft.util.JsonUtils;
 import com.xyra.schemecraft.util.ServletUtils;
@@ -33,14 +36,16 @@ public class CartServlet extends HttpServlet {
 
     private CartService cartService;
     private OrderService orderService;
+    private LookupService lookupService;
 
     public CartServlet() {
         super();
     }
 
-    public CartServlet(CartService cartService, OrderService orderService) {
+    public CartServlet(CartService cartService, OrderService orderService, LookupService lookupService) {
         this.cartService = cartService;
         this.orderService = orderService;
+        this.lookupService = lookupService;
     }
 
     @Override
@@ -51,6 +56,9 @@ public class CartServlet extends HttpServlet {
         }
         if (this.orderService == null) {
             this.orderService = new OrderService();
+        }
+        if(this.lookupService == null) {
+            this.lookupService = new LookupService();
         }
         logger.info("CartServlet successfully initialized.");
     }
@@ -92,6 +100,13 @@ public class CartServlet extends HttpServlet {
         String format = req.getParameter("format");
         AccountBean currentAccount = getAuthenticatedAccount(req);
 
+        String currencySymbol = ServiceConstants.DEFAULT_CURRENCY_SYMBOL;
+        if (currentAccount != null && currentAccount.getCurrencyId() != null) {
+            currencySymbol = lookupService.getCurrencyById(currentAccount.getCurrencyId())
+                    .map(CurrencyBean::getSymbol)
+                    .orElse(ServiceConstants.DEFAULT_CURRENCY_SYMBOL);
+        }
+
         try {
             List<CartLineItem> cartItems = (currentAccount != null)
                     ? cartService.viewCart(currentAccount.getAccountId())
@@ -111,9 +126,11 @@ public class CartServlet extends HttpServlet {
                 jsonResponse.put("success", true);
                 jsonResponse.put("items", array);
                 jsonResponse.put("count", cartItems.size());
+                jsonResponse.put("currencySymbol", currencySymbol);
                 resp.getWriter().print(jsonResponse.toString());
             } else {
                 req.setAttribute("cartItems", cartItems);
+                req.setAttribute("currencySymbol", currencySymbol);
                 req.getRequestDispatcher("WEB-INF/cart/cart.jsp").forward(req, resp);
             }
 

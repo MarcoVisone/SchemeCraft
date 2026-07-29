@@ -3,6 +3,92 @@
    ========================================================================= */
 
 /* =========================================================================
+   SEARCH SUGGESTIONS DROPDOWN
+   ========================================================================= */
+
+.suggestions-dropdown {
+    position: absolute;
+    top: calc(100% + 0.5rem);
+    left: 0;
+    right: 0;
+    z-index: 50;
+    margin: 0;
+    padding: 0.4rem;
+    list-style: none;
+    background-color: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    box-shadow: 0 14px 32px rgba(0, 0, 0, 0.4);
+    max-height: 360px;
+    overflow-y: auto;
+}
+
+.suggestion-item {
+    display: flex;
+    align-items: center;
+    gap: 0.85rem;
+    padding: 0.6rem 0.7rem;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: background-color 0.15s ease;
+}
+
+.suggestion-item:hover,
+.suggestion-item.active {
+    background-color: rgba(255, 255, 255, 0.06);
+}
+
+.suggestion-thumb {
+    width: 44px;
+    height: 44px;
+    border-radius: 6px;
+    object-fit: cover;
+    flex-shrink: 0;
+    border: 1px solid var(--border-color);
+}
+
+.suggestion-thumb.dirt-bg {
+    background-image: url('../images/textures/dirt.png');
+    background-repeat: repeat;
+    background-size: 22px 22px;
+    image-rendering: pixelated;
+}
+
+.suggestion-text {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+    flex: 1;
+}
+
+.suggestion-name {
+    font-size: 0.92rem;
+    font-weight: var(--weight-medium, 600);
+    color: var(--text-primary);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.suggestion-desc {
+    font-size: 0.8rem;
+    color: var(--text-secondary);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+/* Scrollbar styling for the dropdown, consistent with a dark theme */
+.suggestions-dropdown::-webkit-scrollbar {
+    width: 6px;
+}
+
+.suggestions-dropdown::-webkit-scrollbar-thumb {
+    background-color: var(--border-color);
+    border-radius: 4px;
+}
+
+/* =========================================================================
    LAYOUT & CONTAINER (DESKTOP)
    ========================================================================= */
 

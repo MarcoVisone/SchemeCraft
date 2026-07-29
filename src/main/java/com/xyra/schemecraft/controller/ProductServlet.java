@@ -10,6 +10,7 @@ import javax.servlet.annotation.MultipartConfig;
 import javax.servlet.annotation.WebServlet;
 import javax.servlet.http.*;
 
+import com.xyra.schemecraft.constant.ServiceConstants;
 import com.xyra.schemecraft.dto.*;
 import com.xyra.schemecraft.exception.*;
 import com.xyra.schemecraft.model.*;
@@ -34,15 +35,18 @@ public class ProductServlet extends HttpServlet {
     private ProductService productService;
     private CategoryService categoryService;
     private OrderService orderService;
+    private LookupService lookupService;
 
     public ProductServlet() {
         super();
     }
 
-    public ProductServlet(ProductService productService, CategoryService categoryService, OrderService orderService) {
+    public ProductServlet(ProductService productService, CategoryService categoryService,
+                          OrderService orderService, LookupService lookupService) {
         this.productService = productService;
         this.categoryService = categoryService;
         this.orderService = orderService;
+        this.lookupService = lookupService;
     }
 
     @Override
@@ -57,6 +61,9 @@ public class ProductServlet extends HttpServlet {
         if (this.orderService == null) {
             this.orderService = new OrderService();
         }
+        if(this.lookupService == null) {
+            this.lookupService = new LookupService();
+        }
         logger.info("ProductServlet successfully initialized.");
     }
 
@@ -69,6 +76,7 @@ public class ProductServlet extends HttpServlet {
         switch (action) {
             case "", "/", "/catalog" -> showCatalog(req, resp);
             case "/search", "/search/" -> handleSearchProducts(req, resp);
+            case "/suggest" -> handleSuggestProducts(req, resp);
             case "/detail", "/get" -> handleGetProductDetail(req, resp);
             case "/images" -> handleListImages(req, resp);
             case "/versions" -> handleListVersions(req, resp);
@@ -222,6 +230,17 @@ public class ProductServlet extends HttpServlet {
                 }
             }
 
+            // Resolve this product's own currency (not the viewer's) for accurate price display
+            CurrencyBean productCurrency = null;
+            try {
+                productCurrency = productService.getProductCurrency(productId);
+            } catch (Exception e) {
+                logger.warn("Unable to resolve currency for product ID: {}", productId, e);
+            }
+            String currencySymbol = (productCurrency != null)
+                    ? productCurrency.getSymbol()
+                    : ServiceConstants.DEFAULT_CURRENCY_SYMBOL;
+
             if ("json".equalsIgnoreCase(format) || isAjaxRequest(req)) {
                 resp.setContentType("application/json");
 
@@ -265,6 +284,7 @@ public class ProductServlet extends HttpServlet {
                 jsonResponse.put("isWishlisted", isWishlisted);
                 jsonResponse.put("reviews", reviewsJsonArray);
                 jsonResponse.put("product", productJson);
+                jsonResponse.put("currencySymbol", currencySymbol);
                 resp.getWriter().print(jsonResponse.toString());
 
             } else {
@@ -275,7 +295,7 @@ public class ProductServlet extends HttpServlet {
                 req.setAttribute("versions", versions);
                 req.setAttribute("isPurchased", isPurchased);
                 req.setAttribute("isWishlisted", isWishlisted);
-
+                req.setAttribute("currencySymbol", currencySymbol);
                 req.setAttribute("reviews", reviews);
                 req.setAttribute("userReview", userReview);
 
@@ -289,6 +309,36 @@ public class ProductServlet extends HttpServlet {
         } catch (ServiceException e) {
             logger.error("Error fetching product detail for ID: {}", productId, e);
             sendErrorResponse(resp, HttpServletResponse.SC_INTERNAL_SERVER_ERROR, "Unable to fetch product details.");
+        }
+    }
+
+    /**
+     * Handles lightweight search-bar autocomplete requests. Returns up to
+     * {@link com.xyra.schemecraft.constant.ServiceConstants#MAX_PRODUCT_SUGGESTIONS} matching
+     * active products, containing only the minimal fields needed for a suggestion preview.
+     */
+    private void handleSuggestProducts(HttpServletRequest req, HttpServletResponse resp) throws IOException {
+        resp.setContentType("application/json");
+        PrintWriter out = resp.getWriter();
+
+        String keywords = req.getParameter("keywords");
+
+        try {
+            List<ProductSuggestionDTO> suggestions = productService.suggestProducts(keywords);
+
+            JSONArray array = new JSONArray();
+            for (ProductSuggestionDTO suggestion : suggestions) {
+                array.put(JsonUtils.serializeProductSuggestion(suggestion));
+            }
+
+            JSONObject jsonResponse = new JSONObject();
+            jsonResponse.put("success", true);
+            jsonResponse.put("suggestions", array);
+            out.print(jsonResponse.toString());
+
+        } catch (ServiceException e) {
+            logger.error("Error executing product suggestion search", e);
+            sendErrorResponse(resp, HttpServletResponse.SC_INTERNAL_SERVER_ERROR, "Error during product suggestion search.");
         }
     }
 
@@ -318,8 +368,17 @@ public class ProductServlet extends HttpServlet {
                             }
                         }
                     }
+                } catch (InsufficientStockException e) {
+                    logger.warn("Insufficient stock for product ID: {}", product.getProductId(), e);
                 } catch (Exception e) {
                     logger.warn("Unable to retrieve categories for product ID: {}", product.getProductId(), e);
+                }
+
+                try {
+                    lookupService.getCurrencyById(product.getCurrencyId())
+                            .ifPresent(c -> productJson.put("currencySymbol", c.getSymbol()));
+                } catch (Exception e) {
+                    logger.warn("Unable to retrieve currency for product ID: {}", product.getProductId(), e);
                 }
 
                 productJson.put("categories", categoriesArray);

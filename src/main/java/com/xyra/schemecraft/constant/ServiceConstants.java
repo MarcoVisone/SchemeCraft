@@ -50,6 +50,12 @@ public final class ServiceConstants {
     public static final long MAX_SCHEMATIC_SIZE_BYTES = 50L * 1024 * 1024; // 50 MB
 
     /**
+     * Maximum number of product suggestions to return.
+     */
+    public static final int MAX_PRODUCT_SUGGESTIONS = 5;
+
+    public static final String DEFAULT_CURRENCY_SYMBOL = "$";
+    /**
      * Private constructor to prevent instantiation of utility class.
      *
      * @throws AssertionError if instantiation is attempted

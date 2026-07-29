@@ -270,6 +270,66 @@ public class ProductDAO extends BaseDAO {
         return products;
     }
 
+
+    /**
+     * Retrieves a lightweight list of active products matching the given keyword,
+     * intended for search-bar autocomplete suggestions. Matches products whose name
+     * starts with the keyword, or whose description contains it, returning only the
+     * minimal fields needed for a suggestion preview. Name matches are ranked above
+     * description-only matches, since a match on the product name is more relevant
+     * to the user than one buried in the description text.
+     *
+     * @param conn    Active database connection
+     * @param keyword Search term to match against the product name and description
+     *                (already trimmed/validated by the caller)
+     * @param limit   Maximum number of suggestions to return
+     * @return List of matching active products, ranked by relevance, containing only id/name/description
+     * @throws DAOException             if a database error occurs
+     * @throws IllegalArgumentException if keyword is null/empty or limit is not positive
+     */
+    public List<ProductBean> suggestByKeyword(Connection conn, String keyword, int limit) throws DAOException {
+        if (keyword == null || keyword.trim().isEmpty()) {
+            throw new IllegalArgumentException("Keyword cannot be null or empty for suggestions lookup");
+        }
+        if (limit <= 0) {
+            throw new IllegalArgumentException("Limit must be positive for suggestions lookup");
+        }
+
+        String sql = "SELECT product_id, product_name, SUBSTRING(description, 1, 80) AS description " +
+                "FROM product " +
+                "WHERE is_active = TRUE AND (LOWER(product_name) LIKE ? OR LOWER(description) LIKE ?) " +
+                "ORDER BY (LOWER(product_name) LIKE ?) DESC, product_name ASC " +
+                "LIMIT ?";
+
+        String normalizedKeyword = keyword.trim().toLowerCase();
+        String prefixPattern = normalizedKeyword + "%";
+        String containsPattern = "%" + normalizedKeyword + "%";
+
+        List<ProductBean> suggestions = new ArrayList<>();
+
+        try (PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setString(1, prefixPattern);
+            ps.setString(2, containsPattern);
+            ps.setString(3, prefixPattern);
+            ps.setInt(4, limit);
+
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    ProductBean product = new ProductBean();
+                    product.setProductId(rs.getString("product_id"));
+                    product.setProductName(rs.getString("product_name"));
+                    product.setDescription(rs.getString("description"));
+                    suggestions.add(product);
+                }
+            }
+        } catch (SQLException e) {
+            logger.error("Database error while fetching product suggestions for keyword: {}", keyword, e);
+            throw new DAOException("Error fetching product suggestions", e);
+        }
+
+        return suggestions;
+    }
+
     /**
      * Admin variant of searchProducts: supports an explicit active/inactive filter
      * instead of always restricting results to active products only.

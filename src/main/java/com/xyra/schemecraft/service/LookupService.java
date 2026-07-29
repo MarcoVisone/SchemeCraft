@@ -3,6 +3,7 @@ package com.xyra.schemecraft.service;
 import java.sql.Connection;
 import java.sql.SQLException;
 import java.util.List;
+import java.util.Optional;
 
 import com.xyra.schemecraft.dao.*;
 import com.xyra.schemecraft.model.*;
@@ -101,6 +102,26 @@ public class LookupService {
         } catch (SQLException | DAOException e) {
             logger.error("Failed to retrieve payment method types", e);
             throw new ServiceException("Unable to retrieve payment method types", e);
+        }
+    }
+
+    /**
+     * Retrieves a single Currency by its unique ID.
+     * Used for display purposes (e.g. resolving a currency symbol) rather than full listings.
+     *
+     * @param currencyId Unique identifier of the currency
+     * @return An Optional containing the currency, or empty if not found
+     * @throws ServiceException if a database error or DAO failure occurs
+     */
+    public Optional<CurrencyBean> getCurrencyById(String currencyId) {
+        if (currencyId == null || currencyId.trim().isEmpty()) {
+            return Optional.empty();
+        }
+        try (Connection conn = ConnectionPool.getConnection()) {
+            return currencyDAO.findById(conn, currencyId);
+        } catch (SQLException | DAOException e) {
+            logger.error("Failed to retrieve currency by ID: {}", currencyId, e);
+            throw new ServiceException("Unable to retrieve currency", e);
         }
     }
 }
