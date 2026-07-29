@@ -86,13 +86,23 @@
                 </c:when>
 
                 <c:otherwise>
-                    <button type="button" class="btn-action btn-primary-action" id="btnBuyNow">
-                        Buy - ${currencySymbol}<fmt:formatNumber value="${product.price}" pattern="0.00"/>
-                    </button>
-                    <button type="button" class="btn-action btn-cart-action" id="btnAddToCart" title="Add to Cart">
-                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="9" cy="21" r="1"></circle><circle cx="20" cy="21" r="1"></circle><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"></path></svg>
-                        Add to Cart
-                    </button>
+                    <c:choose>
+                        <c:when test="${not empty sessionScope.account || not empty sessionScope.userSession}">
+                            <button type="button" class="btn-action btn-primary-action" id="btnBuyNow">
+                                Buy - ${currencySymbol}<fmt:formatNumber value="${product.price}" pattern="0.00"/>
+                            </button>
+                            <button type="button" class="btn-action btn-cart-action" id="btnAddToCart" title="Add to Cart">
+                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="9" cy="21" r="1"></circle><circle cx="20" cy="21" r="1"></circle><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"></path></svg>
+                                Add to Cart
+                            </button>
+                        </c:when>
+
+                        <c:otherwise>
+                            <a href="${pageContext.request.contextPath}/auth/login" class="btn-action btn-primary-action">
+                                Log in to Buy (${currencySymbol}<fmt:formatNumber value="${product.price}" pattern="0.00"/>)
+                            </a>
+                        </c:otherwise>
+                    </c:choose>
                 </c:otherwise>
             </c:choose>
 
@@ -237,7 +247,7 @@
                         <c:otherwise>
                             <div class="review-login-prompt">
                                 <p>You must be logged in to post a review.</p>
-                                <a href="${pageContext.request.contextPath}/login" class="btn-action btn-cart-action">Log in to Review</a>
+                                <a href="${pageContext.request.contextPath}/auth/login" class="btn-action btn-cart-action">Log in to Review</a>
                             </div>
                         </c:otherwise>
                     </c:choose>

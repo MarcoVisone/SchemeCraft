@@ -72,7 +72,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     showToast(data.message || 'Product added to cart!', 'success');
                 } else if (response.status === 401) {
                     showToast('Please login to add items to cart.', 'warning');
-                    setTimeout(() => window.location.href = `${contextPath}/login`, 1500);
+                    setTimeout(() => window.location.href = `${contextPath}/auth/login`, 1500);
                 } else {
                     showToast(data.error || 'Could not add product to cart.', 'warning');
                 }
@@ -121,7 +121,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 setTimeout(() => window.location.reload(), 1500);
             } else if (response.status === 401) {
                 showToast('Please login to complete your purchase.', 'warning');
-                setTimeout(() => window.location.href = `${contextPath}/login`, 1500);
+                setTimeout(() => window.location.href = `${contextPath}/auth/login`, 1500);
             } else {
                 showToast(data.error || 'Could not complete purchase.', 'error');
             }
@@ -164,7 +164,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
                 else if (response.status === 401) {
                     showToast('Please login to manage favorites.', 'warning');
-                    setTimeout(() => window.location.href = `${contextPath}/login`, 1500);
+                    setTimeout(() => window.location.href = `${contextPath}/auth/login`, 1500);
                 }
                 else {
                     const errorMsg = data.error || data.message || 'Could not update favorites.';
@@ -252,7 +252,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     setTimeout(() => window.location.reload(), 1200);
                 } else if (response.status === 401) {
                     showToast('Please login to leave a review.', 'warning');
-                    setTimeout(() => window.location.href = `${contextPath}/login`, 1500);
+                    setTimeout(() => window.location.href = `${contextPath}/auth/login`, 1500);
                 } else {
                     const errorMsg = data.error || data.message || 'Could not save review.';
                     showToast(errorMsg, 'error');
