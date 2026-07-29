@@ -124,11 +124,13 @@ src/
    ```
 
 2. **Create the Database**
-   - Open your MySQL client and run:
+   - Open your MySQL client and run the following scripts **in order**:
      ```sql
+     SOURCE src/main/resources/database/schema.sql;
      SOURCE src/main/resources/database/init.sql;
      ```
-   - This creates the `schemecraft_db` schema, tables, lookup data, and triggers.
+   - **`schema.sql`** creates the `schemecraft_db` schema and all tables.
+   - **`init.sql`** populates lookup data (countries, currencies, languages, payment types, order statuses) and triggers.
 
 3. **(Optional) Load Test Data**
    - Populate the database with sample data:
@@ -169,40 +171,15 @@ src/
 6. **Start Tomcat**
    - Access the application at:
      ```
-     http://localhost:8080/schemecraft/
+     http://localhost:8080/SchemeCraft_war_exploded/
      ```
 
 ---
 
 ## Default Credentials (If Test Data Loaded)
-
-| Role        | Username | Password |
-|-------------|----------|----------|
-| Admin       | `admin`  | `admin`  |
-| Regular User| `user`   | `user`   |
-
-⚠️ **Warning**: These credentials are created by `test.sql`. **Change them immediately** in production environments.
-
----
-
-## Screenshots
-
-*(Add screenshots of the application here to showcase its UI. Example:)*
-- **Homepage**
-- **Product Catalog**
-- **Admin Dashboard**
-- **Checkout Process**
-
----
-
-## Contributing
-
-Contributions are welcome! Please follow these steps:
-1. Fork the repository.
-2. Create a new branch (`git checkout -b feature/your-feature`).
-3. Commit your changes (`git commit -m "Add your feature"`).
-4. Push to the branch (`git push origin feature/your-feature`).
-5. Open a **Pull Request**.
+   Role        | Username | Password  |
+ |-------------|----------|-----------|
+ | Admin       | `admin`  | `Admin123`|
 
 ---
 
@@ -213,11 +190,10 @@ Contributions are welcome! Please follow these steps:
 - **No CI/CD Pipeline**: Deployment is manual.
 - **Admin User Management**: Admin accounts must be created directly in the database.
 - **Banner Feature**: The banner feature may be removed in future versions.
-
----
+ 
 ---
 
 ## License
 
 This project is **for educational purposes only**. All rights reserved.
-© 2026 Marco Visone, Oriolo Stefano.
+© 2026 Marco Visone, Stefano Oriolo.
