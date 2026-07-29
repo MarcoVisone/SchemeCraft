@@ -26,9 +26,9 @@
 - View **product details** (images, description, Minecraft version, price, average rating, reviews).
 - Add products to a **cookie-based shopping cart** (persistent across sessions).
 - Manage the cart (update quantities, remove items).
-
-### 👤 Registered Users (All Visitor Features +)
 - **Register** and **log in** (with optional *Remember Me* via cookies).
+    
+### 👤 Registered Users (All Visitor Features +)
 - Complete the **checkout process** (simulated payment through a fake gateway).
 - Manage **personal profile** (update info, change password, upload avatar).
 - Manage **saved addresses** and **payment methods**.
@@ -171,7 +171,7 @@ src/
 6. **Start Tomcat**
    - Access the application at:
      ```
-     http://localhost:8080/SchemeCraft_war_exploded/
+     http://localhost:8080/SchemeCraft/
      ```
 
 ---
