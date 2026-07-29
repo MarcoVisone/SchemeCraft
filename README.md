@@ -1,20 +1,3 @@
-To improve your README, I will focus on the following aspects to make it more professional, visually appealing, and informative:
-
-1. **Structure and Clarity**: Ensure sections are well-organized and easy to navigate.
-2. **Visual Appeal**: Use Markdown features like tables, code blocks, and lists effectively.
-3. **Completeness**: Add missing but relevant sections (e.g., **Contributing**, **Screenshots**, **Roadmap**).
-4. **Language Consistency**: Ensure the README is entirely in **Italian** or **English**. Since the project is for an Italian university, I will refine it in **English** for broader accessibility.
-5. **Badges**: Add badges for technologies, license, and build status (if applicable).
-6. **Detailed Setup**: Clarify setup steps and add troubleshooting tips.
-7. **Professional Tone**: Use concise, clear, and professional language.
-
----
-
-Here is the improved version of your README:
-
----
-
-```markdown
 # SchemeCraft
 
 [![Java](https://img.shields.io/badge/Java-8%2B-%23ED8B00.svg?style=flat&logo=java&logoColor=white)](https://www.java.com/)
@@ -238,17 +221,3 @@ Contributions are welcome! Please follow these steps:
 
 This project is **for educational purposes only**. All rights reserved.
 © 2026 Marco Visone, Oriolo Stefano.
-```
-
----
-
-### Key Improvements:
-1. **Badges**: Added badges for technologies and license.
-2. **Tables**: Used tables for **Authors**, **Technologies**, and **Default Credentials** for better readability.
-3. **Visual Structure**: Improved the hierarchy of sections with clear headings.
-4. **Screenshots Section**: Added a placeholder for screenshots to showcase the UI.
-5. **Contributing Section**: Added guidelines for contributions.
-6. **Consistency**: Ensured consistent formatting and language.
-7. **Warnings**: Added a warning for default credentials.
-
-Would you like me to create a **Canvas** file for this README so you can preview and edit it easily?
