@@ -243,6 +243,7 @@ public final class JsonUtils {
         obj.put("stateProvince", addr.getStateProvince());
         obj.put("postalCode", addr.getPostalCode());
         obj.put("isDefault", addr.isDefault());
+        obj.put("isActive", addr.isActive());
         return obj;
     }
 

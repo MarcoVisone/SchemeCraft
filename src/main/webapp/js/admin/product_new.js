@@ -51,14 +51,13 @@
         imageInput: document.getElementById('image-input'),
         galleryGrid: document.getElementById('gallery-grid'),
 
-        // Step 4 — Schematic & Version (aggiornato con i nuovi ID)
         schematicUploadZone: document.getElementById('schematic-upload-zone'),
         schematicEmptyState: document.getElementById('schematic-empty-state'),
         schematicSelectedState: document.getElementById('schematic-selected-state'),
         schematicFileName: document.getElementById('schematic-file-name'),
         schematicFileSize: document.getElementById('schematic-file-size'),
         removeSchematicBtn: document.getElementById('remove-schematic'),
-        schematicFile: document.getElementById('schematicFile'),   // input file nascosto
+        schematicFile: document.getElementById('schematicFile'),
         version: document.getElementById('version'),
         minecraftVersion: document.getElementById('minecraftVersion'),
         changelog: document.getElementById('changelog'),
@@ -145,9 +144,6 @@
         node.style.cursor = 'pointer';
     });
 
-    /* ----------------------------------------------------------------------
-       Step 1 — Details: Unlimited Stock Toggle
-       ---------------------------------------------------------------------- */
     els.unlimitedStock.addEventListener('change', function () {
         els.stockQuantity.disabled = els.unlimitedStock.checked;
         if (els.unlimitedStock.checked) {
@@ -162,9 +158,6 @@
         input.addEventListener('change', updateNextButtonLabel);
     });
 
-    /* ----------------------------------------------------------------------
-       Step 2 — Categories: Tree Loading & Rendering
-       ---------------------------------------------------------------------- */
     async function loadCategories() {
         els.categoryList.innerHTML = '<p class="category-list__loading">Loading categories...</p>';
 
@@ -232,9 +225,6 @@
         updateNextButtonLabel();
     });
 
-    /* ----------------------------------------------------------------------
-       Step 3 — Gallery: Image Selection & Local Preview
-       ---------------------------------------------------------------------- */
     els.uploadZone.addEventListener('click', function () {
         els.imageInput.click();
     });
@@ -302,11 +292,6 @@
         removeImageFile(parseInt(btn.dataset.index, 10));
     });
 
-    /* ----------------------------------------------------------------------
-       Step 4 — Schematic File Upload Zone (NUOVA GESTIONE)
-       ---------------------------------------------------------------------- */
-
-    // Mostra la card con i dati del file selezionato
     function showSchematicSelectedState(file) {
         if (els.schematicEmptyState) els.schematicEmptyState.style.display = 'none';
         if (els.schematicSelectedState) els.schematicSelectedState.style.display = 'block';
@@ -314,7 +299,6 @@
         if (els.schematicFileSize) els.schematicFileSize.textContent = formatFileSize(file.size);
     }
 
-    // Torna allo stato vuoto (nessun file)
     function showSchematicEmptyState() {
         if (els.schematicEmptyState) els.schematicEmptyState.style.display = 'flex';
         if (els.schematicSelectedState) els.schematicSelectedState.style.display = 'none';
@@ -322,16 +306,14 @@
         if (els.schematicFileSize) els.schematicFileSize.textContent = '';
     }
 
-    // Gestisce il file selezionato (da input o drag & drop)
     function handleSchematicFile(file) {
         if (!file) return;
 
-        // Validazione estensione
         const validExtensions = ['.schematic', '.schem', '.litematic'];
         const fileName = file.name.toLowerCase();
         const valid = validExtensions.some(ext => fileName.endsWith(ext));
         if (!valid) {
-            console.warn('Tipo file non valido:', file.name);
+            console.warn('Invalid file type:', file.name);
             return;
         }
 
@@ -340,16 +322,13 @@
         updateNextButtonLabel();
     }
 
-    // Click sulla zona di upload → apre il file picker
     if (els.schematicUploadZone) {
         els.schematicUploadZone.addEventListener('click', function (e) {
-            // Evita di aprire il picker se l'utente clicca sul pulsante "Rimuovi"
             if (e.target.closest('#remove-schematic')) return;
             els.schematicFile.click();
         });
     }
 
-    // Drag & drop sulla zona
     if (els.schematicUploadZone) {
         els.schematicUploadZone.addEventListener('dragover', function (e) {
             e.preventDefault();
@@ -370,16 +349,14 @@
         });
     }
 
-    // Input file change (quando si usa "Browse Files")
     els.schematicFile.addEventListener('change', function () {
         const file = els.schematicFile.files[0] || null;
         if (file) {
             handleSchematicFile(file);
         }
-        els.schematicFile.value = ''; // consente di riselezionare lo stesso file
+        els.schematicFile.value = '';
     });
 
-    // Rimozione del file schematico
     if (els.removeSchematicBtn) {
         els.removeSchematicBtn.addEventListener('click', function (e) {
             e.stopPropagation();
@@ -389,7 +366,6 @@
         });
     }
 
-    // Inizializzazione stato vuoto
     showSchematicEmptyState();
 
     /* ----------------------------------------------------------------------
@@ -438,17 +414,14 @@
         els.btnNext.textContent = 'Uploading...';
 
         try {
-            // Upload immagini
             const imagePaths = [];
             for (const item of selectedImageFiles) {
                 const path = await uploadFile('/upload/image', item.file);
                 imagePaths.push(path);
             }
 
-            // Upload schematico
             const schematicPath = await uploadFile('/upload/schematic', selectedSchematicFile);
 
-            // Payload finale
             const unlimitedStock = els.unlimitedStock.checked;
             const payload = {
                 product: {
@@ -485,7 +458,6 @@
                 throw new Error(json.message || 'Failed to create product.');
             }
 
-            // Successo: torna alla lista prodotti
             window.location.href = API_ADMIN + '/products';
 
         } catch (err) {
@@ -535,13 +507,11 @@
             return;
         }
 
-        // Unlimited stock toggle iniziale
         if (els.unlimitedStock.checked) {
             els.stockQuantity.disabled = true;
             els.stockQuantity.value = '';
         }
 
-        // Inizializza stato schematico (già chiamato sopra, ma lo ripeto per sicurezza)
         showSchematicEmptyState();
 
         loadCategories();

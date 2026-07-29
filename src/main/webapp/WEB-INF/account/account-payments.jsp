@@ -19,8 +19,9 @@
     <link rel="stylesheet" href="${pageContext.request.contextPath}/css/account.css">
     <link rel="stylesheet" href="${pageContext.request.contextPath}/css/footer.css">
 
+    <script src="${pageContext.request.contextPath}/js/header.js" defer></script>
     <script src="${pageContext.request.contextPath}/js/account/account-common.js" defer></script>
-    <script src="${pageContext.request.contextPath}/js/account/account-orders.js" defer></script>
+    <script src="${pageContext.request.contextPath}/js/account/account-payments.js" defer></script>
 </head>
 <body class="account-body">
 
@@ -113,9 +114,19 @@
         <form id="formAddPayment" class="account-form">
             <div class="form-group">
                 <label for="methodType" class="form-label">Payment Type</label>
-                <select id="methodType" name="methodType" class="form-control auth-select">
-                    <option value="1">Credit / Debit Card</option>
-                    <option value="2">PayPal Account</option>
+                <select id="methodType" name="methodType" class="form-control auth-select" required>
+                    <option value="">Select Payment Type...</option>
+                    <c:choose>
+                        <c:when test="${not empty paymentMethodTypes}">
+                            <c:forEach var="pt" items="${paymentMethodTypes}">
+                                <option value="${pt.typeId}">${pt.typeName}</option>
+                            </c:forEach>
+                        </c:when>
+                        <c:otherwise>
+                            <option value="1">Credit / Debit Card</option>
+                            <option value="2">PayPal Account</option>
+                        </c:otherwise>
+                    </c:choose>
                 </select>
             </div>
 

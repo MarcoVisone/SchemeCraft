@@ -19,6 +19,7 @@
     <link rel="stylesheet" href="${pageContext.request.contextPath}/css/account.css">
     <link rel="stylesheet" href="${pageContext.request.contextPath}/css/footer.css">
 
+    <script src="${pageContext.request.contextPath}/js/header.js" defer></script>
     <script src="${pageContext.request.contextPath}/js/account/account-common.js" defer></script>
     <script src="${pageContext.request.contextPath}/js/account/account-orders.js" defer></script>
 </head>

@@ -33,7 +33,7 @@
 
       <div class="stepper-item active" id="step-node-1">
         <div class="stepper-icon">
-          <img src="${pageContext.request.contextPath}/icons/book_and_quill.webp" alt="Details"">
+          <img src="${pageContext.request.contextPath}/icons/book_and_quill.webp" alt="Details">
         </div>
         <span class="stepper-label">Details</span>
       </div>
@@ -92,7 +92,6 @@
             <label for="currencyId">Currency *</label>
             <select id="currencyId" required>
               <option value="" disabled selected>Select currency...</option>
-              <!-- Dinamico da DB -->
             </select>
           </div>
 
@@ -123,7 +122,6 @@
         </div>
 
         <div class="category-list" id="category-list">
-          <!-- Dinamico da DB -->
         </div>
       </div>
 
@@ -146,7 +144,6 @@
         </div>
 
         <div class="gallery-grid" id="gallery-grid">
-          <!-- Preview immagini dinamiche -->
         </div>
       </div>
 
@@ -160,7 +157,6 @@
         <div class="form-group">
           <label>Schematic File (.schematic, .schem, .litematic) *</label>
 
-          <!-- Upload zone personalizzata per schematico -->
           <div class="schematic-upload-zone" id="schematic-upload-zone">
             <div class="upload-zone-empty" id="schematic-empty-state">
               <div class="icon-container">
@@ -175,7 +171,6 @@
               </label>
             </div>
 
-            <!-- Stato file selezionato (nascosto di default) -->
             <div class="upload-zone-selected" id="schematic-selected-state" style="display: none;">
               <div class="selected-file-card">
                 <div class="file-info">

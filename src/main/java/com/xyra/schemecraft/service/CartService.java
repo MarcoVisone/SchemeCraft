@@ -28,7 +28,6 @@ public class CartService {
     private final EntityValidator entityValidator;
     private final ProductImageDAO productImageDAO;
 
-    // Nel costruttore
     public CartService(){
         this.cartDAO = new CartDAO();
         this.productDAO = new ProductDAO();

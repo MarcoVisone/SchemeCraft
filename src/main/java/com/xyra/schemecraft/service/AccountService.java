@@ -460,12 +460,14 @@ public class AccountService {
                 entityValidator.validateActiveCountry(conn, address.getCountryId());
 
                 boolean isFirstAddress = addressDAO.findAllActiveByAccountId(conn, accountId).isEmpty();
-                if (isFirstAddress) {
-                    address.setDefault(true);
-                } else if (address.isDefault()) {
+
+                if (isFirstAddress || address.isDefault()) {
                     addressDAO.findDefaultByAccountId(conn, accountId)
                             .ifPresent(current -> addressDAO.unsetDefault(conn, current.getAddressId()));
+                    address.setDefault(true);
                 }
+
+                address.setActive(true);
 
                 addressDAO.insert(conn, address);
                 conn.commit();

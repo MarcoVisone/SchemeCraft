@@ -19,6 +19,7 @@
     <link rel="stylesheet" href="${pageContext.request.contextPath}/css/account.css">
     <link rel="stylesheet" href="${pageContext.request.contextPath}/css/footer.css">
 
+    <script src="${pageContext.request.contextPath}/js/header.js" defer></script>
     <script src="${pageContext.request.contextPath}/js/account/account-common.js" defer></script>
     <script src="${pageContext.request.contextPath}/js/account/account-addresses.js" defer></script>
 </head>
@@ -131,8 +132,13 @@
                     <input type="text" id="addrPostal" name="postalCode" class="form-control" required placeholder="e.g. 90210">
                 </div>
                 <div class="form-group col-md-6">
-                    <label for="addrCountry" class="form-label">Country Code</label>
-                    <input type="text" id="addrCountry" name="countryId" class="form-control" required placeholder="e.g. US">
+                    <label for="addrCountry" class="form-label">Country</label>
+                    <select id="addrCountry" name="countryId" class="form-control" required>
+                        <option value="">Select a Country...</option>
+                        <c:forEach var="c" items="${countries}">
+                            <option value="${c.countryId}">${c.countryName}</option>
+                        </c:forEach>
+                    </select>
                 </div>
             </div>
             <div class="form-group checkbox-group">

@@ -9,7 +9,7 @@
 .catalog-body {
     background-color: var(--bg-main);
     color: var(--text-primary);
-    font-family: var(--font-body);
+    font-family: var(--font-body), sans-serif;
 }
 
 .catalog-container {
@@ -588,10 +588,7 @@
 
 @media (max-width: 768px) {
     .catalog-container {
-        padding-top: calc(var(--header-height, 100px) + 1.5rem);
-        padding-left: 0.85rem;
-        padding-right: 0.85rem;
-        padding-bottom: 4rem;
+        padding: calc(var(--header-height, 100px) + 1.5rem) 0.85rem 4rem;
     }
 
     .catalog-layout {
@@ -671,7 +668,7 @@ select.filter-input {
     width: 100%;
     outline: none;
     cursor: pointer;
-    font-family: var(--font-body);
+    font-family: var(--font-body), sans-serif;
 }
 
 select.filter-input option {

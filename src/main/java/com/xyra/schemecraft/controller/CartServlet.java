@@ -22,7 +22,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.xyra.schemecraft.model.AccountBean;
-import com.xyra.schemecraft.model.ProductBean;
 import com.xyra.schemecraft.model.UserSession;
 import com.xyra.schemecraft.service.CartService;
 import com.xyra.schemecraft.service.OrderService;

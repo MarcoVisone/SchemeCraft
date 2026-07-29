@@ -4,20 +4,14 @@ import java.sql.Connection;
 import java.sql.SQLException;
 import java.util.List;
 
+import com.xyra.schemecraft.dao.*;
+import com.xyra.schemecraft.model.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.xyra.schemecraft.connection.ConnectionPool;
-import com.xyra.schemecraft.dao.CountryDAO;
-import com.xyra.schemecraft.dao.CurrencyDAO;
-import com.xyra.schemecraft.dao.LanguageDAO;
-import com.xyra.schemecraft.dao.OrderStatusDAO;
 import com.xyra.schemecraft.exception.DAOException;
 import com.xyra.schemecraft.exception.ServiceException;
-import com.xyra.schemecraft.model.CountryBean;
-import com.xyra.schemecraft.model.CurrencyBean;
-import com.xyra.schemecraft.model.LanguageBean;
-import com.xyra.schemecraft.model.OrderStatusBean;
 
 /**
  * Read-only service for lookup/dictionary tables (country, currency, language, order status).
@@ -31,12 +25,14 @@ public class LookupService {
     private final CurrencyDAO currencyDAO;
     private final LanguageDAO languageDAO;
     private final OrderStatusDAO orderStatusDAO;
+    private final PaymentMethodTypeDAO paymentMethodTypeDAO;
 
     public LookupService() {
         this.countryDAO = new CountryDAO();
         this.currencyDAO = new CurrencyDAO();
         this.languageDAO = new LanguageDAO();
         this.orderStatusDAO = new OrderStatusDAO();
+        this.paymentMethodTypeDAO = new PaymentMethodTypeDAO();
     }
 
     public List<CountryBean> listActiveCountries() {
@@ -96,6 +92,15 @@ public class LookupService {
         } catch (SQLException | DAOException e) {
             logger.error("Failed to retrieve order statuses", e);
             throw new ServiceException("Unable to retrieve order statuses", e);
+        }
+    }
+
+    public List<PaymentMethodTypeBean> listPaymentMethodTypes() {
+        try (Connection conn = ConnectionPool.getConnection()) {
+            return paymentMethodTypeDAO.findAll(conn);
+        } catch (SQLException | DAOException e) {
+            logger.error("Failed to retrieve payment method types", e);
+            throw new ServiceException("Unable to retrieve payment method types", e);
         }
     }
 }

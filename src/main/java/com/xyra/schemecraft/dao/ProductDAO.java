@@ -238,9 +238,8 @@ public class ProductDAO extends BaseDAO {
         sql.append(" ORDER BY p.").append(safeOrderBy).append(" ").append(direction);
 
         int pageNumber = (criteria.getPageNumber() == 0 || criteria.getPageNumber() < 1) ? 1 : criteria.getPageNumber();
-        int pageSize = (criteria.getPageSize() == 0 || criteria.getPageSize() < 1) ? 10 : criteria.getPageSize();
 
-        int limit = pageSize;
+        int limit = (criteria.getPageSize() == 0 || criteria.getPageSize() < 1) ? 10 : criteria.getPageSize();
         int offset = (pageNumber - 1) * limit;
 
         sql.append(" LIMIT ? OFFSET ?");
@@ -369,9 +368,8 @@ public class ProductDAO extends BaseDAO {
         sql.append(" ORDER BY p.").append(safeOrderBy).append(" ").append(direction);
 
         int pageNumber = (criteria.getPageNumber() == 0 || criteria.getPageNumber() < 1) ? 1 : criteria.getPageNumber();
-        int pageSize = (criteria.getPageSize() == 0 || criteria.getPageSize() < 1) ? 10 : criteria.getPageSize();
 
-        int limit = pageSize;
+        int limit = (criteria.getPageSize() == 0 || criteria.getPageSize() < 1) ? 10 : criteria.getPageSize();
         int offset = (pageNumber - 1) * limit;
 
         sql.append(" LIMIT ? OFFSET ?");

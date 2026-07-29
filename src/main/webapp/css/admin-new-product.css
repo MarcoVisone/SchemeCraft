@@ -30,21 +30,18 @@
    Icon Sizing (Global)
    ========================================================================== */
 
-/* 1. Stepper icons (tutti i 4 step) */
 .stepper-icon img {
     width: 24px;
     height: 24px;
     object-fit: contain;
 }
 
-/* 2. Icon container (galleria e schematico vuoto) */
 .icon-container img {
     width: 32px;
     height: 32px;
     object-fit: contain;
 }
 
-/* 3. Icona del file selezionato (lapis nella card) */
 .upload-zone-selected .file-info img {
     width: 24px;
     height: 24px;
@@ -52,7 +49,6 @@
     flex-shrink: 0;
 }
 
-/* 4. Icona di rimozione file (barrier) - schematico e galleria */
 .remove-file-btn img,
 .gallery-delete img {
     width: 16px;
@@ -165,7 +161,7 @@
 .stepper-track-progress {
     height: 100%;
     background-color: var(--btn-green-hover);
-    width: 0%;
+    width: 0;
     transition: width 0.3s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
@@ -255,7 +251,7 @@ textarea {
     border: 1px solid var(--border-color);
     border-radius: var(--radius-sm);
     color: var(--text-primary);
-    font-family: var(--font-body);
+    font-family: var(--font-body), sans-serif;
     font-size: 0.9rem;
     transition: var(--transition-smooth);
 }
@@ -386,7 +382,7 @@ input:checked + .slider:before {
 }
 
 /* ==========================================================================
-   Upload Zone (Gallery - Step 3)
+   Upload Zone
    ========================================================================== */
 
 .upload-zone {
@@ -485,7 +481,7 @@ input:checked + .slider:before {
 }
 
 /* ==========================================================================
-   Schematic Upload Zone (Step 4)
+   Schematic Upload Zone
    ========================================================================== */
 
 .schematic-upload-zone {
@@ -510,7 +506,6 @@ input:checked + .slider:before {
     transform: scale(1.01);
 }
 
-/* Stato vuoto */
 .upload-zone-empty {
     display: flex;
     flex-direction: column;
@@ -545,7 +540,6 @@ input:checked + .slider:before {
     margin-bottom: 0.25rem;
 }
 
-/* Pulsante Browse */
 .browse-btn {
     display: inline-flex;
     align-items: center;
@@ -569,7 +563,6 @@ input:checked + .slider:before {
     transform: translateY(-1px);
 }
 
-/* Stato file selezionato */
 .upload-zone-selected {
     width: 100%;
 }
@@ -709,7 +702,7 @@ input:checked + .slider:before {
 }
 
 /* ==========================================================================
-   JSON Output (debug)
+   JSON Output
    ========================================================================== */
 
 #json-output {
@@ -727,7 +720,7 @@ input:checked + .slider:before {
 }
 
 /* ==========================================================================
-   RESPONSIVE – Schermi piccoli (max-width: 640px)
+   RESPONSIVE
    ========================================================================== */
 
 @media screen and (max-width: 640px) {
@@ -742,7 +735,6 @@ input:checked + .slider:before {
         border-radius: var(--radius-md);
     }
 
-    /* Stepper */
     .stepper {
         gap: 0.25rem;
         margin-bottom: 1.5rem;
@@ -769,7 +761,6 @@ input:checked + .slider:before {
         right: 5%;
     }
 
-    /* Griglia form */
     .form-grid {
         grid-template-columns: 1fr;
         gap: 0.75rem;
@@ -779,7 +770,6 @@ input:checked + .slider:before {
         grid-column: span 1;
     }
 
-    /* Step header */
     .step-header h2 {
         font-size: 1rem;
     }
@@ -788,7 +778,6 @@ input:checked + .slider:before {
         font-size: 0.8rem;
     }
 
-    /* Upload zone */
     .upload-zone,
     .schematic-upload-zone {
         padding: 1.5rem 1rem;
@@ -810,7 +799,6 @@ input:checked + .slider:before {
         font-size: 0.75rem;
     }
 
-    /* File selezionato */
     .selected-file-card {
         padding: 0.75rem 1rem;
     }
@@ -824,13 +812,11 @@ input:checked + .slider:before {
         font-size: 0.7rem;
     }
 
-    /* Galleria */
     .gallery-grid {
         grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
         gap: 0.75rem;
     }
 
-    /* Categorie */
     .category-card {
         padding: 0.6rem 0.8rem;
     }
@@ -840,7 +826,6 @@ input:checked + .slider:before {
         padding-left: 0.75rem;
     }
 
-    /* Footer */
     .actions-footer {
         flex-direction: column;
         gap: 0.75rem;
@@ -851,7 +836,6 @@ input:checked + .slider:before {
         justify-content: center;
     }
 
-    /* Intro */
     .wizard-intro h1 {
         font-size: 1.3rem;
     }
@@ -860,12 +844,10 @@ input:checked + .slider:before {
         font-size: 0.85rem;
     }
 
-    /* Toggle */
     .toggle-wrapper {
         font-size: 0.85rem;
     }
 
-    /* Browse btn */
     .browse-btn {
         padding: 0.5rem 1.25rem;
         font-size: 0.8rem;

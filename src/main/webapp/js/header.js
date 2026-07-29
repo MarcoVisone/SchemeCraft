@@ -11,5 +11,5 @@ document.addEventListener("DOMContentLoaded", function () {
     }
 
     window.addEventListener("scroll", updateHeaderState);
-    updateHeaderState(); // run once on load in case page is already scrolled
+    updateHeaderState();
 });

@@ -5,10 +5,6 @@ import com.xyra.schemecraft.model.ProductBean;
 import java.io.Serial;
 import java.io.Serializable;
 
-/**
- * Data Transfer Object che rappresenta un prodotto nella lista
- * dei prodotti posseduti da un account.
- */
 public class OwnedProductItem implements Serializable {
 
     @Serial

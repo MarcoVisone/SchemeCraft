@@ -4,7 +4,7 @@
 
 .auth-body {
     background-color: var(--bg-main);
-    font-family: var(--font-body);
+    font-family: var(--font-body), sans-serif;
     color: var(--text-primary);
     min-height: 100vh;
     display: flex;
@@ -88,7 +88,7 @@
 }
 
 .auth-title {
-    font-family: var(--font-body);
+    font-family: var(--font-body), sans-serif;
     font-size: 1.6rem;
     font-weight: var(--weight-bold);
     margin: 0 0 0.5rem 0;
@@ -207,7 +207,7 @@
 .auth-input,
 .auth-select,
 .auth-textarea {
-    font-family: var(--font-body);
+    font-family: var(--font-body), sans-serif;
     font-size: 0.95rem;
     padding: 0.8rem 1rem;
     background-color: rgba(0, 0, 0, 0.2);
@@ -233,7 +233,7 @@
 }
 
 .btn-primary {
-    font-family: var(--font-body);
+    font-family: var(--font-body), sans-serif;
     font-size: 0.95rem;
     font-weight: var(--weight-medium);
     color: #ffffff;
@@ -250,7 +250,7 @@
 }
 
 .btn-secondary {
-    font-family: var(--font-body);
+    font-family: var(--font-body), sans-serif;
     font-size: 0.95rem;
     font-weight: var(--weight-medium);
     color: var(--text-primary);

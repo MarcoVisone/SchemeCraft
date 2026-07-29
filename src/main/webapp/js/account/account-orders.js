@@ -7,9 +7,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
     loadOrders();
 
-    // ==========================================
-    // 1. CARICAMENTO ORDINI
-    // ==========================================
     async function loadOrders() {
         const tbody = document.getElementById('ordersTableBody');
         if (!tbody) return;
@@ -44,14 +41,12 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    // Helper per data
     function parseOrderDate(dateStr) {
         if (!dateStr) return null;
         const d = new Date(dateStr);
         return isNaN(d.getTime()) ? null : d;
     }
 
-    // Helper per Simbolo Valuta
     function getSymbol(currencyObj) {
         if (typeof currencyObj === 'object' && currencyObj !== null) {
             return currencyObj.symbol || currencyObj.currencyId || '$';
@@ -59,7 +54,6 @@ document.addEventListener('DOMContentLoaded', () => {
         return currencyObj || '$';
     }
 
-    // Helper Stato
     function getStatusText(order) {
         if (order.statusName) return order.statusName;
         if (order.statusInfo && order.statusInfo.statusName) return order.statusInfo.statusName;
@@ -95,9 +89,6 @@ document.addEventListener('DOMContentLoaded', () => {
         return 'Credit Card / PayPal';
     }
 
-    // ==========================================
-    // 2. RENDERING TABELLA ORDINI
-    // ==========================================
     function renderOrdersTable(orders) {
         const tbody = document.getElementById('ordersTableBody');
         if (!tbody) return;
@@ -145,9 +136,6 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // ==========================================
-    // 3. FILTRO PER DATA
-    // ==========================================
     const orderFilterForm = document.getElementById('orderFilterForm');
     if (orderFilterForm) {
         orderFilterForm.addEventListener('submit', (e) => {
@@ -178,9 +166,6 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // ==========================================
-    // 4. MODAL DETTAGLIO ORDINE COMPLETO (DTO)
-    // ==========================================
     async function openOrderDetailsModal(orderId) {
         let order = cachedOrders.find(o => String(o.orderId || o.transactionId) === String(orderId));
 
@@ -211,7 +196,6 @@ document.addEventListener('DOMContentLoaded', () => {
         const statusText = getStatusText(order);
         const paymentMethodText = getPaymentMethodText(order);
 
-        // Blocco Indirizzo
         let addressHtml = `<p class="text-muted">No address specified</p>`;
         if (order.address) {
             const addr = order.address;
@@ -225,7 +209,6 @@ document.addEventListener('DOMContentLoaded', () => {
             `;
         }
 
-        // Calcolo subtotali e righe prodotti
         let subtotal = 0;
         let totalDiscount = 0;
         let totalTax = 0;
@@ -265,7 +248,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
         body.innerHTML = `
             <div class="order-modal-wrapper">
-                <!-- Info Header con Metodo di Pagamento inclusa -->
                 <div class="order-info-grid">
                     <div class="info-block">
                         <span class="info-label">Transaction ID</span>
@@ -287,7 +269,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
                 <hr class="panel-divider">
 
-                <!-- Billing & Shipping Info -->
                 <div class="order-shipping-section">
                     <h4 class="sub-panel-title">Billing & Delivery Details</h4>
                     ${addressHtml}
@@ -295,7 +276,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
                 <hr class="panel-divider">
 
-                <!-- Products Table -->
                 <h4 class="sub-panel-title">Purchased Items</h4>
                 <div class="table-responsive">
                     <table class="data-table modal-items-table">
@@ -312,7 +292,6 @@ document.addEventListener('DOMContentLoaded', () => {
                     </table>
                 </div>
 
-                <!-- Total Breakdown Box -->
                 <div class="order-summary-box">
                     <div class="summary-line"><span>Subtotal:</span> <span>${symbol}${subtotal.toFixed(2)}</span></div>
                     ${totalDiscount > 0 ? `<div class="summary-line text-discount"><span>Discounts:</span> <span>-${symbol}${totalDiscount.toFixed(2)}</span></div>` : ''}
@@ -350,9 +329,6 @@ document.addEventListener('DOMContentLoaded', () => {
         if (order) generateAndPrintInvoice(order);
     }
 
-    // ==========================================
-    // 5. STAMPA FATTURA DESIGN MODERNO
-    // ==========================================
     function generateAndPrintInvoice(order) {
         const orderId = order.orderId || order.transactionId || 'INV-001';
         const parsedDate = parseOrderDate(order.createdAt);

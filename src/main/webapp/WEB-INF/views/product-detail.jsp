@@ -111,7 +111,6 @@
         </button>
     </nav>
 
-    <!-- LAYOUT PRINCIPALE -->
     <div class="product-layout">
 
         <!-- TAB CONTENT -->

@@ -19,6 +19,7 @@ import com.xyra.schemecraft.service.ProductService;
 import com.xyra.schemecraft.util.FileUploadUtils;
 import com.xyra.schemecraft.util.JsonUtils;
 
+import com.xyra.schemecraft.util.ServletUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -164,7 +165,6 @@ public class AccountServlet extends HttpServlet {
             throws ServletException, IOException {
         try {
             LookupService lookupService = new LookupService();
-            // Serve per popolare la select del Paese nel modale "Aggiungi Indirizzo"
             req.setAttribute("countries", lookupService.listAllCountries());
 
             req.getRequestDispatcher("/WEB-INF/account/account-addresses.jsp").forward(req, resp);
@@ -177,7 +177,16 @@ public class AccountServlet extends HttpServlet {
 
     private void showPaymentMethodsPage(HttpServletRequest req, HttpServletResponse resp)
             throws ServletException, IOException {
-        req.getRequestDispatcher("/WEB-INF/account/account-payments.jsp").forward(req, resp);
+        try {
+            LookupService lookupService = new LookupService();
+            req.setAttribute("paymentMethodTypes", lookupService.listPaymentMethodTypes());
+
+            req.getRequestDispatcher("/WEB-INF/account/account-payments.jsp").forward(req, resp);
+
+        } catch (ServiceException e) {
+            logger.error("Error loading payment methods page", e);
+            resp.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, "Unable to load payment methods page.");
+        }
     }
 
     // =========================================================================
@@ -351,6 +360,8 @@ public class AccountServlet extends HttpServlet {
         address.setPostalCode(req.getParameter("postalCode"));
         address.setDefault("true".equalsIgnoreCase(req.getParameter("isDefault")));
 
+        address.setActive(true);
+
         try {
             accountService.addAddress(address);
             JsonUtils.sendSuccess(resp, "Address added successfully.");
@@ -507,8 +518,7 @@ public class AccountServlet extends HttpServlet {
     }
 
     private String getActionPath(HttpServletRequest req) {
-        String pathInfo = req.getPathInfo();
-        return (pathInfo == null) ? "" : pathInfo;
+        return ServletUtils.getActionPath(req);
     }
 
     private String mapTokenizationErrorToMessage(String errorCode) {

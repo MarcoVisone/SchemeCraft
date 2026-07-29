@@ -112,7 +112,7 @@ public class AdminServlet extends HttpServlet {
             case "/categories/list" -> handleListCategories(req, resp);
             case "/currencies/list" -> handleListCurrencies(req, resp);
 
-            default -> resp.sendError(HttpServletResponse.SC_NOT_FOUND, "Endpoint non trovato.");
+            default -> resp.sendError(HttpServletResponse.SC_NOT_FOUND, "Endpoint not found.");
         }
     }
 
@@ -357,40 +357,11 @@ public class AdminServlet extends HttpServlet {
         try {
             JSONObject body = JsonUtils.readJsonBody(req);
 
-            JSONObject productJson = body.getJSONObject("product");
-            BigDecimal price = productJson.getBigDecimal("price");
-            BigDecimal discount = productJson.has("discount") ? productJson.getBigDecimal("discount") : BigDecimal.ZERO;
-            boolean unlimitedStock = productJson.optBoolean("unlimitedStock", false);
-            Integer stockQuantity;
+            ProductRequest productRequest = parseProductRequest(body, adminAccount.getAccountId());
 
-            if (unlimitedStock) {
-                stockQuantity = null;
-            } else if (productJson.has("stockQuantity") && !productJson.isNull("stockQuantity")) {
-                stockQuantity = productJson.getInt("stockQuantity");
-            } else {
-                stockQuantity = 0;
-            }
+            List<String> categoryIds = extractStringList(body, "categoryIds");
 
-            ProductRequest productRequest = new ProductRequest(
-                    adminAccount.getAccountId(),
-                    productJson.getString("currencyId"),
-                    productJson.getString("productName"),
-                    productJson.optString("description", null),
-                    discount,
-                    price,
-                    stockQuantity,
-                    unlimitedStock
-            );
-
-            List<String> categoryIds = new ArrayList<>();
-            for (Object categoryId : body.getJSONArray("categoryIds")) {
-                categoryIds.add((String) categoryId);
-            }
-
-            List<String> imagePaths = new ArrayList<>();
-            for (Object imagePath : body.getJSONArray("imagePaths")) {
-                imagePaths.add((String) imagePath);
-            }
+            List<String> imagePaths = extractStringList(body, "imagePaths");
 
             JSONObject versionJson = body.getJSONObject("version");
             ProductVersionRequest versionRequest = new ProductVersionRequest(
@@ -417,11 +388,6 @@ public class AdminServlet extends HttpServlet {
         }
     }
 
-    /**
-     * Handles POST /admin/products/update-full
-     * Updates an existing product completely: base data, categories, images, and versions.
-     * Expects JSON payload with productId, product, categoryIds, imagePaths, and versions array.
-     */
     private void handleUpdateFullProduct(HttpServletRequest req, HttpServletResponse resp) throws IOException {
         AccountBean adminAccount = getAuthenticatedAccount(req);
         if (adminAccount == null) {
@@ -432,48 +398,13 @@ public class AdminServlet extends HttpServlet {
         try {
             JSONObject body = JsonUtils.readJsonBody(req);
 
-            // Extract productId (required for update)
             String productId = body.getString("productId");
 
-            // Extract product data
-            JSONObject productJson = body.getJSONObject("product");
-            BigDecimal price = productJson.getBigDecimal("price");
-            BigDecimal discount = productJson.has("discount") ? productJson.getBigDecimal("discount") : BigDecimal.ZERO;
-            boolean unlimitedStock = productJson.optBoolean("unlimitedStock", false);
-            Integer stockQuantity;
+            ProductRequest productRequest = parseProductRequest(body, adminAccount.getAccountId());
 
-            if (unlimitedStock) {
-                stockQuantity = null;
-            } else if (productJson.has("stockQuantity") && !productJson.isNull("stockQuantity")) {
-                stockQuantity = productJson.getInt("stockQuantity");
-            } else {
-                stockQuantity = 0;
-            }
+            List<String> categoryIds = extractStringList(body, "categoryIds");
 
-            ProductRequest productRequest = new ProductRequest(
-                    adminAccount.getAccountId(), // requesting admin (ownership preserved in service)
-                    productJson.getString("currencyId"),
-                    productJson.getString("productName"),
-                    productJson.optString("description", null),
-                    discount,
-                    price,
-                    stockQuantity,
-                    unlimitedStock
-            );
-
-            // Extract category IDs
-            List<String> categoryIds = new ArrayList<>();
-            JSONArray catArray = body.getJSONArray("categoryIds");
-            for (int i = 0; i < catArray.length(); i++) {
-                categoryIds.add(catArray.getString(i));
-            }
-
-            // Extract image paths
-            List<String> imagePaths = new ArrayList<>();
-            JSONArray imgArray = body.getJSONArray("imagePaths");
-            for (int i = 0; i < imgArray.length(); i++) {
-                imagePaths.add(imgArray.getString(i));
-            }
+            List<String> imagePaths = extractStringList(body, "imagePaths");
 
             // Extract versions (MULTIPLE, unlike create which has single version)
             List<VersionUpdateRequest> versions = new ArrayList<>();
@@ -499,7 +430,6 @@ public class AdminServlet extends HttpServlet {
                 versions.add(versionRequest);
             }
 
-            // Build the full update request
             ProductFullUpdateRequest updateRequest = new ProductFullUpdateRequest(
                     productId,
                     productRequest,
@@ -508,7 +438,6 @@ public class AdminServlet extends HttpServlet {
                     versions
             );
 
-            // Execute the update
             productService.updateFullProduct(updateRequest);
 
             JsonUtils.sendSuccess(resp, "Product updated successfully.");
@@ -523,6 +452,45 @@ public class AdminServlet extends HttpServlet {
             logger.error("Error updating full product by admin {}", adminAccount.getAccountId(), e);
             JsonUtils.sendError(resp, "Unable to update product.", HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
         }
+    }
+
+    private ProductRequest parseProductRequest(JSONObject body, String accountId) {
+        JSONObject productJson = body.getJSONObject("product");
+
+        BigDecimal price = productJson.getBigDecimal("price");
+        BigDecimal discount = productJson.has("discount") ? productJson.getBigDecimal("discount") : BigDecimal.ZERO;
+        boolean unlimitedStock = productJson.optBoolean("unlimitedStock", false);
+
+        Integer stockQuantity;
+        if (unlimitedStock) {
+            stockQuantity = null;
+        } else if (productJson.has("stockQuantity") && !productJson.isNull("stockQuantity")) {
+            stockQuantity = productJson.getInt("stockQuantity");
+        } else {
+            stockQuantity = 0;
+        }
+
+        return new ProductRequest(
+                accountId,
+                productJson.getString("currencyId"),
+                productJson.getString("productName"),
+                productJson.optString("description", null),
+                discount,
+                price,
+                stockQuantity,
+                unlimitedStock
+        );
+    }
+
+    private List<String> extractStringList(JSONObject body, String key) {
+        List<String> list = new ArrayList<>();
+        if (body.has(key) && !body.isNull(key)) {
+            JSONArray jsonArray = body.getJSONArray(key);
+            for (int i = 0; i < jsonArray.length(); i++) {
+                list.add(jsonArray.getString(i));
+            }
+        }
+        return list;
     }
 
     private void handleGetProduct(HttpServletRequest req, HttpServletResponse resp) throws IOException {
@@ -557,7 +525,7 @@ public class AdminServlet extends HttpServlet {
         try {
             Part filePart = req.getPart("file");
 
-            if (!isValidUpload(filePart, ServiceConstants.ALLOWED_IMAGE_EXTENSIONS,
+            if (isValidUpload(filePart, ServiceConstants.ALLOWED_IMAGE_EXTENSIONS,
                     ServiceConstants.ALLOWED_IMAGE_CONTENT_TYPES, ServiceConstants.MAX_IMAGE_SIZE_BYTES)) {
                 JsonUtils.sendError(resp, "Invalid image file. Allowed types: PNG, JPG, JPEG, WEBP (max 50MB).",
                         HttpServletResponse.SC_BAD_REQUEST);
@@ -591,7 +559,7 @@ public class AdminServlet extends HttpServlet {
         try {
             Part filePart = req.getPart("file");
 
-            if (!isValidUpload(filePart, ServiceConstants.ALLOWED_SCHEMATIC_EXTENSIONS,
+            if (isValidUpload(filePart, ServiceConstants.ALLOWED_SCHEMATIC_EXTENSIONS,
                     null, ServiceConstants.MAX_SCHEMATIC_SIZE_BYTES)) {
                 JsonUtils.sendError(resp,
                         "Invalid schematic file. Allowed types: .schematic, .schem, .litematic (max 50MB).",
@@ -625,17 +593,17 @@ public class AdminServlet extends HttpServlet {
     private boolean isValidUpload(Part filePart, Set<String> allowedExtensions,
                                   Set<String> allowedContentTypes, long maxSizeBytes) {
         if (filePart == null || filePart.getSize() <= 0) {
-            return false;
+            return true;
         }
 
         if (filePart.getSize() > maxSizeBytes) {
             logger.warn("Upload rejected: file size {} exceeds limit {}", filePart.getSize(), maxSizeBytes);
-            return false;
+            return true;
         }
 
         String submittedFileName = filePart.getSubmittedFileName();
         if (submittedFileName == null || submittedFileName.isBlank()) {
-            return false;
+            return true;
         }
 
         // Normalize to the last path segment only, discarding any directory traversal sequences
@@ -644,24 +612,24 @@ public class AdminServlet extends HttpServlet {
 
         int dotIndex = fileName.lastIndexOf('.');
         if (dotIndex < 0) {
-            return false;
+            return true;
         }
         String extension = fileName.substring(dotIndex).toLowerCase();
 
         if (!allowedExtensions.contains(extension)) {
             logger.warn("Upload rejected: extension {} not allowed", extension);
-            return false;
+            return true;
         }
 
         if (allowedContentTypes != null) {
             String contentType = filePart.getContentType();
             if (contentType == null || !allowedContentTypes.contains(contentType.toLowerCase())) {
                 logger.warn("Upload rejected: content-type {} not allowed", contentType);
-                return false;
+                return true;
             }
         }
 
-        return true;
+        return false;
     }
 
     // =========================================================================

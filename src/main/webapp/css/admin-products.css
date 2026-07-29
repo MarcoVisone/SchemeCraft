@@ -1,11 +1,3 @@
-/* ==========================================================================
-   Admin Products Dashboard Styles (rivisto con FAB a colonna)
-   Variabili globali ereditate da style.css — NON duplicare.
-   ========================================================================== */
-
-/* --------------------------------------------------------------------------
-   Variabili locali (mancanti in style.css)
-   -------------------------------------------------------------------------- */
 :root {
     --bg-card-hover: #353535;
     --bg-input: #242424;
@@ -56,28 +48,23 @@
     color: var(--text-primary);
 }
 
-/* ==========================================================================
-   FAB Container – posizionamento a colonna
-   Tutti i FAB ora vengono messi QUI, non più fissi singolarmente
-   ========================================================================== */
 .admin-fabs {
     position: fixed;
     bottom: 32px;
     right: 32px;
     display: flex;
-    flex-direction: column-reverse;  /* il primo nell'HTML (Categories) sta sopra */
+    flex-direction: column-reverse;
     gap: 12px;
     z-index: 100;
 }
 
-/* Tutti i pulsanti all'interno del container perdono il posizionamento fisso */
 .admin-fabs .admin-products__fab {
     position: static;
     width: fit-content;
 }
 
 /* --------------------------------------------------------------------------
-   Floating Action Button – stile base (uguale a prima)
+   Floating Action Button
    -------------------------------------------------------------------------- */
 .admin-products__fab {
     display: inline-flex;
@@ -91,7 +78,7 @@
     border-radius: var(--radius-md);
     font-weight: var(--weight-medium);
     font-size: 0.9375rem;
-    font-family: var(--font-body);
+    font-family: var(--font-body), sans-serif;
     line-height: 1;
     transition: var(--transition-smooth);
     border: none;
@@ -111,7 +98,6 @@
     outline-offset: 3px;
 }
 
-/* Icona e testo */
 .admin-products__fab-icon {
     width: 18px;
     height: 18px;
@@ -123,9 +109,6 @@
     line-height: 1;
 }
 
-/* --------------------------------------------------------------------------
-   FAB Categorie – colore diverso
-   -------------------------------------------------------------------------- */
 .admin-products__fab--categories {
     background-color: var(--accent-brown, #855432);
     box-shadow: 0 6px 20px rgba(133, 84, 50, 0.4);
@@ -182,7 +165,7 @@
     border-radius: var(--radius-sm);
     color: var(--text-primary);
     font-size: 0.9375rem;
-    font-family: var(--font-body);
+    font-family: var(--font-body), sans-serif;
     transition: var(--transition-smooth);
     box-sizing: border-box;
 }
@@ -214,7 +197,7 @@
     border-radius: var(--radius-sm);
     font-weight: var(--weight-medium);
     font-size: 0.875rem;
-    font-family: var(--font-body);
+    font-family: var(--font-body), sans-serif;
     cursor: pointer;
     transition: var(--transition-smooth);
     white-space: nowrap;
@@ -271,7 +254,7 @@
     border-radius: var(--radius-sm);
     color: var(--text-primary);
     font-size: 0.875rem;
-    font-family: var(--font-body);
+    font-family: var(--font-body), sans-serif;
     cursor: pointer;
     appearance: none;
     background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%23AAAAAA' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
@@ -570,7 +553,7 @@
     border-radius: var(--radius-sm);
     color: var(--text-primary);
     font-size: 0.875rem;
-    font-family: var(--font-body);
+    font-family: var(--font-body), sans-serif;
     font-weight: 500;
     cursor: pointer;
     transition: var(--transition-smooth);
@@ -671,7 +654,7 @@
     border-radius: var(--radius-md);
     font-weight: var(--weight-medium);
     font-size: 0.9375rem;
-    font-family: var(--font-body);
+    font-family: var(--font-body), sans-serif;
     cursor: pointer;
     transition: var(--transition-smooth);
     line-height: 1;
@@ -745,7 +728,7 @@
     border-radius: var(--radius-sm);
     font-size: 0.875rem;
     font-weight: var(--weight-medium);
-    font-family: var(--font-body);
+    font-family: var(--font-body), sans-serif;
     cursor: pointer;
     border: 1px solid transparent;
     transition: var(--transition-smooth);
@@ -814,7 +797,6 @@
         width: 100%;
     }
 
-    /* Trasforma la tabella in blocchi */
     .admin-products__table-wrapper {
         background: none;
         border: none;
@@ -882,7 +864,6 @@
         align-items: center;
     }
 
-    /* FAB container si adatta */
     .admin-fabs {
         bottom: 20px;
         right: 20px;
@@ -907,7 +888,6 @@
         gap: 8px;
     }
 
-    /* Nascondi il testo dei FAB, solo icona */
     .admin-products__fab-text {
         display: none;
     }

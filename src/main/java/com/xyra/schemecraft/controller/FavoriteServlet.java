@@ -10,6 +10,7 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import javax.servlet.http.HttpSession;
 
+import com.xyra.schemecraft.util.ServletUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -168,8 +169,7 @@ public class FavoriteServlet extends HttpServlet {
     }
 
     private String getActionPath(HttpServletRequest req) {
-        String pathInfo = req.getPathInfo();
-        return (pathInfo == null) ? "" : pathInfo;
+        return ServletUtils.getActionPath(req);
     }
 
     private boolean isNullOrBlank(String str) {

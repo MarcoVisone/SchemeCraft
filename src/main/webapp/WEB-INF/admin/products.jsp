@@ -57,7 +57,6 @@
                             autocomplete="off"
                     />
                 </div>
-                <!-- Tasto Search (SENZA icona) -->
                 <button id="btn-search" class="filters__search-btn" type="button">
                     Search
                 </button>

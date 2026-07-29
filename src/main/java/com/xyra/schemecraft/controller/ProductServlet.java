@@ -14,7 +14,6 @@ import com.xyra.schemecraft.dto.*;
 import com.xyra.schemecraft.exception.*;
 import com.xyra.schemecraft.model.*;
 import com.xyra.schemecraft.service.*;
-import com.xyra.schemecraft.util.FileUploadUtils;
 import com.xyra.schemecraft.util.JsonUtils;
 import com.xyra.schemecraft.util.ServletUtils;
 import org.json.JSONArray;
@@ -111,7 +110,9 @@ public class ProductServlet extends HttpServlet {
     // GET HANDLERS
     // =========================================================================
 
-    private void handleGetProductDetail(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
+    private void handleGetProductDetail(HttpServletRequest req, HttpServletResponse resp)
+            throws ServletException, IOException {
+
         String productId = req.getParameter("id");
         String format = req.getParameter("format");
 
@@ -124,7 +125,10 @@ public class ProductServlet extends HttpServlet {
 
             List<ProductImageBean> images = new ArrayList<>();
             try {
-                images = productService.listImages(productId);
+                List<ProductImageBean> fetchedImages = productService.listImages(productId);
+                if (fetchedImages != null) {
+                    images = fetchedImages;
+                }
             } catch (Exception e) {
                 logger.warn("Unable to fetch images for product ID: {}", productId, e);
             }
@@ -159,15 +163,15 @@ public class ProductServlet extends HttpServlet {
 
             List<ProductVersionBean> versions = new ArrayList<>();
             try {
-                ProductService productService = new ProductService();
-                versions = productService.listVersions(productId);
+                List<ProductVersionBean> fetchedVersions = productService.listVersions(productId);
+                if (fetchedVersions != null) {
+                    versions = fetchedVersions;
+                }
             } catch (Exception e) {
                 logger.warn("Unable to fetch versions for product ID: {}", productId, e);
             }
 
             List<ReviewView> reviews = new ArrayList<>();
-            ReviewBean userReview = null;
-
             try {
                 ReviewService reviewService = new ReviewService();
                 AccountService accountService = new AccountService();
@@ -184,7 +188,6 @@ public class ProductServlet extends HttpServlet {
                         } catch (Exception ex) {
                             logger.warn("Unable to fetch author for account ID: {}", rev.getAccountId(), ex);
                         }
-
                         reviews.add(new ReviewView(rev, author));
                     }
                 }
@@ -194,6 +197,7 @@ public class ProductServlet extends HttpServlet {
 
             boolean isPurchased = false;
             boolean isWishlisted = false;
+            ReviewBean userReview = null;
 
             AccountBean sessionUser = getAuthenticatedAccount(req);
             if (sessionUser != null) {
@@ -202,10 +206,11 @@ public class ProductServlet extends HttpServlet {
                     boolean hasPurchased = productService.ownsProduct(sessionUser.getAccountId(), productId);
 
                     isPurchased = isCreator || hasPurchased;
+
                     FavoriteService favoriteService = new FavoriteService();
                     isWishlisted = favoriteService.isFavorite(sessionUser.getAccountId(), productId);
 
-                    if (reviews != null && !reviews.isEmpty()) {
+                    if (!reviews.isEmpty()) {
                         userReview = reviews.stream()
                                 .map(ReviewView::getReview)
                                 .filter(r -> sessionUser.getAccountId().equals(r.getAccountId()))
@@ -219,24 +224,21 @@ public class ProductServlet extends HttpServlet {
 
             if ("json".equalsIgnoreCase(format) || isAjaxRequest(req)) {
                 resp.setContentType("application/json");
-                JSONObject jsonResponse = new JSONObject();
 
                 JSONObject productJson = JsonUtils.serializeProduct(product);
                 productJson.put("categories", categoriesJsonArray);
 
                 JSONArray imagesJsonArray = new JSONArray();
-                if (images != null) {
+                if (!images.isEmpty()) {
                     for (ProductImageBean img : images) {
                         JSONObject imgObj = new JSONObject();
                         imgObj.put("imageId", img.getImageId());
                         imgObj.put("imagePath", img.getImagePath());
                         imagesJsonArray.put(imgObj);
                     }
-                }
-                productJson.put("images", imagesJsonArray);
-                if (!images.isEmpty()) {
                     productJson.put("coverImagePath", images.get(0).getImagePath());
                 }
+                productJson.put("images", imagesJsonArray);
 
                 if (creator != null) {
                     productJson.put("creatorName", creator.getUsername());
@@ -257,6 +259,7 @@ public class ProductServlet extends HttpServlet {
                     reviewsJsonArray.put(revObj);
                 }
 
+                JSONObject jsonResponse = new JSONObject();
                 jsonResponse.put("success", true);
                 jsonResponse.put("isPurchased", isPurchased);
                 jsonResponse.put("isWishlisted", isWishlisted);

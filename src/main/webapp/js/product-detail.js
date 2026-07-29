@@ -66,7 +66,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 try {
                     data = await response.json();
                 } catch (e) {
-                    // Ignora parsing se non è JSON
                 }
 
                 if (response.ok && data.success) {
