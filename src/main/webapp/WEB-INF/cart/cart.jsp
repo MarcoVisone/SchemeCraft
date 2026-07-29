@@ -29,7 +29,7 @@
     <c:when test="${empty cartItems}">
       <div class="cart-empty">
         <p class="cart-empty__message">Your cart is empty.</p>
-        <a href="${pageContext.request.contextPath}/product" class="btn-mc">Browse Catalog</a>
+        <a href="${pageContext.request.contextPath}/product" class="btn btn-primary">Browse Catalog</a>
       </div>
     </c:when>
 
@@ -72,7 +72,12 @@
                 </c:choose>
               </div>
 
-              <button class="btn-mc btn-mc--remove" onclick="removeFromCart('${p.productId}')">Remove</button>
+              <button class="cart-row__remove" onclick="removeFromCart('${p.productId}')" title="Remove from cart" aria-label="Remove from cart">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <line x1="18" y1="6" x2="6" y2="18"></line>
+                  <line x1="6" y1="6" x2="18" y2="18"></line>
+                </svg>
+              </button>
             </div>
           </c:forEach>
         </div>
@@ -96,10 +101,10 @@
 
           <c:choose>
             <c:when test="${not empty sessionScope.userSession && sessionScope.userSession.loggedIn}">
-              <button class="btn-mc btn-mc--checkout" onclick="checkout()">Checkout</button>
+              <button class="btn btn-primary" onclick="checkout()">Checkout</button>
             </c:when>
             <c:otherwise>
-              <a href="${pageContext.request.contextPath}/auth/login" class="btn-mc btn-mc--checkout">
+              <a href="${pageContext.request.contextPath}/auth/login" class="btn btn-primary">
                 Log in to Checkout
               </a>
             </c:otherwise>
