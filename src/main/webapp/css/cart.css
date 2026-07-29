@@ -3,7 +3,52 @@
    (soft shadows, thin 1px borders, generous radius, no 3D/game-slot aesthetic)
    ============================================================================= */
 
-/* Aggiungi questo all'inizio della sezione .cart-page */
+/* ============================================================================
+   TOAST NOTIFICATION – stile uniforme, identico a product-detail
+   ============================================================================ */
+
+.inline-toast {
+    position: fixed;
+    bottom: 30px;
+    left: 50%;
+    transform: translateX(-50%);
+    background-color: #333;
+    color: #fff;
+    padding: 14px 28px;
+    border-radius: 10px;
+    font-family: var(--font-body, 'Inter', sans-serif);
+    font-size: 0.95rem;
+    font-weight: 500;
+    z-index: 9999;
+    opacity: 0;
+    transition: opacity 0.3s ease, transform 0.3s ease;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+    max-width: 90%;
+    text-align: center;
+    pointer-events: none; /* evita interferenze con i click */
+}
+
+.inline-toast.show {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+}
+
+.inline-toast.success {
+    background-color: #2e7d32; /* verde scuro */
+}
+
+.inline-toast.error {
+    background-color: #c62828; /* rosso scuro */
+}
+
+.inline-toast.warning {
+    background-color: #e65100; /* arancione */
+}
+
+.inline-toast.info {
+    background-color: #0d47a1; /* blu */
+}
+
 .cart-page {
     flex: 1;
     max-width: 1100px;
