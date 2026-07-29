@@ -19,6 +19,6 @@
               testOnBorrow="true"
               driverClassName="com.mysql.cj.jdbc.Driver"
               url="jdbc:mysql://localhost:3306/schemecraft_db?useSSL=false&amp;allowPublicKeyRetrieval=true&amp;serverTimezone=UTC&amp;characterEncoding=UTF-8"
-              username="root"
-              password="root"/>
+              username="YOUR_DB_USERNAME"
+              password="YOUR_DB_PASSWORD"/>
 </Context>
