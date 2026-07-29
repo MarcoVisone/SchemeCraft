@@ -8,14 +8,14 @@ import javax.servlet.annotation.MultipartConfig;
 import javax.servlet.annotation.WebServlet;
 import javax.servlet.http.*;
 
+import com.xyra.schemecraft.dto.OwnedProductItem;
 import com.xyra.schemecraft.dto.PaymentMethodRequest;
 import com.xyra.schemecraft.dto.ProfileUpdateRequest;
 import com.xyra.schemecraft.exception.*;
-import com.xyra.schemecraft.model.AccountBean;
-import com.xyra.schemecraft.model.AddressBean;
-import com.xyra.schemecraft.model.PaymentMethodBean;
-import com.xyra.schemecraft.model.UserSession;
+import com.xyra.schemecraft.model.*;
 import com.xyra.schemecraft.service.AccountService;
+import com.xyra.schemecraft.service.LookupService;
+import com.xyra.schemecraft.service.ProductService;
 import com.xyra.schemecraft.util.FileUploadUtils;
 import com.xyra.schemecraft.util.JsonUtils;
 
@@ -65,8 +65,23 @@ public class AccountServlet extends HttpServlet {
 
         switch (action) {
             case "", "/", "/profile" -> showProfilePage(req, resp, currentAccount);
-            case "/addresses" -> handleListAddresses(req, resp, currentAccount.getAccountId());
-            case "/payment-methods" -> handleListPaymentMethods(req, resp, currentAccount.getAccountId());
+            case "/orders" -> showOrdersPage(req, resp);
+            case "/library" -> showLibraryPage(req, resp, currentAccount);
+
+            case "/addresses" -> {
+                if (isAjaxRequest(req)) {
+                    handleListAddresses(req, resp, currentAccount.getAccountId());
+                } else {
+                    showAddressesPage(req, resp);
+                }
+            }
+            case "/payment-methods" -> {
+                if (isAjaxRequest(req)) {
+                    handleListPaymentMethods(req, resp, currentAccount.getAccountId());
+                } else {
+                    showPaymentMethodsPage(req, resp);
+                }
+            }
             default -> resp.sendError(HttpServletResponse.SC_NOT_FOUND, "The requested resource was not found.");
         }
     }
@@ -103,7 +118,7 @@ public class AccountServlet extends HttpServlet {
     }
 
     // =========================================================================
-    // GET HANDLERS
+    // GET PAGE HANDLERS (FORWARD TO JSP)
     // =========================================================================
 
     private void showProfilePage(HttpServletRequest req, HttpServletResponse resp, AccountBean account)
@@ -111,12 +126,63 @@ public class AccountServlet extends HttpServlet {
         try {
             AccountBean updatedAccount = accountService.getAccountById(account.getAccountId());
             req.setAttribute("account", updatedAccount);
-            req.getRequestDispatcher("/account.jsp").forward(req, resp);
+
+            LookupService lookupService = new LookupService();
+            req.setAttribute("countries", lookupService.listAllCountries());
+            req.setAttribute("currencies", lookupService.listAllCurrencies());
+            req.setAttribute("languages", lookupService.listAllLanguages());
+
+            req.getRequestDispatcher("/WEB-INF/account/account.jsp").forward(req, resp);
+
         } catch (EntityNotFoundException | ServiceException e) {
             logger.error("Error loading profile for account: {}", account.getAccountId(), e);
             resp.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, "Unable to load profile.");
         }
     }
+
+    private void showOrdersPage(HttpServletRequest req, HttpServletResponse resp)
+            throws ServletException, IOException {
+        req.getRequestDispatcher("/WEB-INF/account/account-orders.jsp").forward(req, resp);
+    }
+
+    private void showLibraryPage(HttpServletRequest req, HttpServletResponse resp, AccountBean account)
+            throws ServletException, IOException {
+        try {
+            ProductService productService = new ProductService();
+            List<OwnedProductItem> libraryProducts = productService.listOwnedProducts(account.getAccountId());
+            req.setAttribute("libraryProducts", libraryProducts);
+
+            req.getRequestDispatcher("/WEB-INF/account/account-library.jsp").forward(req, resp);
+
+        } catch (ServiceException e) {
+            logger.error("Error loading library for account: {}", account.getAccountId(), e);
+            resp.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, "Unable to load library.");
+        }
+    }
+
+    private void showAddressesPage(HttpServletRequest req, HttpServletResponse resp)
+            throws ServletException, IOException {
+        try {
+            LookupService lookupService = new LookupService();
+            // Serve per popolare la select del Paese nel modale "Aggiungi Indirizzo"
+            req.setAttribute("countries", lookupService.listAllCountries());
+
+            req.getRequestDispatcher("/WEB-INF/account/account-addresses.jsp").forward(req, resp);
+
+        } catch (ServiceException e) {
+            logger.error("Error loading addresses page", e);
+            resp.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, "Unable to load addresses page.");
+        }
+    }
+
+    private void showPaymentMethodsPage(HttpServletRequest req, HttpServletResponse resp)
+            throws ServletException, IOException {
+        req.getRequestDispatcher("/WEB-INF/account/account-payments.jsp").forward(req, resp);
+    }
+
+    // =========================================================================
+    // GET API HANDLERS (JSON RESPONSE)
+    // =========================================================================
 
     private void handleListAddresses(HttpServletRequest req, HttpServletResponse resp, String accountId) throws IOException {
         try {
@@ -162,12 +228,17 @@ public class AccountServlet extends HttpServlet {
                 }
             }
 
+            String countryId = req.getParameter("countryId");
+            String currencyId = req.getParameter("currencyId");
+            String languageId = req.getParameter("languageId");
+            String bio = req.getParameter("bio");
+
             ProfileUpdateRequest updateRequest = new ProfileUpdateRequest(
                     account.getAccountId(),
-                    req.getParameter("countryId"),
-                    req.getParameter("languageId"),
-                    req.getParameter("currencyId"),
-                    req.getParameter("bio"),
+                    countryId,
+                    currencyId,
+                    languageId,
+                    bio,
                     bannerPath,
                     profileImagePath
             );
@@ -407,6 +478,12 @@ public class AccountServlet extends HttpServlet {
     // HELPER & UTILITY METHODS
     // =========================================================================
 
+    private boolean isAjaxRequest(HttpServletRequest req) {
+        String requestedWith = req.getHeader("X-Requested-With");
+        String accept = req.getHeader("Accept");
+        return "XMLHttpRequest".equals(requestedWith) || (accept != null && accept.contains("application/json"));
+    }
+
     private AccountBean getAuthenticatedAccount(HttpServletRequest req) {
         HttpSession session = req.getSession(false);
         if (session == null) {
@@ -417,11 +494,7 @@ public class AccountServlet extends HttpServlet {
     }
 
     private void handleUnauthorized(HttpServletRequest req, HttpServletResponse resp) throws IOException {
-        String acceptHeader = req.getHeader("Accept");
-        String requestedWith = req.getHeader("X-Requested-With");
-
-        if ((acceptHeader != null && acceptHeader.contains("application/json")) ||
-                "XMLHttpRequest".equals(requestedWith)) {
+        if (isAjaxRequest(req)) {
             JsonUtils.sendError(resp, "User is not authenticated", HttpServletResponse.SC_UNAUTHORIZED);
         } else {
             resp.sendRedirect(req.getContextPath() + "/login.jsp");

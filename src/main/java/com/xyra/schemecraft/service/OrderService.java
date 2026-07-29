@@ -3,6 +3,8 @@ package com.xyra.schemecraft.service;
 import com.xyra.schemecraft.connection.ConnectionPool;
 import com.xyra.schemecraft.dao.*;
 import com.xyra.schemecraft.dto.OrderAdminView;
+import com.xyra.schemecraft.dto.OrderDetailDTO;
+import com.xyra.schemecraft.dto.OrderItemDetailDTO;
 import com.xyra.schemecraft.dto.OrderSearchCriteria;
 import com.xyra.schemecraft.exception.*;
 import com.xyra.schemecraft.model.*;
@@ -460,6 +462,36 @@ public class OrderService {
             }
         } catch (SQLException e) {
             logger.error("Failed to close database connection", e);
+        }
+    }
+
+    public OrderDetailDTO getFullOrderDetail(String orderId) throws ServiceException {
+        Connection connection = null;
+        try {
+            connection = ConnectionPool.getConnection();
+            connection.setAutoCommit(false);
+
+            OrderBean order = orderDAO.findById(connection, orderId)
+                    .orElseThrow(() -> new EntityNotFoundException("Order not found"));
+
+            OrderStatusDAO orderStatusDAO = new  OrderStatusDAO();
+            AddressDAO addressDAO = new  AddressDAO();
+            CurrencyDAO currencyDAO = new  CurrencyDAO();
+            OrderStatusBean status = orderStatusDAO.findById(connection, order.getStatus()).orElse(null);
+            AddressBean address = addressDAO.findById(connection, order.getAddressId()).orElse(null);
+            CurrencyBean currency = currencyDAO.findById(connection, order.getCurrencyId()).orElse(null);
+
+            List<OrderItemBean> orderItems = orderItemDAO.findAllByOrderId(connection, orderId);
+
+            List<OrderItemDetailDTO> itemDetails = new ArrayList<>();
+            for (OrderItemBean item : orderItems) {
+                ProductBean product = productDAO.findById(connection, item.getProductId()).orElse(null);
+                itemDetails.add(new OrderItemDetailDTO(item, product));
+            }
+
+            return new OrderDetailDTO(order, status, address, currency, itemDetails);
+        } catch (SQLException e) {
+            throw new ServiceException("Error retrieving order details", e);
         }
     }
 }

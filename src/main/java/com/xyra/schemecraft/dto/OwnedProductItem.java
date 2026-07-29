@@ -22,14 +22,17 @@ public class OwnedProductItem implements Serializable {
 
     private boolean owned;
 
+    private String coverImagePath;
+
     public OwnedProductItem() {
     }
 
-    public OwnedProductItem(ProductBean product, String ownerAccountId, boolean purchased, boolean owned) {
+    public OwnedProductItem(ProductBean product, String ownerAccountId, boolean purchased, boolean owned, String coverImagePath) {
         this.product = product;
         this.ownerAccountId = ownerAccountId;
         this.purchased = purchased;
         this.owned = owned;
+        this.coverImagePath = coverImagePath;
     }
 
     public ProductBean getProduct() {
@@ -64,6 +67,14 @@ public class OwnedProductItem implements Serializable {
         this.owned = owned;
     }
 
+    public String getCoverImagePath() {
+        return coverImagePath;
+    }
+
+    public void setCoverImagePath(String coverImagePath) {
+        this.coverImagePath = coverImagePath;
+    }
+
     @Override
     public String toString() {
         return "OwnedProductItem{" +
@@ -71,6 +82,7 @@ public class OwnedProductItem implements Serializable {
                 ", ownerAccountId='" + ownerAccountId + '\'' +
                 ", purchased=" + purchased +
                 ", owned=" + owned +
+                ", coverImagePath='" + coverImagePath + '\'' +
                 '}';
     }
 }

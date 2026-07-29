@@ -659,16 +659,23 @@ public class ProductService {
             Map<String, OwnedProductItem> ownedProducts = new LinkedHashMap<>();
             List<ProductBean> createdProducts = productDAO.findAllByAccountId(conn, accountId);
             for (ProductBean product : createdProducts) {
-                ownedProducts.put(product.getProductId(),
-                        new OwnedProductItem(product, accountId, false, true));
+                if (product.isActive()) {
+                    String image = productImageDAO.findFirstImageByProductId(conn, product.getProductId());
+                    ownedProducts.put(product.getProductId(),
+                            new OwnedProductItem(product, accountId, false, true, image));
+                }
+
             }
 
             List<AccountProductBean> purchasedLinks = accountProductDAO.findAllByAccountId(conn, accountId);
             for (AccountProductBean link : purchasedLinks) {
                 Optional<ProductBean> product = productDAO.findById(conn, link.getProductId());
                 if (product.isPresent()) {
-                    ownedProducts.put(link.getProductId(),
-                            new OwnedProductItem(product.get(), accountId, true, false));
+                    if (product.get().isActive()) {
+                        String image = productImageDAO.findFirstImageByProductId(conn, product.get().getProductId());
+                        ownedProducts.put(link.getProductId(),
+                                new OwnedProductItem(product.get(), accountId, true, false, image));
+                    }
                 } else {
                     logger.warn("Account {} has a purchase link to Product {} which no longer exists",
                             accountId, link.getProductId());

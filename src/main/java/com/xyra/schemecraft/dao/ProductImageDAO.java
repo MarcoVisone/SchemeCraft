@@ -123,6 +123,27 @@ public class ProductImageDAO extends BaseDAO {
         return images;
     }
 
+    public String findFirstImageByProductId(Connection conn, String productId) throws DAOException {
+        if (productId == null || productId.trim().isEmpty()) {
+            throw new IllegalArgumentException("Product ID cannot be null or empty for images lookup");
+        }
+
+        String sql = SELECT_BASE + "WHERE product_id = ? AND display_order = 0";
+
+        try (PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setString(1, productId.trim());
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    return rs.getString("image_path");
+                }
+            }
+        } catch (SQLException e) {
+            logger.error("Database error while retrieving first image for Product ID: {}", productId, e);
+            throw new DAOException("Error retrieving first image by Product ID", e);
+        }
+        return null;
+    }
+
     /**
      * Updates an existing product image configuration.
      *

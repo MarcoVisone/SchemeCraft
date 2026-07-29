@@ -15,6 +15,7 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import javax.servlet.http.HttpSession;
 
+import com.xyra.schemecraft.dto.OrderDetailDTO;
 import org.json.JSONArray;
 import org.json.JSONObject;
 import org.slf4j.Logger;
@@ -70,7 +71,7 @@ public class OrderServlet extends HttpServlet {
         String action = getActionPath(req);
 
         switch (action) {
-            case "", "/", "/list" -> handleListAccountOrders(req, resp, currentAccount.getAccountId());
+            case "", "/", "/list", "/my-orders" -> handleListAccountOrders(req, resp, currentAccount.getAccountId());
             case "/detail" -> handleGetOrderDetail(req, resp, currentAccount.getAccountId());
             case "/admin/search" -> handleSearchOrdersAdmin(req, resp);
             default -> resp.sendError(HttpServletResponse.SC_NOT_FOUND, "The requested resource was not found.");
@@ -140,14 +141,14 @@ public class OrderServlet extends HttpServlet {
         String format = req.getParameter("format");
 
         if (orderId == null || orderId.isBlank()) {
-            sendErrorResponse(resp, HttpServletResponse.SC_BAD_REQUEST, "Missing required parameter: id");
+            sendErrorResponse(resp, HttpServletResponse.SC_BAD_REQUEST, "Parameter missing: id");
             return;
         }
 
         try {
-            OrderBean order = orderService.getOrderById(orderId);
+            OrderDetailDTO orderDetail = orderService.getFullOrderDetail(orderId);
 
-            if (!order.getAccountId().equals(accountId)) {
+            if (!orderDetail.getOrder().getAccountId().equals(accountId)) {
                 sendErrorResponse(resp, HttpServletResponse.SC_FORBIDDEN, "You do not have permission to view this order.");
                 return;
             }
@@ -156,18 +157,18 @@ public class OrderServlet extends HttpServlet {
                 resp.setContentType("application/json");
                 JSONObject jsonResponse = new JSONObject();
                 jsonResponse.put("success", true);
-                jsonResponse.put("order", JsonUtils.serializeOrder(order));
+                jsonResponse.put("order", JsonUtils.serializeOrderDetail(orderDetail));
                 resp.getWriter().print(jsonResponse.toString());
             } else {
-                req.setAttribute("order", order);
+                req.setAttribute("orderDetail", orderDetail);
                 req.getRequestDispatcher("/order-detail.jsp").forward(req, resp);
             }
 
         } catch (EntityNotFoundException e) {
             sendErrorResponse(resp, HttpServletResponse.SC_NOT_FOUND, e.getMessage());
         } catch (ServiceException e) {
-            logger.error("Error fetching order detail for ID: {}", orderId, e);
-            sendErrorResponse(resp, HttpServletResponse.SC_INTERNAL_SERVER_ERROR, "Unable to fetch order details.");
+            logger.error("Error retrieving order details for ID: {}", orderId, e);
+            sendErrorResponse(resp, HttpServletResponse.SC_INTERNAL_SERVER_ERROR, "Unable to retrieve order details.");
         }
     }
 

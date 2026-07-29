@@ -7,13 +7,10 @@ import java.util.List;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
+import com.xyra.schemecraft.dto.*;
 import com.xyra.schemecraft.model.*;
 import org.json.JSONArray;
 import org.json.JSONObject;
-
-import com.xyra.schemecraft.dto.AccountAdminView;
-import com.xyra.schemecraft.dto.OrderAdminView;
-import com.xyra.schemecraft.dto.OwnedProductItem;
 
 public final class JsonUtils {
 
@@ -329,6 +326,8 @@ public final class JsonUtils {
             return serializeCurrency(cur);
         } else if (item instanceof OrderStatusBean osb) {
             return serializeOrderStatus(osb);
+        } else if (item instanceof OrderDetailDTO odd) {
+            return serializeOrderDetail(odd);
         } else {
             return item;
         }
@@ -340,5 +339,58 @@ public final class JsonUtils {
             array.put(serializeSingle(item));
         }
         return array;
+    }
+
+    public static JSONObject serializeOrderItemDetail(OrderItemDetailDTO detail) {
+        if (detail == null) {
+            return new JSONObject();
+        }
+
+        JSONObject obj = new JSONObject();
+
+        if (detail.getItem() != null) {
+            OrderItemBean item = detail.getItem();
+            obj.put("productId", item.getProductId());
+            obj.put("pricePaid", item.getPrice());
+            obj.put("discountApplied", item.getDiscount());
+            obj.put("taxPaid", item.getTax());
+            obj.put("lineTotal", detail.getLineTotal());
+        }
+
+        if (detail.getProduct() != null) {
+            obj.put("product", serializeProduct(detail.getProduct()));
+        }
+
+        return obj;
+    }
+
+    public static JSONObject serializeOrderDetail(OrderDetailDTO detail) {
+        if (detail == null) {
+            return new JSONObject();
+        }
+
+        JSONObject obj = serializeOrder(detail.getOrder());
+
+        if (detail.getStatusInfo() != null) {
+            obj.put("statusInfo", serializeOrderStatus(detail.getStatusInfo()));
+        }
+
+        if (detail.getAddress() != null) {
+            obj.put("address", serializeAddress(detail.getAddress()));
+        }
+
+        if (detail.getCurrency() != null) {
+            obj.put("currency", serializeCurrency(detail.getCurrency()));
+        }
+
+        JSONArray itemsArray = new JSONArray();
+        if (detail.getItems() != null) {
+            for (OrderItemDetailDTO itemDetail : detail.getItems()) {
+                itemsArray.put(serializeOrderItemDetail(itemDetail));
+            }
+        }
+        obj.put("items", itemsArray);
+
+        return obj;
     }
 }
