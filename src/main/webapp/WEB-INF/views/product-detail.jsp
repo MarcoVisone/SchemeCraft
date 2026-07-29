@@ -335,7 +335,7 @@
             </div>
 
             <div class="sidebar-box">
-                <h3>Creators</h3>
+                <h3>Creator</h3>
                 <c:choose>
                     <c:when test="${not empty creator}">
                         <div class="creator-card">
@@ -344,7 +344,12 @@
                                  alt="${creator.username}">
                             <div class="creator-details">
                                 <span class="creator-name">${creator.username}</span>
-                                <span class="creator-role">Author</span>
+
+                                <c:if test="${not empty creator.bio || not empty creator.description}">
+                                    <p class="creator-bio">
+                                            ${not empty creator.bio ? creator.bio : creator.description}
+                                    </p>
+                                </c:if>
                             </div>
                         </div>
                     </c:when>

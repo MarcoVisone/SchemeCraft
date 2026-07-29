@@ -102,7 +102,14 @@
                     <c:forEach var="item" items="${libraryProducts}">
                         <div class="product-card">
                             <a href="${pageContext.request.contextPath}/product/detail?id=${item.product.productId}">
-                                <img src="${pageContext.request.contextPath}/${item.coverImagePath}" alt="${item.product.productName}" />
+                                <c:choose>
+                                    <c:when test="${not empty item.coverImagePath}">
+                                        <img src="${pageContext.request.contextPath}/${item.coverImagePath}" alt="${item.product.productName}" />
+                                    </c:when>
+                                    <c:otherwise>
+                                        <div class="product-banner dirt-bg" style="width: 100%; height: 160px; border-radius: 8px;"></div>
+                                    </c:otherwise>
+                                </c:choose>
                                 <h3>${item.product.productName}</h3>
                             </a>
                         </div>

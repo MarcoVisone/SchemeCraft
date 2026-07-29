@@ -151,7 +151,7 @@
 .btn-favorite {
     width: 42px;
     height: 42px;
-    border-radius: 50%;
+    border-radius: 12px;
     background-color: var(--bg-card);
     border: 1px solid var(--border-color);
     color: var(--text-secondary);
@@ -317,14 +317,14 @@
 
 .creator-card {
     display: flex;
-    align-items: center;
+    align-items: flex-start;
     gap: 12px;
 }
 
 .creator-avatar {
     width: 40px;
     height: 40px;
-    border-radius: 50%;
+    border-radius: 12px;
     object-fit: cover;
     border: 1px solid var(--border-color);
     flex-shrink: 0;
@@ -590,7 +590,7 @@
 .review-avatar {
     width: 38px;
     height: 38px;
-    border-radius: 50%;
+    border-radius: 12px;
     object-fit: cover;
     border: 1px solid var(--border-color);
     flex-shrink: 0;
@@ -724,3 +724,12 @@
         grid-column: span 2;
     }
 }
+
+.creator-details .creator-bio {
+    margin-top: 6px;
+    font-size: 0.85rem;
+    color: var(--text-secondary, #a0a0a0);
+    line-height: 1.4;
+    word-break: break-word;
+}
+
