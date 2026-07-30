@@ -31,4 +31,12 @@ public record CartLineItem(
             coverImagePath = coverImagePath.trim();
         }
     }
+
+    public ProductBean getProduct() {
+        return product();
+    }
+
+    public String getCoverImagePath() {
+        return coverImagePath();
+    }
 }

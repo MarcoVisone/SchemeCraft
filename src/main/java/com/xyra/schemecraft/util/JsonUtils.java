@@ -149,6 +149,21 @@ public final class JsonUtils {
         return obj;
     }
 
+    public static JSONObject serializeOrderAdminView(OrderAdminView view) {
+        if (view == null) {
+            return new JSONObject();
+        }
+        JSONObject obj = new JSONObject();
+        obj.put("orderId", view.orderId());
+        obj.put("accountId", view.accountId());
+        obj.put("customerUsername", view.username());
+        obj.put("customerEmail", view.email());
+        obj.put("orderDate", view.createdAt() != null ? view.createdAt().toString() : null);
+        obj.put("totalAmount", view.totalAmount());
+        obj.put("status", view.status());
+        return obj;
+    }
+
     public static JSONObject serializeProductFull(ProductFullDTO bean) {
         if (bean == null) {
             return new JSONObject();
@@ -356,6 +371,8 @@ public final class JsonUtils {
             return serializeOrderDetail(odd);
         } else if (item instanceof ProductFullDTO prf) {
             return serializeProductFull(prf);
+        } else if(item instanceof OrderAdminView view) {
+            return serializeOrderAdminView(view);
         } else {
             return item;
         }

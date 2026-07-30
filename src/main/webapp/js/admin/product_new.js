@@ -373,6 +373,7 @@
        ---------------------------------------------------------------------- */
     function isFormComplete() {
         const hasName = els.productName.value.trim() !== '';
+        const hasDescription = els.description.value.trim() !== '';
         const hasPrice = els.price.value.trim() !== '' && Number(els.price.value) >= 0;
         const hasCurrency = els.currencyId.value.trim() !== '';
         const hasStock = els.unlimitedStock.checked || els.stockQuantity.value.trim() !== '';
@@ -380,7 +381,7 @@
         const hasSchematic = selectedSchematicFile !== null;
         const hasVersion = els.version.value.trim() !== '';
 
-        return hasName && hasPrice && hasCurrency && hasStock && hasCategory && hasSchematic && hasVersion;
+        return hasName && hasDescription && hasPrice && hasCurrency && hasStock && hasCategory && hasSchematic && hasVersion;
     }
 
     /* ----------------------------------------------------------------------
@@ -426,7 +427,7 @@
             const payload = {
                 product: {
                     productName: els.productName.value.trim(),
-                    description: els.description.value.trim() || null,
+                    description: els.description.value.trim(),
                     price: Number(els.price.value),
                     discount: els.discount.value.trim() === '' ? 0 : Number(els.discount.value),
                     currencyId: els.currencyId.value,
