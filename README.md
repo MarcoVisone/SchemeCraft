@@ -13,8 +13,8 @@
 
 | **Name**       | **Student ID** | **Role**  |
 |----------------|----------------|-----------|
-| Marco Visone   | 0512122246     | Developer |
-| Stefano Oriolo | 0512121782     | Developer |
+| Marco Visone   | 05121#####     | Developer |
+| Stefano Oriolo | 05121#####     | Developer |
 
 ---
 
